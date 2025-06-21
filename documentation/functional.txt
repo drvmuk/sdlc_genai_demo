@@ -1,0 +1,311 @@
+Okay, here's a detailed Functional Requirements Document (FRD) based on the provided Business Requirement Document (BRD), formatted as requested:
+
+**Functional Requirements Document**
+
+**1. Requirement ID:** FR-BRONZE-001
+
+**2. Title:** Ingest Customer Raw Data from Unity Catalog Volume
+
+**3. Description:** Ingest customer raw data from a CSV file located in a Unity Catalog Volume into a Delta table, enabling checkpointing and incremental loads, and applying SCD Type 2 logic.
+
+**4. Actor(s):** Data Pipeline, Unity Catalog, Databricks Delta Tables
+
+**5. Preconditions:**
+
+*   Unity Catalog Volume containing customer raw data in CSV format exists.
+*   The Databricks environment has access to the Unity Catalog.
+*   The `bronzezone.data.customer_raw` Delta table either does not exist or exists and is accessible.
+
+**6. Trigger:** Scheduled execution of the data pipeline or manual trigger.
+
+**7. Main Flow / Functional Steps:**
+
+1.  Read customer raw data from the specified Unity Catalog Volume using `cloud_files` format.
+2.  Apply Schema Evolution.
+3.  Apply SCD Type 2 logic to the ingested data. Use `id` as the primary key.
+4.  Add `CreateDateTime`, `UpdateDateTime`, and `IsActive` columns to the table.
+5.  Write the data into the `bronzezone.data.customer_raw` Delta table.
+6.  Enable checkpointing and incremental loads for efficient processing.
+7.  Check and Create catalog.schema.table if not present via Helper method.
+
+**8. Alternate Flows / Exceptions:**
+
+*   If the Unity Catalog Volume is inaccessible, log an error and terminate the process.
+*   If the CSV data is corrupted or does not match the expected schema, log the error, skip the file, and continue processing.
+*   If the `bronzezone.data.customer_raw` Delta table cannot be accessed or created, log an error and terminate the process.
+
+**9. Postconditions / Outputs:**
+
+*   Customer raw data is ingested into the `bronzezone.data.customer_raw` Delta table with SCD Type 2 applied.
+*   Checkpoints are created for incremental loading.
+*   History of customer records is maintained in the table.
+*   Latest customer data is marked with `IsActive = True`.
+
+**10. Business Rules:**
+
+*   SCD Type 2 logic must be applied using `id` as the primary key.
+*   `CreateDateTime` should represent the timestamp when the record was first inserted.
+*   `UpdateDateTime` should represent the timestamp when the record was last updated.
+*   `IsActive` should indicate the latest version of a customer record.
+
+**11. Data Requirements (Optional):**
+
+*   Input: CSV file from Unity Catalog Volume.
+*   Output: `bronzezone.data.customer_raw` Delta table.
+
+**12. Assumptions (Optional):**
+
+*   The CSV file in the Unity Catalog Volume contains customer data in the expected format.
+*   The Databricks environment has sufficient resources to process the data.
+
+**13. Dependencies (Optional):**
+
+*   Unity Catalog.
+*   Databricks Delta Tables.
+*   `cloud_files` format for CSV ingestion.
+*   `utils/scd2.py` for SCD Type 2 logic.
+*   `utils/catalog_helper.py` – Unity Catalog creation/check helper
+
+**14. Priority:** High
+
+**15. Acceptance Criteria:**
+
+*   Customer raw data is successfully ingested into the `bronzezone.data.customer_raw` Delta table.
+*   SCD Type 2 is correctly implemented using the `id` as primary key.
+*   History is maintained and `IsActive` is correctly set.
+*   Checkpoints are created for incremental loading.
+*   The process handles errors gracefully and logs appropriate messages.
+*   Unit tests pass using dummy data, validating the ingestion process.
+
+---
+
+**1. Requirement ID:** FR-BRONZE-002
+
+**2. Title:** Ingest Orders Raw Data from Unity Catalog Volume
+
+**3. Description:** Ingest orders raw data from a CSV file located in a Unity Catalog Volume into a Delta table, enabling checkpointing and incremental loads, applying SCD Type 2 logic and using watermarking on the order_date field.
+
+**4. Actor(s):** Data Pipeline, Unity Catalog, Databricks Delta Tables
+
+**5. Preconditions:**
+
+*   Unity Catalog Volume containing orders raw data in CSV format exists.
+*   The Databricks environment has access to the Unity Catalog.
+*   The `bronzezone.data.orders_raw` Delta table either does not exist or exists and is accessible.
+
+**6. Trigger:** Scheduled execution of the data pipeline or manual trigger.
+
+**7. Main Flow / Functional Steps:**
+
+1.  Read orders raw data from the specified Unity Catalog Volume using `cloud_files` format.
+2.  Apply Schema Evolution.
+3.  Apply SCD Type 2 logic to the ingested data. Use `id` as the primary key.
+4.  Add `CreateDateTime`, `UpdateDateTime`, and `IsActive` columns to the table.
+5.  Implement Watermarking on `order_date`.
+6.  Write the data into the `bronzezone.data.orders_raw` Delta table.
+7.  Enable checkpointing and incremental loads for efficient processing.
+8. Check and Create catalog.schema.table if not present via Helper method.
+
+**8. Alternate Flows / Exceptions:**
+
+*   If the Unity Catalog Volume is inaccessible, log an error and terminate the process.
+*   If the CSV data is corrupted or does not match the expected schema, log the error, skip the file, and continue processing.
+*   If the `bronzezone.data.orders_raw` Delta table cannot be accessed or created, log an error and terminate the process.
+
+**9. Postconditions / Outputs:**
+
+*   Orders raw data is ingested into the `bronzezone.data.orders_raw` Delta table with SCD Type 2 applied.
+*   Watermarking is correctly implemented using the `order_date` field.
+*   Checkpoints are created for incremental loading.
+*   History of order records is maintained in the table.
+*   Latest order data is marked with `IsActive = True`.
+
+**10. Business Rules:**
+
+*   SCD Type 2 logic must be applied using `id` as the primary key.
+*   `CreateDateTime` should represent the timestamp when the record was first inserted.
+*   `UpdateDateTime` should represent the timestamp when the record was last updated.
+*   `IsActive` should indicate the latest version of an order record.
+*   Watermarking is necessary to prevent reprocessing older orders.
+
+**11. Data Requirements (Optional):**
+
+*   Input: CSV file from Unity Catalog Volume.
+*   Output: `bronzezone.data.orders_raw` Delta table.
+
+**12. Assumptions (Optional):**
+
+*   The CSV file in the Unity Catalog Volume contains order data in the expected format.
+*   The Databricks environment has sufficient resources to process the data.
+
+**13. Dependencies (Optional):**
+
+*   Unity Catalog.
+*   Databricks Delta Tables.
+*   `cloud_files` format for CSV ingestion.
+*   `utils/scd2.py` for SCD Type 2 logic.
+*   `utils/catalog_helper.py` – Unity Catalog creation/check helper
+
+**14. Priority:** High
+
+**15. Acceptance Criteria:**
+
+*   Orders raw data is successfully ingested into the `bronzezone.data.orders_raw` Delta table.
+*   SCD Type 2 is correctly implemented using the `id` as primary key.
+*   Watermarking on the `order_date` field is correctly implemented and functional.
+*   History is maintained and `IsActive` is correctly set.
+*   Checkpoints are created for incremental loading.
+*   The process handles errors gracefully and logs appropriate messages.
+*   Unit tests pass using dummy data, validating the ingestion process.
+
+---
+
+**1. Requirement ID:** FR-SILVER-001
+
+**2. Title:** Combine Customer and Order Data
+
+**3. Description:** Join customer and order data from the bronze layer, remove nulls and duplicates, and apply SCD Type 2 upsert logic to produce a combined customer order dataset.
+
+**4. Actor(s):** Data Pipeline, Databricks Delta Tables
+
+**5. Preconditions:**
+
+*   The `bronzezone.data.customer_raw` and `bronzezone.data.orders_raw` Delta tables exist and contain data.
+*   The Databricks environment has access to these Delta tables.
+*   The `silverzone.data.customer_order_combined` Delta table either does not exist or exists and is accessible.
+
+**6. Trigger:** Scheduled execution of the data pipeline or manual trigger, after the bronze layer ingestion is complete.
+
+**7. Main Flow / Functional Steps:**
+
+1.  Read customer data from the `bronzezone.data.customer_raw` Delta table.
+2.  Read order data from the `bronzezone.data.orders_raw` Delta table.
+3.  Join the two datasets on `id`.
+4.  Remove null values from the combined dataset.
+5.  Deduplicate the data using SHA256 hash-based deduplication.
+6.  Apply SCD Type 2 upsert logic to the resulting dataset.
+7.  Write the combined, cleaned, and transformed data into the `silverzone.data.customer_order_combined` Delta table.
+8.  Check and Create catalog.schema.table if not present via Helper method.
+
+**8. Alternate Flows / Exceptions:**
+
+*   If either the `bronzezone.data.customer_raw` or `bronzezone.data.orders_raw` Delta table is inaccessible, log an error and terminate the process.
+*   If the join operation fails, log an error and terminate the process.
+*   If the `silverzone.data.customer_order_combined` Delta table cannot be accessed or created, log an error and terminate the process.
+
+**9. Postconditions / Outputs:**
+
+*   The `silverzone.data.customer_order_combined` Delta table contains combined, cleaned, and transformed customer and order data with SCD Type 2 applied.
+*   Null values and duplicate records have been removed.
+*   History of combined customer and order records is maintained.
+*   Latest combined data is marked with `IsActive = True`.
+
+**10. Business Rules:**
+
+*   The join should be performed on the `id` column.
+*   SHA256 hash-based deduplication should be used to ensure data integrity.
+*   SCD Type 2 logic must be applied to track changes over time.
+
+**11. Data Requirements (Optional):**
+
+*   Input: `bronzezone.data.customer_raw` and `bronzezone.data.orders_raw` Delta tables.
+*   Output: `silverzone.data.customer_order_combined` Delta table.
+
+**12. Assumptions (Optional):**
+
+*   The `id` column is consistently populated across both customer and order datasets.
+*   The Databricks environment has sufficient resources to perform the join and deduplication operations.
+
+**13. Dependencies (Optional):**
+
+*   Databricks Delta Tables.
+*   `utils/scd2.py` for SCD Type 2 logic.
+*   `utils/catalog_helper.py` – Unity Catalog creation/check helper
+
+**14. Priority:** High
+
+**15. Acceptance Criteria:**
+
+*   Customer and order data are successfully joined and loaded into the `silverzone.data.customer_order_combined` Delta table.
+*   Null values and duplicate records are removed.
+*   SCD Type 2 is correctly implemented.
+*   History is maintained and `IsActive` is correctly set.
+*   The process handles errors gracefully and logs appropriate messages.
+*   Unit tests pass using dummy data, validating the transformation process.
+
+---
+
+**1. Requirement ID:** FR-GOLD-001
+
+**2. Title:** Aggregate and Summarize Customer Order Data
+
+**3. Description:** Group and aggregate customer order data from the silver layer by age or email domain to calculate total revenue and average order amount, then apply SCD Type 2 upsert logic to store the summarized data.
+
+**4. Actor(s):** Data Pipeline, Databricks Delta Tables
+
+**5. Preconditions:**
+
+*   The `silverzone.data.customer_order_combined` Delta table exists and contains data.
+*   The Databricks environment has access to this Delta table.
+*   The `goldzone.data.customer_order_summary` Delta table either does not exist or exists and is accessible.
+
+**6. Trigger:** Scheduled execution of the data pipeline or manual trigger, after the silver layer transformation is complete.
+
+**7. Main Flow / Functional Steps:**
+
+1.  Read customer order data from the `silverzone.data.customer_order_combined` Delta table.
+2.  Group and aggregate the data by age or email domain.
+3.  Calculate the following metrics for each group:
+    *   Total Revenue
+    *   Average Order Amount
+4.  Apply SCD Type 2 upsert logic to the resulting summary data.
+5.  Write the aggregated and summarized data into the `goldzone.data.customer_order_summary` Delta table.
+6.  Check and Create catalog.schema.table if not present via Helper method.
+
+**8. Alternate Flows / Exceptions:**
+
+*   If the `silverzone.data.customer_order_combined` Delta table is inaccessible, log an error and terminate the process.
+*   If the aggregation operation fails, log an error and terminate the process.
+*   If the `goldzone.data.customer_order_summary` Delta table cannot be accessed or created, log an error and terminate the process.
+
+**9. Postconditions / Outputs:**
+
+*   The `goldzone.data.customer_order_summary` Delta table contains aggregated and summarized customer order data with SCD Type 2 applied.
+*   Total revenue and average order amount are calculated for each group (age or email domain).
+*   History of customer order summaries is maintained.
+*   Latest summary data is marked with `IsActive = True`.
+
+**10. Business Rules:**
+
+*   Aggregation should be performed by either age or email domain as specified in the configuration.
+*   Total revenue and average order amount must be calculated accurately.
+*   SCD Type 2 logic must be applied to track changes over time.
+
+**11. Data Requirements (Optional):**
+
+*   Input: `silverzone.data.customer_order_combined` Delta table.
+*   Output: `goldzone.data.customer_order_summary` Delta table.
+
+**12. Assumptions (Optional):**
+
+*   The `silverzone.data.customer_order_combined` Delta table contains the necessary columns for aggregation (age, email domain, order amount).
+*   The Databricks environment has sufficient resources to perform the aggregation operations.
+
+**13. Dependencies (Optional):**
+
+*   Databricks Delta Tables.
+*   `utils/scd2.py` for SCD Type 2 logic.
+*   `utils/catalog_helper.py` – Unity Catalog creation/check helper
+
+**14. Priority:** High
+
+**15. Acceptance Criteria:**
+
+*   Customer order data is successfully aggregated and loaded into the `goldzone.data.customer_order_summary` Delta table.
+*   Total revenue and average order amount are calculated correctly for each group.
+*   SCD Type 2 is correctly implemented.
+*   History is maintained and `IsActive` is correctly set.
+*   The process handles errors gracefully and logs appropriate messages.
+*   Unit tests pass using dummy data, validating the aggregation process.
+---
+These requirements cover the core functionality described in the provided BRD. Remember to elaborate on these requirements further and add any other requirements.
