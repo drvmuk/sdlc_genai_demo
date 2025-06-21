@@ -1,0 +1,1 @@
+This structure and code provide a solid foundation for a Databricks project that ingests data, applies transformations, and aggregates data while maintaining SCD Type 2 history and handling errors gracefully.
