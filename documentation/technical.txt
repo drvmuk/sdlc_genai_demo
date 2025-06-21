@@ -1,0 +1,370 @@
+Okay, here's the Technical Requirements Document (TRD) based on the provided Functional Requirements Document (FRD).
+
+**Technical Requirements Document (TRD)**
+
+**Project Title:** End-to-End ETL Pipeline for Product Data
+
+---
+
+**1. Technical Requirement ID:** TR-BRZ-001
+
+**2. Related Functional Requirement(s):** FR-BRZ-001
+
+**3. Objective:** Implement a DLT pipeline to ingest customer data from CSV files in a Unity Catalog Volume into a Delta table in the Bronze layer, applying SCD Type 2.
+
+**4. Target Cluster Configuration**
+
+*   **Cluster Name:** dlt-cluster
+*   **Databricks Runtime Version:** 14.3.x-photon-scala2.12
+*   **Node Type:** Standard_DS3_v2
+*   **Driver Node:** 1
+*   **Worker Nodes:** 2-8 (autoscaling)
+*   **Autoscaling:** Enabled (Min Workers: 2, Max Workers: 8)
+*   **Auto Termination:** Enabled (after 120 minutes of inactivity)
+*   **Libraries Installed:**  Delta Live Tables (DLT) library (built-in), No specific external libraries needed
+
+**5. Source Data Details**
+
+| Dataset Name | Location (Path/Table)                           | Format | Description                                                                                                                                                                          |
+| :----------- | :------------------------------------------------ | :----- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Customer Data | `/Volumes/catalog_sdlc/rawdata/customer` | CSV    | Raw Customer data in CSV format containing columns: `id(STRING)`, `name(STRING)`, `email(STRING)`, `age(INT)`.  New files and updates will be incrementally loaded via Auto Loader. |
+
+**6. Target Data Details**
+
+| Output Name                 | Location                      | Format | Description                                                                                                                                                                                                |
+| :-------------------------- | :---------------------------- | :----- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bronzezone.data.customer_raw` | `bronzezone.data.customer_raw` | Delta  | Delta table in the Bronze layer containing raw customer data with SCD Type 2 history. Includes `CreateDateTime`, `UpdateDateTime`, and `IsActive` columns in addition to the raw data. |
+
+**7. Job Flow / Pipeline Stages**
+
+1.  **Data Ingestion:**  The DLT pipeline uses Auto Loader (cloud\_files format="csv") to incrementally load CSV files from `/Volumes/catalog_sdlc/rawdata/customer`.
+2.  **Schema Inference/Evolution:**  Auto Loader infers the schema initially and can handle schema evolution (with caution - configuration needed).
+3.  **Data Ingestion to Bronze Table:** Data is ingested into the `bronzezone.data.customer_raw` Delta table.
+4.  **SCD Type 2 Application:** SCD Type 2 logic is applied to maintain historical data.
+5.  **Metadata Update:** Unity Catalog metadata is updated.
+
+**8. Data Transformations / Business Logic**
+
+| Step                        | Description                                                                 | Transformation Logic                                                                                                                                                                                                                                                                                             |
+| :-------------------------- | :-------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Load Data | Load raw data from the customer CSV files from volume into dataframe   | Using Auto Loader with `cloud_files` and `format="csv"`: `spark.readStream.format("cloudFiles").option("cloudFiles.format", "csv").load("/Volumes/catalog_sdlc/rawdata/customer")`
+| 2. Add Watermark | Define a watermark to manage late-arriving data                             | The pipeline maintains watermark columns to handle late-arriving events.  The specific column used for watermarking will depend on the data, but a timestamp column indicating the time of the event is usually chosen. For this scenario the `CreateDateTime` may be the appropriate watermark column, otherwise `UpdateDateTime`.  A watermark duration is usually configured based on the expected data latency. |
+| 3.  Add Metadata Columns          | Add `CreateDateTime`, `UpdateDateTime`, and `IsActive` columns                      | `CreateDateTime`:  `current_timestamp()`, `UpdateDateTime`: `current_timestamp()`, `IsActive`: `True`                                                                                                                                                                                                |
+| 4.  Apply SCD Type 2         | Implement SCD Type 2 logic to track changes based on the `id` column |  Use `merge` operation in Spark to handle inserts and updates. Compare the new data with the existing data based on the `id` column. When a change is detected, close the existing record (`IsActive = False`, `UpdateDateTime = current_timestamp()`) and insert the new record (`IsActive = True`, `CreateDateTime = current_timestamp()`, `UpdateDateTime = current_timestamp()`).                                     |
+
+**9. Error Handling and Logging**
+
+*   **File Access/Corruption:** If a CSV file is inaccessible or corrupt, log the error with details (filename, error message) to the DLT event log and the driver logs. The pipeline should continue processing other files.
+*   **Schema Mismatch:** If the input CSV schema doesn't match the expected schema (and schema evolution fails), log the schema mismatch to the DLT event log and driver logs, including the expected and actual schemas. The pipeline may stop processing, depending on the schema evolution configuration.
+*   **DLT Event Log:** Utilize the DLT event log for monitoring pipeline health, data quality issues, and progress.
+*   **Custom Logging:** Implement custom logging to track key events such as the number of records ingested, the number of SCD Type 2 updates, and any data quality issues encountered.
+
+**10. Scheduling & Triggering**
+
+*   **Trigger:** New or updated CSV files are detected in the source directory by the Auto Loader. Pipeline rerun is manually triggered.
+
+**11. Security & Access Control**
+
+*   **Unity Catalog:** Access to the Unity Catalog Volume and Delta tables is controlled through Unity Catalog permissions. The DLT pipeline will run with a service principal or user identity that has the necessary read and write permissions.
+*   **Data Encryption:** Data at rest and in transit should be encrypted. Unity Catalog handles encryption at rest.  TLS should be enabled for data in transit.
+
+**12. Dependencies**
+
+*   Databricks Runtime with Delta Live Tables enabled.
+*   Access to Unity Catalog and the specified volume (`/Volumes/catalog_sdlc/rawdata/customer`).
+
+**13. Assumptions**
+
+*   The input CSV files are properly formatted and encoded.
+*   The `id` column is unique and can be used as the primary key for SCD Type 2.
+*   The DLT pipeline has sufficient resources (compute, memory) to process the data volume.
+*   The schemas of customer and order data are consistent over time, or that schema evolution can handle the changes.
+
+**14. Acceptance Criteria**
+
+*   All Customer data from the CSV files is successfully ingested into the `bronzezone.data.customer_raw` table.
+*   SCD Type 2 is correctly implemented, preserving historical data.
+*   `CreateDateTime`, `UpdateDateTime`, and `IsActive` columns are populated accurately.
+*   The pipeline handles new and updated files incrementally.
+*   Error handling and logging are functioning as expected.
+*   The pipeline performance meets the required SLAs.
+
+**15. Notes / Implementation Suggestions**
+
+*   Consider setting up a separate monitoring dashboard to track the pipeline's performance, data quality, and error rates.
+*   Implement data quality checks (e.g., using DLT expectations) to validate the data being ingested.
+*   Consider window functions for future enhancements (e.g., historical comparisons)
+
+---
+
+**1. Technical Requirement ID:** TR-BRZ-002
+
+**2. Related Functional Requirement(s):** FR-BRZ-002
+
+**3. Objective:** Implement a DLT pipeline to ingest order data from CSV files in a Unity Catalog Volume into a Delta table in the Bronze layer, applying SCD Type 2.
+
+**4. Target Cluster Configuration**
+
+*   **Cluster Name:** dlt-cluster
+*   **Databricks Runtime Version:** 14.3.x-photon-scala2.12
+*   **Node Type:** Standard_DS3_v2
+*   **Driver Node:** 1
+*   **Worker Nodes:** 2-8 (autoscaling)
+*   **Autoscaling:** Enabled (Min Workers: 2, Max Workers: 8)
+*   **Auto Termination:** Enabled (after 120 minutes of inactivity)
+*   **Libraries Installed:**  Delta Live Tables (DLT) library (built-in), No specific external libraries needed
+
+**5. Source Data Details**
+
+| Dataset Name | Location (Path/Table)                         | Format | Description                                                                                                                                                                          |
+| :----------- | :---------------------------------------------- | :----- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Order Data | `/Volumes/catalog_sdlc/rawdata/order` | CSV    | Raw Order data in CSV format containing columns: `id(STRING)`, `order_amount(FLOAT)`, `order_date(DATE)`.  New files and updates will be incrementally loaded via Auto Loader. |
+
+**6. Target Data Details**
+
+| Output Name                | Location                     | Format | Description                                                                                                                                                                                                |
+| :------------------------- | :--------------------------- | :----- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bronzezone.data.orders_raw` | `bronzezone.data.orders_raw` | Delta  | Delta table in the Bronze layer containing raw order data with SCD Type 2 history. Includes `CreateDateTime`, `UpdateDateTime`, and `IsActive` columns in addition to the raw data. |
+
+**7. Job Flow / Pipeline Stages**
+
+1.  **Data Ingestion:** The DLT pipeline uses Auto Loader (cloud\_files format="csv") to incrementally load CSV files from `/Volumes/catalog_sdlc/rawdata/order`.
+2.  **Schema Inference/Evolution:** Auto Loader infers the schema initially and can handle schema evolution (with caution - configuration needed).
+3.  **Data Ingestion to Bronze Table:** Data is ingested into the `bronzezone.data.orders_raw` Delta table.
+4.  **SCD Type 2 Application:** SCD Type 2 logic is applied to maintain historical data.
+5.  **Metadata Update:** Unity Catalog metadata is updated.
+
+**8. Data Transformations / Business Logic**
+
+| Step                        | Description                                                                 | Transformation Logic                                                                                                                                                                                                                                                                                             |
+| :-------------------------- | :-------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Load Data | Load raw data from the order CSV files from volume into dataframe   | Using Auto Loader with `cloud_files` and `format="csv"`: `spark.readStream.format("cloudFiles").option("cloudFiles.format", "csv").load("/Volumes/catalog_sdlc/rawdata/order")`
+| 2. Add Watermark | Define a watermark to manage late-arriving data                             | The pipeline maintains watermark columns to handle late-arriving events.  The specific column used for watermarking will depend on the data, but a timestamp column indicating the time of the event is usually chosen. For this scenario the `CreateDateTime` may be the appropriate watermark column, otherwise `UpdateDateTime`.  A watermark duration is usually configured based on the expected data latency. |
+| 3.  Add Metadata Columns          | Add `CreateDateTime`, `UpdateDateTime`, and `IsActive` columns                      | `CreateDateTime`:  `current_timestamp()`, `UpdateDateTime`: `current_timestamp()`, `IsActive`: `True`                                                                                                                                                                                                |
+| 4.  Apply SCD Type 2         | Implement SCD Type 2 logic to track changes based on the `id` column | Use `merge` operation in Spark to handle inserts and updates. Compare the new data with the existing data based on the `id` column. When a change is detected, close the existing record (`IsActive = False`, `UpdateDateTime = current_timestamp()`) and insert the new record (`IsActive = True`, `CreateDateTime = current_timestamp()`, `UpdateDateTime = current_timestamp()`).                                     |
+
+**9. Error Handling and Logging**
+
+*   **File Access/Corruption:** If a CSV file is inaccessible or corrupt, log the error with details (filename, error message) to the DLT event log and the driver logs. The pipeline should continue processing other files.
+*   **Schema Mismatch:** If the input CSV schema doesn't match the expected schema (and schema evolution fails), log the schema mismatch to the DLT event log and driver logs, including the expected and actual schemas. The pipeline may stop processing, depending on the schema evolution configuration.
+*   **DLT Event Log:** Utilize the DLT event log for monitoring pipeline health, data quality issues, and progress.
+*   **Custom Logging:** Implement custom logging to track key events such as the number of records ingested, the number of SCD Type 2 updates, and any data quality issues encountered.
+
+**10. Scheduling & Triggering**
+
+*   **Trigger:** New or updated CSV files are detected in the source directory by the Auto Loader. Pipeline rerun is manually triggered.
+
+**11. Security & Access Control**
+
+*   **Unity Catalog:** Access to the Unity Catalog Volume and Delta tables is controlled through Unity Catalog permissions. The DLT pipeline will run with a service principal or user identity that has the necessary read and write permissions.
+*   **Data Encryption:** Data at rest and in transit should be encrypted. Unity Catalog handles encryption at rest.  TLS should be enabled for data in transit.
+
+**12. Dependencies**
+
+*   Databricks Runtime with Delta Live Tables enabled.
+*   Access to Unity Catalog and the specified volume (`/Volumes/catalog_sdlc/rawdata/order`).
+
+**13. Assumptions**
+
+*   The input CSV files are properly formatted and encoded.
+*   The `id` column is unique and can be used as the primary key for SCD Type 2.
+*   The DLT pipeline has sufficient resources (compute, memory) to process the data volume.
+*   The schemas of customer and order data are consistent over time, or that schema evolution can handle the changes.
+
+**14. Acceptance Criteria**
+
+*   All Order data from the CSV files is successfully ingested into the `bronzezone.data.orders_raw` table.
+*   SCD Type 2 is correctly implemented, preserving historical data.
+*   `CreateDateTime`, `UpdateDateTime`, and `IsActive` columns are populated accurately.
+*   The pipeline handles new and updated files incrementally.
+*   Error handling and logging are functioning as expected.
+*   The pipeline performance meets the required SLAs.
+
+**15. Notes / Implementation Suggestions**
+
+*   Consider setting up a separate monitoring dashboard to track the pipeline's performance, data quality, and error rates.
+*   Implement data quality checks (e.g., using DLT expectations) to validate the data being ingested.
+*   Consider window functions for future enhancements (e.g., historical comparisons)
+
+---
+
+**1. Technical Requirement ID:** TR-SLV-001
+
+**2. Related Functional Requirement(s):** FR-SLV-001
+
+**3. Objective:** Implement a DLT pipeline to load data from the `bronzezone.data.customer_raw` and `bronzezone.data.orders_raw` Delta tables, join them, cleanse the data, and load it into the `silverzone.data.customer_order_combined` Delta table, applying SCD Type 2.
+
+**4. Target Cluster Configuration**
+
+*   **Cluster Name:** dlt-cluster
+*   **Databricks Runtime Version:** 14.3.x-photon-scala2.12
+*   **Node Type:** Standard_DS3_v2
+*   **Driver Node:** 1
+*   **Worker Nodes:** 2-8 (autoscaling)
+*   **Autoscaling:** Enabled (Min Workers: 2, Max Workers: 8)
+*   **Auto Termination:** Enabled (after 120 minutes of inactivity)
+*   **Libraries Installed:**  Delta Live Tables (DLT) library (built-in), No specific external libraries needed
+
+**5. Source Data Details**
+
+| Dataset Name                   | Location                      | Format | Description                                                                                                                                 |
+| :----------------------------- | :---------------------------- | :----- | :------------------------------------------------------------------------------------------------------------------------------------------ |
+| `bronzezone.data.customer_raw` | `bronzezone.data.customer_raw` | Delta  | Delta table containing raw customer data with SCD Type 2 history.                                                                         |
+| `bronzezone.data.orders_raw`   | `bronzezone.data.orders_raw`   | Delta  | Delta table containing raw order data with SCD Type 2 history.                                                                           |
+
+**6. Target Data Details**
+
+| Output Name                       | Location                          | Format | Description                                                                                                                                                                                                                                |
+| :-------------------------------- | :-------------------------------- | :----- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `silverzone.data.customer_order_combined` | `silverzone.data.customer_order_combined` | Delta  | Delta table in the Silver layer containing combined, cleansed customer and order data with SCD Type 2 history. Includes `CreateDateTime`, `UpdateDateTime`, and `IsActive` columns, in addition to the combined data. |
+
+**7. Job Flow / Pipeline Stages**
+
+1.  **Data Loading:** The DLT pipeline reads data from the `bronzezone.data.customer_raw` and `bronzezone.data.orders_raw` Delta tables.
+2.  **Data Joining:** The customer and order datasets are joined on the `id` column.
+3.  **Data Cleansing:** Records with NULL values are removed. Duplicate records are removed.
+4.  **SCD Type 2 Application:** SCD Type 2 logic is applied to maintain historical data.
+5.  **Metadata Update:** Unity Catalog metadata is updated.
+
+**8. Data Transformations / Business Logic**
+
+| Step                        | Description                                                              | Transformation Logic                                                                                                                                                                                                                                                                                                           |
+| :-------------------------- | :----------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Load Customer Data         | Load `bronzezone.data.customer_raw` into a DataFrame                   | `spark.table("bronzezone.data.customer_raw")`                                                                                                                                                                                                                                                                                  |
+| 2. Load Order Data            | Load `bronzezone.data.orders_raw` into a DataFrame                     | `spark.table("bronzezone.data.orders_raw")`                                                                                                                                                                                                                                                                                  |
+| 3. Join Customer and Order Data | Join customer and order data on the `id` column                         | `customer_df.join(order_df, customer_df.id == order_df.id, "inner")`                                                                                                                                                                                                                                                        |
+| 4. Remove NULL Values         | Remove records with any NULL values                                      | `.dropna()`                                                                                                                                                                                                                                                                                                                |
+| 5. Remove Duplicate Records    | Remove duplicate records                                                 | `.dropDuplicates()`                                                                                                                                                                                                                                                                                                           |
+| 6. Add Watermark | Define a watermark to manage late-arriving data                             | The pipeline maintains watermark columns to handle late-arriving events.  The specific column used for watermarking will depend on the data, but a timestamp column indicating the time of the event is usually chosen. For this scenario the `CreateDateTime` may be the appropriate watermark column, otherwise `UpdateDateTime`.  A watermark duration is usually configured based on the expected data latency. |
+| 7.  Add Metadata Columns          | Add `CreateDateTime`, `UpdateDateTime`, and `IsActive` columns                      | `CreateDateTime`:  `current_timestamp()`, `UpdateDateTime`: `current_timestamp()`, `IsActive`: `True`                                                                                                                                                                                                |
+| 8.  Apply SCD Type 2         | Implement SCD Type 2 logic to track changes based on the `id` column | Use `merge` operation in Spark to handle inserts and updates. Compare the new data with the existing data based on the `id` column. When a change is detected, close the existing record (`IsActive = False`, `UpdateDateTime = current_timestamp()`) and insert the new record (`IsActive = True`, `CreateDateTime = current_timestamp()`, `UpdateDateTime = current_timestamp()`).                                     |
+
+**9. Error Handling and Logging**
+
+*   **Join Failure:** If the join operation fails, log the error with details to the DLT event log and driver logs.
+*   **Unmatched Records:** If there are no matching `id` values during the join, log the number of unmatched records from each table to the DLT event log and driver logs.
+*   **DLT Event Log:** Utilize the DLT event log for monitoring pipeline health, data quality issues, and progress.
+*   **Custom Logging:** Implement custom logging to track key events such as the number of records joined, the number of records with NULL values removed, and the number of SCD Type 2 updates.
+
+**10. Scheduling & Triggering**
+
+*   **Trigger:** New or updated data is available in the `bronzezone.data.customer_raw` or `bronzezone.data.orders_raw` Delta tables. Pipeline rerun is manually triggered.
+
+**11. Security & Access Control**
+
+*   **Unity Catalog:** Access to the Unity Catalog Delta tables is controlled through Unity Catalog permissions. The DLT pipeline will run with a service principal or user identity that has the necessary read and write permissions.
+*   **Data Encryption:** Data at rest and in transit should be encrypted. Unity Catalog handles encryption at rest.  TLS should be enabled for data in transit.
+
+**12. Dependencies**
+
+*   `bronzezone.data.customer_raw`
+*   `bronzezone.data.orders_raw`
+
+**13. Assumptions**
+
+*   The `id` column is consistent between the Customer and Order tables.
+*   The DLT pipeline has sufficient resources (compute, memory) to process the data volume.
+
+**14. Acceptance Criteria**
+
+*   The `silverzone.data.customer_order_combined` table contains a combined dataset from the two bronze tables.
+*   No records with NULL values exist in the table.
+*   Duplicate records are removed.
+*   SCD Type 2 is correctly implemented.
+*   Error handling and logging are functioning as expected.
+*   The pipeline performance meets the required SLAs.
+
+**15. Notes / Implementation Suggestions**
+
+*   Consider setting up a separate monitoring dashboard to track the pipeline's performance, data quality, and error rates.
+*   Implement data quality checks (e.g., using DLT expectations) to validate the data being joined and cleansed.
+*   Consider window functions for future enhancements (e.g., calculating rolling averages or trends).
+
+---
+
+**1. Technical Requirement ID:** TR-GLD-001
+
+**2. Related Functional Requirement(s):** FR-GLD-001
+
+**3. Objective:** Implement a DLT pipeline to load data from the `silverzone.data.customer_order_combined` Delta table, perform aggregations (group by age or email domain, calculate total revenue and average order amount), and load it into the `goldzone.data.customer_order_summary` Delta table, applying SCD Type 2.
+
+**4. Target Cluster Configuration**
+
+*   **Cluster Name:** dlt-cluster
+*   **Databricks Runtime Version:** 14.3.x-photon-scala2.12
+*   **Node Type:** Standard_DS3_v2
+*   **Driver Node:** 1
+*   **Worker Nodes:** 2-8 (autoscaling)
+*   **Autoscaling:** Enabled (Min Workers: 2, Max Workers: 8)
+*   **Auto Termination:** Enabled (after 120 minutes of inactivity)
+*   **Libraries Installed:**  Delta Live Tables (DLT) library (built-in), No specific external libraries needed
+
+**5. Source Data Details**
+
+| Dataset Name                            | Location                                  | Format | Description                                                                                                |
+| :-------------------------------------- | :---------------------------------------- | :----- | :--------------------------------------------------------------------------------------------------------- |
+| `silverzone.data.customer_order_combined` | `silverzone.data.customer_order_combined` | Delta  | Delta table containing combined, cleansed customer and order data with SCD Type 2 history.            |
+
+**6. Target Data Details**
+
+| Output Name                            | Location                               | Format | Description                                                                                                                                                                                                                         |
+| :-------------------------------------- | :------------------------------------- | :----- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `goldzone.data.customer_order_summary` | `goldzone.data.customer_order_summary` | Delta  | Delta table in the Gold layer containing aggregated customer and order data (grouped by age or email domain), with SCD Type 2 history. Includes `CreateDateTime`, `UpdateDateTime`, and `IsActive` columns, in addition to the aggregated data. |
+
+**7. Job Flow / Pipeline Stages**
+
+1.  **Data Loading:** The DLT pipeline reads data from the `silverzone.data.customer_order_combined` Delta table.
+2.  **Data Aggregation:** The data is grouped by age *or* email domain (determined by configuration). Total revenue and average order amount are calculated for each group.
+3.  **SCD Type 2 Application:** SCD Type 2 logic is applied to maintain historical data.
+4.  **Metadata Update:** Unity Catalog metadata is updated.
+
+**8. Data Transformations / Business Logic**
+
+| Step                        | Description                                                                  | Transformation Logic                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| :-------------------------- | :--------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Load Silver Data       | Load `silverzone.data.customer_order_combined` into a DataFrame                | `spark.table("silverzone.data.customer_order_combined")`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| 2. Group By Age/Email       | Group the data by age or email domain (configurable)                         |  *Example: Group by Age* `df.groupBy("age")`  *Example: Group by Email Domain (extract domain first)* `df.withColumn("email_domain", split(col("email"), "@").getItem(1)).groupBy("email_domain")`                                                                                                                                                                                                                                                                                                                            |
+| 3. Calculate Aggregations | Calculate total revenue (sum of `order_amount`) and average order amount |  `.agg(sum("order_amount").alias("total_revenue"), avg("order_amount").alias("average_order_amount"))`                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| 4.  Add Watermark | Define a watermark to manage late-arriving data                             | The pipeline maintains watermark columns to handle late-arriving events.  The specific column used for watermarking will depend on the data, but a timestamp column indicating the time of the event is usually chosen. For this scenario the `CreateDateTime` may be the appropriate watermark column, otherwise `UpdateDateTime`.  A watermark duration is usually configured based on the expected data latency. |
+| 5.  Add Metadata Columns          | Add `CreateDateTime`, `UpdateDateTime`, and `IsActive` columns                      | `CreateDateTime`:  `current_timestamp()`, `UpdateDateTime`: `current_timestamp()`, `IsActive`: `True`                                                                                                                                                                                                |
+| 6.  Apply SCD Type 2         | Implement SCD Type 2 logic to track changes based on the Group by column as primary key | Use `merge` operation in Spark to handle inserts and updates. Compare the new data with the existing data based on the Group by Column. When a change is detected, close the existing record (`IsActive = False`, `UpdateDateTime = current_timestamp()`) and insert the new record (`IsActive = True`, `CreateDateTime = current_timestamp()`, `UpdateDateTime = current_timestamp()`).                                     |
+
+**9. Error Handling and Logging**
+
+*   **Aggregation Failure:** If the aggregation operation fails, log the error with details to the DLT event log and driver logs.
+*   **DLT Event Log:** Utilize the DLT event log for monitoring pipeline health, data quality issues, and progress.
+*   **Custom Logging:** Implement custom logging to track key events such as the grouping column used, the number of groups processed, and any data quality issues encountered.
+
+**10. Scheduling & Triggering**
+
+*   **Trigger:** New or updated data is available in the `silverzone.data.customer_order_combined` Delta table. Pipeline rerun is manually triggered.
+
+**11. Security & Access Control**
+
+*   **Unity Catalog:** Access to the Unity Catalog Delta tables is controlled through Unity Catalog permissions. The DLT pipeline will run with a service principal or user identity that has the necessary read and write permissions.
+*   **Data Encryption:** Data at rest and in transit should be encrypted. Unity Catalog handles encryption at rest.  TLS should be enabled for data in transit.
+
+**12. Dependencies**
+
+*   `silverzone.data.customer_order_combined`
+
+**13. Assumptions**
+
+*   The grouping columns (age and email domain) are suitable for aggregation and analysis.
+*   The DLT pipeline has sufficient resources (compute, memory) to process the data volume.
+*  There is a mechanism implemented to choose at runtime which of the group by columns to be used (Age vs Email).
+
+**14. Acceptance Criteria**
+
+*   The `goldzone.data.customer_order_summary` table contains aggregated data, grouped by either age or email domain.
+*   Total revenue and average order amount are calculated correctly for each group.
+*   SCD Type 2 is correctly implemented.
+*   Error handling and logging are functioning as expected.
+*   The pipeline performance meets the required SLAs.
+
+**15. Notes / Implementation Suggestions**
+
+*   Consider setting up a separate monitoring dashboard to track the pipeline's performance, data quality, and error rates.
+*   Implement data quality checks (e.g., using DLT expectations) to validate the data being aggregated.
+*   Provide a configuration option to switch between grouping by age and grouping by email domain.
+*   Consider window functions for future enhancements (e.g., calculating moving averages or year-over-year growth).
