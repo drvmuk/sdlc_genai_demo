@@ -1,341 +1,264 @@
-Okay, here are the Technical Requirement Documents (TRD) based on the provided Functional Requirement Document (FRD), adhering to the specified template.
+Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
 
-**Technical Requirement Document - Customer Data Ingestion (Bronze)**
+* **TR-DLT-001: Ingest CSV Data into Bronze Layer**
+	+ **Related Functional Requirement(s)**: FR-DLT-001
+	+ **Objective**: Implement a PySpark job using cloud_files to ingest CSV data from Unity Catalog Volume into the bronze layer, enabling checkpointing and incremental loads, and applying SCD Type 2 logic.
+	+ **Target Cluster Configuration**:
+		- Cluster Name: Data Ingestion Cluster
+		- Databricks Runtime Version: 10.4.x-scala2.12
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 2-4 Standard_DS3_v2
+		- Autoscaling: Enabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: Delta Lake, Spark CSV
+	+ **Source Data Details**:
+		- Dataset Name: customer_data, orders_data
+		- Location (Path/Table): Unity Catalog Volume: /path/to/customer_data.csv, /path/to/orders_data.csv
+		- Format: CSV
+		- Description: Customer and orders data in CSV format
+	+ **Target Data Details**:
+		- Output Name: customer_raw, orders_raw
+		- Location: Bronze layer: customer_raw, orders_raw
+		- Format: Delta Lake
+		- Description: Ingested customer and orders data in Delta Lake format
+	+ **Job Flow / Pipeline Stages**:
+		- Ingest CSV data from Unity Catalog Volume using cloud_files
+		- Enable checkpointing and incremental loads
+		- Apply SCD Type 2 logic using id as primary key
+	+ **Data Transformations / Business Logic**:
+		- Step: Ingest CSV data
+		- Description: Ingest CSV data from Unity Catalog Volume
+		- Transformation Logic: Use cloud_files to ingest CSV data
+		- Step: Apply SCD Type 2 logic
+		- Description: Apply SCD Type 2 logic using id as primary key
+		- Transformation Logic: Use Delta Lake's SCD Type 2 implementation
+	+ **Error Handling and Logging**:
+		- Log error and notify admin if CSV data is missing or corrupted
+	+ **Scheduling & Triggering**:
+		- Triggered by the execution of the `load_customer_raw.py` and `load_orders_raw.py` scripts
+	+ **Security & Access Control**:
+		- Use Unity Catalog's access control to manage access to the bronze layer tables
+	+ **Dependencies**:
+		- Unity Catalog, Databricks Delta Tables
+	+ **Assumptions**:
+		- Unity Catalog Volume is operational
+	+ **Acceptance Criteria**:
+		- Data is ingested correctly into bronze layer tables
+		- SCD Type 2 logic is applied correctly
+	+ **Notes / Implementation Suggestions**:
+		- Consider using Databricks' Auto Loader for incremental data loading
 
-*   **1. Technical Requirement ID:** TR-BRONZE-001
-*   **2. Related Functional Requirement(s):** FR-BRONZE-001
-*   **3. Objective:** Implement a Databricks DLT pipeline to ingest customer data in CSV format from a Unity Catalog Volume into a Databricks Delta table in the bronze layer, using `cloud_files`, checkpointing, incremental loads, and SCD Type 2 logic.
-*   **4. Target Cluster Configuration:**
+* **TR-DLT-002: Transform Data into Silver Layer**
+	+ **Related Functional Requirement(s)**: FR-DLT-002
+	+ **Objective**: Implement a PySpark job to join bronze layer's customer_raw and orders_raw tables, remove nulls and duplicates, and apply SCD Type 2 upsert logic.
+	+ **Target Cluster Configuration**:
+		- Cluster Name: Data Transformation Cluster
+		- Databricks Runtime Version: 10.4.x-scala2.12
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 2-4 Standard_DS3_v2
+		- Autoscaling: Enabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: Delta Lake, Spark SQL
+	+ **Source Data Details**:
+		- Dataset Name: customer_raw, orders_raw
+		- Location (Path/Table): Bronze layer: customer_raw, orders_raw
+		- Format: Delta Lake
+		- Description: Ingested customer and orders data in Delta Lake format
+	+ **Target Data Details**:
+		- Output Name: customer_order_combined
+		- Location: Silver layer: customer_order_combined
+		- Format: Delta Lake
+		- Description: Transformed customer and orders data in Delta Lake format
+	+ **Job Flow / Pipeline Stages**:
+		- Join bronze layer's customer_raw and orders_raw tables on id
+		- Remove nulls and duplicates using SHA256 hash-based deduplication
+		- Apply SCD Type 2 upsert logic
+	+ **Data Transformations / Business Logic**:
+		- Step: Join customer_raw and orders_raw tables
+		- Description: Join customer_raw and orders_raw tables on id
+		- Transformation Logic: Use Spark SQL to join the tables
+		- Step: Apply SCD Type 2 upsert logic
+		- Description: Apply SCD Type 2 upsert logic
+		- Transformation Logic: Use Delta Lake's SCD Type 2 implementation
+	+ **Error Handling and Logging**:
+		- Log error and notify admin if join fails
+	+ **Scheduling & Triggering**:
+		- Triggered by the execution of the `transform_customer_orders.py` script
+	+ **Security & Access Control**:
+		- Use Unity Catalog's access control to manage access to the silver layer table
+	+ **Dependencies**:
+		- Databricks Delta Tables
+	+ **Assumptions**:
+		- Bronze layer tables are populated correctly
+	+ **Acceptance Criteria**:
+		- Data is transformed correctly into silver layer table
+		- SCD Type 2 logic is applied correctly
+	+ **Notes / Implementation Suggestions**:
+		- Consider using Spark SQL's built-in deduplication features
 
-    *   Cluster Name: dlt-cluster-bronze
-    *   Databricks Runtime Version: 14.3.x-photon-scala2.12
-    *   Node Type: i3.xlarge
-    *   Driver Node: 1
-    *   Worker Nodes: 2
-    *   Autoscaling: Enabled (2-8 workers)
-    *   Auto Termination: 120 minutes of inactivity
-    *   Libraries Installed: `cloud_files`, Delta Lake libraries, PySpark (included with Databricks runtime).
-*   **5. Source Data Details:**
+* **TR-DLT-003: Aggregate Data into Gold Layer**
+	+ **Related Functional Requirement(s)**: FR-DLT-003
+	+ **Objective**: Implement a PySpark job to group and aggregate silver layer's customer_order_combined table by age or email domain, and apply SCD Type 2 upsert logic.
+	+ **Target Cluster Configuration**:
+		- Cluster Name: Data Aggregation Cluster
+		- Databricks Runtime Version: 10.4.x-scala2.12
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 2-4 Standard_DS3_v2
+		- Autoscaling: Enabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: Delta Lake, Spark SQL
+	+ **Source Data Details**:
+		- Dataset Name: customer_order_combined
+		- Location (Path/Table): Silver layer: customer_order_combined
+		- Format: Delta Lake
+		- Description: Transformed customer and orders data in Delta Lake format
+	+ **Target Data Details**:
+		- Output Name: customer_order_summary
+		- Location: Gold layer: customer_order_summary
+		- Format: Delta Lake
+		- Description: Aggregated customer and orders data in Delta Lake format
+	+ **Job Flow / Pipeline Stages**:
+		- Group and aggregate silver layer's customer_order_combined table by age or email domain
+		- Calculate metrics: Total revenue, Average order amount
+		- Apply SCD Type 2 upsert logic
+	+ **Data Transformations / Business Logic**:
+		- Step: Group and aggregate customer_order_combined table
+		- Description: Group and aggregate customer_order_combined table by age or email domain
+		- Transformation Logic: Use Spark SQL to group and aggregate the data
+		- Step: Apply SCD Type 2 upsert logic
+		- Description: Apply SCD Type 2 upsert logic
+		- Transformation Logic: Use Delta Lake's SCD Type 2 implementation
+	+ **Error Handling and Logging**:
+		- Log error and notify admin if aggregation fails
+	+ **Scheduling & Triggering**:
+		- Triggered by the execution of the `aggregate_summary.py` script
+	+ **Security & Access Control**:
+		- Use Unity Catalog's access control to manage access to the gold layer table
+	+ **Dependencies**:
+		- Databricks Delta Tables
+	+ **Assumptions**:
+		- Silver layer table is populated correctly
+	+ **Acceptance Criteria**:
+		- Data is aggregated correctly into gold layer table
+		- SCD Type 2 logic is applied correctly
+	+ **Notes / Implementation Suggestions**:
+		- Consider using Spark SQL's built-in aggregation features
 
-    *   Dataset Name: Customer Data
-    *   Location (Path/Table): Unity Catalog Volume - `/Volumes/<catalog>/<schema>/customer_data`
-    *   Format: CSV
-    *   Description:  CSV files containing customer data with a customer ID column.
-*   **6. Target Data Details:**
+* **TR-DLT-004: Unity Catalog Handling**
+	+ **Related Functional Requirement(s)**: FR-DLT-004
+	+ **Objective**: Implement a helper method to check and create catalog.schema.table if not present.
+	+ **Target Cluster Configuration**:
+		- Cluster Name: Unity Catalog Cluster
+		- Databricks Runtime Version: 10.4.x-scala2.12
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 1 Standard_DS3_v2
+		- Autoscaling: Disabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: Unity Catalog
+	+ **Source Data Details**: None
+	+ **Target Data Details**:
+		- Output Name: catalog.schema.table
+		- Location: Unity Catalog
+		- Format: Unity Catalog
+		- Description: Created catalog.schema.table in Unity Catalog
+	+ **Job Flow / Pipeline Stages**:
+		- Check if catalog.schema.table exists
+		- Create catalog.schema.table if not present
+	+ **Data Transformations / Business Logic**:
+		- Step: Check if catalog.schema.table exists
+		- Description: Check if catalog.schema.table exists
+		- Transformation Logic: Use Unity Catalog's API to check if catalog.schema.table exists
+		- Step: Create catalog.schema.table
+		- Description: Create catalog.schema.table if not present
+		- Transformation Logic: Use Unity Catalog's API to create catalog.schema.table
+	+ **Error Handling and Logging**:
+		- Log error and notify admin if creation fails
+	+ **Scheduling & Triggering**:
+		- Triggered by the execution of the `catalog_helper.py` script
+	+ **Security & Access Control**:
+		- Use Unity Catalog's access control to manage access to the catalog.schema.table
+	+ **Dependencies**:
+		- Unity Catalog
+	+ **Assumptions**:
+		- Unity Catalog is operational
+	+ **Acceptance Criteria**:
+		- Catalog.schema.table is created correctly if not present
+	+ **Notes / Implementation Suggestions**:
+		- Consider using Unity Catalog's API to manage catalog.schema.table
 
-    *   Output Name: `customer_raw`
-    *   Location: Delta table: `bronzezone.data.customer_raw`
-    *   Format: Delta
-    *   Description: Delta table containing raw customer data, with `CreateDateTime`, `UpdateDateTime`, and `IsActive` columns for SCD Type 2.
-*   **7. Job Flow / Pipeline Stages:**
+* **TR-DLT-005: Access Control (ACL)**
+	+ **Related Functional Requirement(s)**: FR-DLT-005
+	+ **Objective**: Provide code snippet to grant SELECT and MODIFY access to roles for Unity Catalog tables.
+	+ **Target Cluster Configuration**:
+		- Cluster Name: Unity Catalog Cluster
+		- Databricks Runtime Version: 10.4.x-scala2.12
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 1 Standard_DS3_v2
+		- Autoscaling: Disabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: Unity Catalog
+	+ **Source Data Details**: None
+	+ **Target Data Details**: None
+	+ **Job Flow / Pipeline Stages**:
+		- Grant SELECT and MODIFY access to roles for Unity Catalog tables
+	+ **Data Transformations / Business Logic**:
+		- Step: Grant access to roles
+		- Description: Grant SELECT and MODIFY access to roles for Unity Catalog tables
+		- Transformation Logic: Use Unity Catalog's API to grant access to roles
+	+ **Error Handling and Logging**:
+		- Log error and notify admin if grant fails
+	+ **Scheduling & Triggering**:
+		- Triggered by the execution of the ACL script
+	+ **Security & Access Control**:
+		- Use Unity Catalog's access control to manage access to the Unity Catalog tables
+	+ **Dependencies**:
+		- Unity Catalog
+	+ **Assumptions**:
+		- Unity Catalog is operational
+	+ **Acceptance Criteria**:
+		- Roles have correct access to Unity Catalog tables
+	+ **Notes / Implementation Suggestions**:
+		- Consider using Unity Catalog's API to manage access control
 
-    1.  Pipeline starts with the `load_customer_raw.py` script.
-    2.  `cloud_files` reads CSV data from the Unity Catalog Volume.
-    3.  Data is incrementally loaded using checkpointing.
-    4.  SCD Type 2 logic is applied.
-    5.  Data is written to the `bronzezone.data.customer_raw` Delta table.
-*   **8. Data Transformations / Business Logic:**
-
-    *   Step: Read from CSV files.
-        *   Description: Ingest raw customer data from the CSV files in the Unity Catalog Volume.
-        *   Transformation Logic: `spark.readStream.format("cloudFiles").option("cloudFiles.format", "csv").load(<volume_path>)`
-    *   Step: Apply SCD Type 2.
-        *   Description: Maintain a history of changes to customer records.
-        *   Transformation Logic: Using a function (potentially in a separate module like `scd2.py`), compare incoming records to existing records in the `bronzezone.data.customer_raw` table, update `IsActive` and `UpdateDateTime` for old records, and insert new records with `CreateDateTime` and `IsActive = True`.  Uses Customer ID as primary key.
-*   **9. Error Handling and Logging:** Records with invalid CSV format are skipped and logged with error messages using the DLT pipeline logging capabilities. If the target Delta table does not exist, the script creates it. Pipeline fails if there are permission issues accessing the Unity Catalog Volume or writing to the Delta table.
-*   **10. Scheduling & Triggering:** The DLT pipeline is triggered manually or via a scheduled job.  New files in the Unity Catalog Volume will trigger ingestion via the `cloud_files` source.
-*   **11. Security & Access Control:** Access to the Unity Catalog Volume and Delta table is managed via Unity Catalog.  Appropriate roles are granted SELECT and MODIFY access as defined in FR-ACL-001.
-*   **12. Dependencies:** PySpark, Databricks Delta Lake, Unity Catalog, `cloud_files`, potentially an `scd2.py` module (if the SCD Type 2 logic is extracted into a separate function).
-*   **13. Assumptions:** The Unity Catalog Volume is accessible and configured correctly.  The CSV files adhere to a consistent schema.
-*   **14. Acceptance Criteria:** The `bronzezone.data.customer_raw` Delta table is created or updated with data from the Unity Catalog Volume.  SCD Type 2 logic is implemented correctly. Checkpointing and incremental load mechanisms are functional. Error handling works as expected. Unit tests in `tests/test_bronze.py` pass.
-*   **15. Notes / Implementation Suggestions:** Consider creating a generic SCD Type 2 function that can be reused across multiple tables.
-
-**Technical Requirement Document - Order Data Ingestion (Bronze)**
-
-*   **1. Technical Requirement ID:** TR-BRONZE-002
-*   **2. Related Functional Requirement(s):** FR-BRONZE-002
-*   **3. Objective:** Implement a Databricks DLT pipeline to ingest order data in CSV format from a Unity Catalog Volume into a Databricks Delta table in the bronze layer, using `cloud_files`, checkpointing, incremental loads, SCD Type 2 logic, and watermarking on the `order_date` column.
-*   **4. Target Cluster Configuration:**
-
-    *   Cluster Name: dlt-cluster-bronze
-    *   Databricks Runtime Version: 14.3.x-photon-scala2.12
-    *   Node Type: i3.xlarge
-    *   Driver Node: 1
-    *   Worker Nodes: 2
-    *   Autoscaling: Enabled (2-8 workers)
-    *   Auto Termination: 120 minutes of inactivity
-    *   Libraries Installed: `cloud_files`, Delta Lake libraries, PySpark (included with Databricks runtime).
-*   **5. Source Data Details:**
-
-    *   Dataset Name: Order Data
-    *   Location (Path/Table): Unity Catalog Volume - `/Volumes/<catalog>/<schema>/order_data`
-    *   Format: CSV
-    *   Description: CSV files containing order data, including order ID and `order_date` columns.
-*   **6. Target Data Details:**
-
-    *   Output Name: `orders_raw`
-    *   Location: Delta table: `bronzezone.data.orders_raw`
-    *   Format: Delta
-    *   Description: Delta table containing raw order data, with `order_date`, `CreateDateTime`, `UpdateDateTime`, and `IsActive` columns for SCD Type 2 and watermarking.
-*   **7. Job Flow / Pipeline Stages:**
-
-    1.  Pipeline starts with the `load_orders_raw.py` script.
-    2.  `cloud_files` reads CSV data from the Unity Catalog Volume.
-    3.  Data is incrementally loaded using checkpointing.
-    4.  SCD Type 2 logic is applied.
-    5.  Watermarking is implemented on the `order_date` column.
-    6.  Data is written to the `bronzezone.data.orders_raw` Delta table.
-*   **8. Data Transformations / Business Logic:**
-
-    *   Step: Read from CSV files.
-        *   Description: Ingest raw order data from the CSV files in the Unity Catalog Volume.
-        *   Transformation Logic: `spark.readStream.format("cloudFiles").option("cloudFiles.format", "csv").load(<volume_path>)`
-    *   Step: Apply SCD Type 2.
-        *   Description: Maintain a history of changes to order records.
-        *   Transformation Logic: Using a function (potentially in a separate module like `scd2.py`), compare incoming records to existing records in the `bronzezone.data.orders_raw` table, update `IsActive` and `UpdateDateTime` for old records, and insert new records with `CreateDateTime` and `IsActive = True`. Uses Order ID as primary key.
-    *   Step: Apply Watermarking.
-        *   Description: Deduplicate and process the stream based on the order_date.
-        *   Transformation Logic: `.withWatermark("order_date", "1 day")`
-*   **9. Error Handling and Logging:** Records with invalid CSV format are skipped and logged with error messages using the DLT pipeline logging capabilities. If the target Delta table does not exist, the script creates it. Pipeline fails if there are permission issues accessing the Unity Catalog Volume or writing to the Delta table.
-*   **10. Scheduling & Triggering:** The DLT pipeline is triggered manually or via a scheduled job.  New files in the Unity Catalog Volume will trigger ingestion via the `cloud_files` source.
-*   **11. Security & Access Control:** Access to the Unity Catalog Volume and Delta table is managed via Unity Catalog. Appropriate roles are granted SELECT and MODIFY access as defined in FR-ACL-001.
-*   **12. Dependencies:** PySpark, Databricks Delta Lake, Unity Catalog, `cloud_files`, potentially an `scd2.py` module (if the SCD Type 2 logic is extracted into a separate function).
-*   **13. Assumptions:** The Unity Catalog Volume is accessible and configured correctly.  The CSV files adhere to a consistent schema, including the `order_date` column.
-*   **14. Acceptance Criteria:** The `bronzezone.data.orders_raw` Delta table is created or updated with data from the Unity Catalog Volume.  SCD Type 2 logic is implemented correctly. Watermarking is implemented correctly on the `order_date` column. Checkpointing and incremental load mechanisms are functional. Error handling works as expected. Unit tests in `tests/test_bronze.py` pass.
-*   **15. Notes / Implementation Suggestions:** Ensure the `order_date` column is properly parsed as a date.
-
-**Technical Requirement Document - Combine Customer and Order Data (Silver)**
-
-*   **1. Technical Requirement ID:** TR-SILVER-001
-*   **2. Related Functional Requirement(s):** FR-SILVER-001
-*   **3. Objective:** Implement a Databricks DLT pipeline to join the `bronzezone.data.customer_raw` and `bronzezone.data.orders_raw` Delta tables, remove nulls and duplicates using SHA256 hash-based deduplication, and apply SCD Type 2 upsert logic.
-*   **4. Target Cluster Configuration:**
-
-    *   Cluster Name: dlt-cluster-silver
-    *   Databricks Runtime Version: 14.3.x-photon-scala2.12
-    *   Node Type: i3.xlarge
-    *   Driver Node: 1
-    *   Worker Nodes: 2
-    *   Autoscaling: Enabled (2-8 workers)
-    *   Auto Termination: 120 minutes of inactivity
-    *   Libraries Installed: Delta Lake libraries, PySpark (included with Databricks runtime).
-*   **5. Source Data Details:**
-
-    *   Dataset Name: Customer Raw Data
-    *   Location (Path/Table): Delta table: `bronzezone.data.customer_raw`
-    *   Format: Delta
-    *   Description: Delta table containing raw customer data.
-    *   Dataset Name: Order Raw Data
-    *   Location (Path/Table): Delta table: `bronzezone.data.orders_raw`
-    *   Format: Delta
-    *   Description: Delta table containing raw order data.
-*   **6. Target Data Details:**
-
-    *   Output Name: `customer_order_combined`
-    *   Location: Delta table: `silverzone.data.customer_order_combined`
-    *   Format: Delta
-    *   Description: Delta table containing combined, cleaned, and deduplicated customer and order data, with `CreateDateTime`, `UpdateDateTime`, and `IsActive` columns.
-*   **7. Job Flow / Pipeline Stages:**
-
-    1.  Pipeline starts with the `transform_customer_orders.py` script.
-    2.  Data is read from the `bronzezone.data.customer_raw` and `bronzezone.data.orders_raw` Delta tables.
-    3.  The tables are joined on the common ID column.
-    4.  Null values are removed.
-    5.  Duplicates are removed using SHA256 hash-based deduplication.
-    6.  SCD Type 2 upsert logic is applied.
-    7.  Data is written to the `silverzone.data.customer_order_combined` Delta table.
-*   **8. Data Transformations / Business Logic:**
-
-    *   Step: Join Customer and Order Data.
-        *   Description: Join the two Delta tables based on the common ID column.
-        *   Transformation Logic: `customer_df.join(order_df, customer_df["customer_id"] == order_df["order_customer_id"], "inner")`
-    *   Step: Remove Null Values.
-        *   Description: Remove rows containing null values in any column.
-        *   Transformation Logic: `.dropna()`
-    *   Step: Deduplicate Data.
-        *   Description: Remove duplicate records based on SHA256 hash of all columns.
-        *   Transformation Logic: Create a new column containing the SHA256 hash of all other columns, then use `.dropDuplicates([hash_column])`.
-    *   Step: Apply SCD Type 2.
-        *   Description: Maintain a history of changes to customer and order data.
-        *   Transformation Logic: Using a function (potentially in a separate module like `scd2.py`), compare incoming records to existing records in the `silverzone.data.customer_order_combined` table, update `IsActive` and `UpdateDateTime` for old records, and insert new records with `CreateDateTime` and `IsActive = True`. Uses a combination of Customer ID and Order ID as primary key (or potentially only Customer ID, depending on the specific requirements).
-*   **9. Error Handling and Logging:** The pipeline fails if either of the bronze layer Delta tables is missing. A warning is logged if the join results in an empty dataset. The script creates the target Delta table if it doesn't exist. The pipeline fails if there are permission issues.
-*   **10. Scheduling & Triggering:** The DLT pipeline is triggered manually or via a scheduled job, or when new data is available in either `bronzezone.data.customer_raw` or `bronzezone.data.orders_raw`.
-*   **11. Security & Access Control:** Access to the bronze and silver layer Delta tables is managed via Unity Catalog. Appropriate roles are granted SELECT and MODIFY access as defined in FR-ACL-001.
-*   **12. Dependencies:** PySpark, Databricks Delta Lake, `scd2.py`.
-*   **13. Assumptions:** The common ID column exists in both input Delta tables. The `scd2.py` function is implemented correctly and available.
-*   **14. Acceptance Criteria:** The `silverzone.data.customer_order_combined` Delta table is created or updated. The join is performed correctly. Null values and duplicates are removed. SCD Type 2 upsert logic is implemented correctly. Unit tests in `tests/test_silver.py` pass.
-*   **15. Notes / Implementation Suggestions:**  Carefully consider the join type (inner, left, right, full outer) based on the desired behavior when customer or order data is missing.
-
-**Technical Requirement Document - Aggregate Customer Order Summary (Gold)**
-
-*   **1. Technical Requirement ID:** TR-GOLD-001
-*   **2. Related Functional Requirement(s):** FR-GOLD-001
-*   **3. Objective:** Implement a Databricks DLT pipeline to group and aggregate data from the `silverzone.data.customer_order_combined` Delta table by age or email domain, calculate total revenue and average order amount, and apply SCD Type 2 upsert logic.
-*   **4. Target Cluster Configuration:**
-
-    *   Cluster Name: dlt-cluster-gold
-    *   Databricks Runtime Version: 14.3.x-photon-scala2.12
-    *   Node Type: i3.xlarge
-    *   Driver Node: 1
-    *   Worker Nodes: 2
-    *   Autoscaling: Enabled (2-8 workers)
-    *   Auto Termination: 120 minutes of inactivity
-    *   Libraries Installed: Delta Lake libraries, PySpark (included with Databricks runtime).
-*   **5. Source Data Details:**
-
-    *   Dataset Name: Combined Customer and Order Data
-    *   Location (Path/Table): Delta table: `silverzone.data.customer_order_combined`
-    *   Format: Delta
-    *   Description: Delta table containing combined, cleaned, and deduplicated customer and order data.
-*   **6. Target Data Details:**
-
-    *   Output Name: `customer_order_summary`
-    *   Location: Delta table: `goldzone.data.customer_order_summary`
-    *   Format: Delta
-    *   Description: Delta table containing aggregated customer order data, including total revenue and average order amount, grouped by age or email domain, with `CreateDateTime`, `UpdateDateTime`, and `IsActive` columns.
-*   **7. Job Flow / Pipeline Stages:**
-
-    1.  Pipeline starts with the `aggregate_summary.py` script.
-    2.  Data is read from the `silverzone.data.customer_order_combined` Delta table.
-    3.  Data is grouped by customer age or email domain.
-    4.  Total revenue and average order amount are calculated.
-    5.  SCD Type 2 upsert logic is applied.
-    6.  Data is written to the `goldzone.data.customer_order_summary` Delta table.
-*   **8. Data Transformations / Business Logic:**
-
-    *   Step: Group by Age or Email Domain.
-        *   Description: Group the data based on either customer age or email domain.  The grouping column is configurable.
-        *   Transformation Logic:  `df.groupBy("age").agg(sum("order_amount"), avg("order_amount"))`  or  `df.groupBy("email_domain").agg(sum("order_amount"), avg("order_amount"))`.  A parameter will determine which grouping is used.  The email domain can be extracted using a UDF or regular expression.
-    *   Step: Calculate Metrics.
-        *   Description: Calculate total revenue and average order amount for each group.
-        *   Transformation Logic: `sum("order_amount").alias("total_revenue"), avg("order_amount").alias("average_order_amount")`
-    *   Step: Apply SCD Type 2.
-        *   Description: Maintain a history of changes to the aggregated data.
-        *   Transformation Logic: Using a function (potentially in a separate module like `scd2.py`), compare incoming records to existing records in the `goldzone.data.customer_order_summary` table, update `IsActive` and `UpdateDateTime` for old records, and insert new records with `CreateDateTime` and `IsActive = True`.  The grouping key (age or email domain) is used as the primary key.
-*   **9. Error Handling and Logging:** The pipeline fails if the `silverzone.data.customer_order_combined` Delta table is missing. A warning is logged if there are no records to aggregate. The script creates the target Delta table if it doesn't exist. The pipeline fails if there are permission issues.
-*   **10. Scheduling & Triggering:** The DLT pipeline is triggered manually or via a scheduled job, or when new data is available in `silverzone.data.customer_order_combined`.
-*   **11. Security & Access Control:** Access to the silver and gold layer Delta tables is managed via Unity Catalog. Appropriate roles are granted SELECT and MODIFY access as defined in FR-ACL-001.
-*   **12. Dependencies:** PySpark, Databricks Delta Lake, `scd2.py`.
-*   **13. Assumptions:** The input data contains the necessary information for grouping by age or email domain and calculating the required metrics. The `scd2.py` function is implemented correctly and available.
-*   **14. Acceptance Criteria:** The `goldzone.data.customer_order_summary` Delta table is created or updated. The aggregation is performed correctly. Total revenue and average order amount are calculated accurately. SCD Type 2 upsert logic is implemented correctly. Unit tests in `tests/test_gold.py` pass.
-*   **15. Notes / Implementation Suggestions:** Consider making the grouping column configurable (age or email domain) via a pipeline parameter.
-
-**Technical Requirement Document - Implement Unity Catalog Helper (Utility)**
-
-*   **1. Technical Requirement ID:** TR-UTIL-001
-*   **2. Related Functional Requirement(s):** FR-UTIL-001
-*   **3. Objective:** Implement a Python helper function to check if a `catalog.schema.table` exists in Unity Catalog and create it if it doesn't.
-*   **4. Target Cluster Configuration:** N/A - This is a utility function used across multiple pipelines.  It will run on the cluster configured for the individual pipelines (bronze, silver, gold).
-*   **5. Source Data Details:** N/A
-*   **6. Target Data Details:** N/A
-*   **7. Job Flow / Pipeline Stages:**
-
-    1.  Before writing to a Delta table in any layer (bronze, silver, gold), the `catalog_helper.py` function is called.
-    2.  The function checks if the `catalog.schema.table` exists in Unity Catalog.
-    3.  If it does not exist, the function creates the catalog, schema, and table.
-*   **8. Data Transformations / Business Logic:** This module does not perform data transformations.
-*   **9. Error Handling and Logging:** Exceptions are raised if there are permission issues when checking for or creating the catalog, schema, or table. These exceptions should be caught by the calling pipeline and handled appropriately (e.g., by failing the pipeline and logging an error).
-*   **10. Scheduling & Triggering:** N/A
-*   **11. Security & Access Control:** The function will run with the permissions of the user or service principal executing the DLT pipeline.  This user/principal needs appropriate CREATE CATALOG, CREATE SCHEMA, and CREATE TABLE privileges in Unity Catalog.
-*   **12. Dependencies:** PySpark, Databricks Unity Catalog.
-*   **13. Assumptions:** The catalog and schema names are valid according to Unity Catalog naming conventions. The user has sufficient permissions to create catalogs, schemas, and tables.
-*   **14. Acceptance Criteria:** The helper function successfully creates the catalog, schema, and table if they don't exist. The function does not attempt to re-create the catalog, schema, and table if they already exist. The helper function handles permission errors gracefully.
-*   **15. Notes / Implementation Suggestions:** Consider using try-except blocks to handle potential Unity Catalog API errors. The function should be idempotent (i.e., calling it multiple times with the same arguments should have the same effect as calling it once).
-
-**Technical Requirement Document - Configure DLT Pipeline Settings (DLT)**
-
-*   **1. Technical Requirement ID:** TR-DLT-001
-*   **2. Related Functional Requirement(s):** FR-DLT-001
-*   **3. Objective:** Configure the DLT pipeline to enable schema evolution and set the watermark for incremental data processing.
-*   **4. Target Cluster Configuration:** N/A - This configures the DLT pipeline itself, not a specific cluster.
-*   **5. Source Data Details:** N/A
-*   **6. Target Data Details:** N/A
-*   **7. Job Flow / Pipeline Stages:** This configuration is applied during the creation or update of the DLT pipeline through the Databricks UI or API.
-*   **8. Data Transformations / Business Logic:** N/A
-*   **9. Error Handling and Logging:** The DLT pipeline infrastructure provides its own error handling and logging.
-*   **10. Scheduling & Triggering:** The DLT pipeline has its own scheduling and triggering mechanisms, configured separately.
-*   **11. Security & Access Control:**  DLT pipelines inherit the security context of the configured cluster and have their own set of permissions.
-*   **12. Dependencies:** Databricks DLT.
-*   **13. Assumptions:** The `order_date` column is present in the data being processed.
-*   **14. Acceptance Criteria:** Schema evolution is enabled in the DLT pipeline configuration. The watermark is set to `order_date` in the DLT pipeline configuration. This can be verified through the DLT pipeline settings in the Databricks UI.
-*   **15. Notes / Implementation Suggestions:** Document how to configure schema evolution and watermarking in the DLT pipeline settings.
-
-**Technical Requirement Document - Grant Access to Unity Catalog Tables (ACL)**
-
-*   **1. Technical Requirement ID:** TR-ACL-001
-*   **2. Related Functional Requirement(s):** FR-ACL-001
-*   **3. Objective:** Provide a code snippet to grant SELECT and MODIFY access to roles for Unity Catalog tables (bronze, silver, gold).
-*   **4. Target Cluster Configuration:** N/A - These are SQL commands run against Unity Catalog.
-*   **5. Source Data Details:** N/A
-*   **6. Target Data Details:** N/A
-*   **7. Job Flow / Pipeline Stages:**  The Databricks admin executes SQL commands after the bronze, silver, and gold tables are created.
-*   **8. Data Transformations / Business Logic:**  N/A
-*   **9. Error Handling and Logging:**  SQL client will report errors if roles or tables do not exist or if the admin lacks permissions.
-*   **10. Scheduling & Triggering:** N/A
-*   **11. Security & Access Control:** Requires a Databricks admin user with the necessary privileges to grant access in Unity Catalog.
-*   **12. Dependencies:** Databricks Unity Catalog.
-*   **13. Assumptions:** Unity Catalog is configured. Roles are defined. Tables are created.
-*   **14. Acceptance Criteria:** The provided code snippet works correctly.  Roles have SELECT and MODIFY access to the tables. Example provided to verify permissions.
-*   **15. Notes / Implementation Suggestions:**  Use the following SQL syntax (replace `<role>`, `<catalog>`, `<schema>`, and `<table>`):
-
-```sql
-GRANT SELECT ON TABLE `<catalog>`.`<schema>`.`<table>` TO `<role>`;
-GRANT MODIFY ON TABLE `<catalog>`.`<schema>`.`<table>` TO `<role>`;
-
--- Example: Grant 'data_scientists' role SELECT access to the bronze customer data
-GRANT SELECT ON TABLE `my_catalog`.`bronzezone`.`customer_raw` TO `data_scientists`;
-
--- Verify Permissions:
-SHOW GRANT ON TABLE `my_catalog`.`bronzezone`.`customer_raw`;
-```
-
-**Technical Requirement Document - Implement Unit Tests for Each Layer (Test)**
-
-*   **1. Technical Requirement ID:** TR-TEST-001
-*   **2. Related Functional Requirement(s):** FR-TEST-001
-*   **3. Objective:** Develop comprehensive unit tests for the bronze, silver, and gold layers using dummy data and mocking techniques (e.g., mocking Delta tables) to ensure code quality and correctness.
-*   **4. Target Cluster Configuration:** N/A - Unit tests are typically run locally during development or in a CI/CD pipeline.
-*   **5. Source Data Details:** Dummy data created within the unit tests.
-*   **6. Target Data Details:** Expected outputs defined in the unit test assertions.
-*   **7. Job Flow / Pipeline Stages:** Tests are executed during development and in CI/CD.
-*   **8. Data Transformations / Business Logic:** The core of each test is asserting that the data transformations produce the correct output, given specific input.
-*   **9. Error Handling and Logging:** The `unittest` framework provides error reporting.
-*   **10. Scheduling & Triggering:** The tests are triggered manually by developers or automatically by a CI/CD system.
-*   **11. Security & Access Control:** N/A
-*   **12. Dependencies:** `unittest`, Mocking libraries (`unittest.mock` or similar), PySpark (for some tests).
-*   **13. Assumptions:** Developers have experience with unit testing.
-*   **14. Acceptance Criteria:** Unit tests exist for each layer. Tests use dummy data and mocking. All tests pass. High test coverage is achieved.
-*   **15. Notes / Implementation Suggestions:** Focus on testing individual functions and transformations. Use mocking to isolate the code under test from external dependencies (like Delta tables). Aim for a good balance between testing positive scenarios (valid data) and negative scenarios (invalid data, errors). Example:
-
-```python
-import unittest
-from unittest.mock import patch
-from pyspark.sql import SparkSession
-from your_bronze_layer_module import load_customer_raw  # Replace
-
-class TestBronzeLayer(unittest.TestCase):
-
-    @patch("your_bronze_layer_module.spark.readStream.format")  # Replace
-    def test_load_customer_raw_success(self, mock_readstream):
-        # Create a mock SparkSession
-        spark = SparkSession.builder.appName("Test").getOrCreate()
-
-        # Create some dummy data
-        dummy_data = [("1", "John", "Doe"), ("2", "Jane", "Smith")]
-        dummy_df = spark.createDataFrame(dummy_data, ["id", "first_name", "last_name"])
-
-        # Configure the mock to return the dummy DataFrame
-        mock_readstream.return_value.option.return_value.load.return_value = dummy_df
-
-        # Call the function you want to test
-        result_df = load_customer_raw()
-
-        # Assert that the function returned a DataFrame (and optionally check its contents)
-        self.assertIsNotNone(result_df)
-        self.assertEqual(result_df.count(), 2)
-
-if __name__ == '__main__':
-    unittest.main()
-```
-
-Remember to replace the placeholders with your actual module and function names. This is a basic example, and your actual tests will need to be more comprehensive.
+* **TR-DLT-006: Testing**
+	+ **Related Functional Requirement(s)**: FR-DLT-006
+	+ **Objective**: Include sample unit tests using dummy data for each layer.
+	+ **Target Cluster Configuration**:
+		- Cluster Name: Testing Cluster
+		- Databricks Runtime Version: 10.4.x-scala2.12
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 1 Standard_DS3_v2
+		- Autoscaling: Disabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: unittest, mock Delta tables
+	+ **Source Data Details**:
+		- Dataset Name: dummy_data
+		- Location (Path/Table): dummy_data
+		- Format: Dummy data
+		- Description: Dummy data for testing
+	+ **Target Data Details**: None
+	+ **Job Flow / Pipeline Stages**:
+		- Run unit tests using dummy data for each layer
+	+ **Data Transformations / Business Logic**:
+		- Step: Run unit tests
+		- Description: Run unit tests using dummy data for each layer
+		- Transformation Logic: Use unittest and mock Delta tables to run unit tests
+	+ **Error Handling and Logging**:
+		- Log error and notify admin if tests fail
+	+ **Scheduling & Triggering**:
+		- Triggered by the execution of the test scripts
+	+ **Security & Access Control**: None
+	+ **Dependencies**:
+		- unittest, mock Delta tables
+	+ **Assumptions**:
+		- unittest and mock Delta tables are operational
+	+ **Acceptance Criteria**:
+		- Tests are executed correctly and results are reported
+	+ **Notes / Implementation Suggestions**:
+		- Consider using Databricks' testing features to simplify testing

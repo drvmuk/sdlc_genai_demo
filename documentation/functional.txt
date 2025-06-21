@@ -1,527 +1,139 @@
-OK, here's the Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD), adhering to the specified template.
-
-**Functional Requirement Document**
-
-**1. Requirement ID:** FR-BRONZE-001
-
-**2. Title:** Ingest Customer Data from Unity Catalog Volume
-
-**3. Description:** Ingest customer data in CSV format from a Unity Catalog Volume into a Databricks Delta table within the bronze layer. Implement checkpointing and incremental loads for efficient data ingestion. Apply SCD Type 2 logic to maintain a history of changes.
-
-**4. Actor(s):** Databricks DLT Pipeline, Unity Catalog Volume, Customer Data (CSV)
-
-**5. Preconditions:**
-
-*   The Unity Catalog Volume containing the customer data CSV files must exist.
-*   The target Databricks Delta table (`bronzezone.data.customer_raw`) must be either non-existent (for initial load) or existing (for incremental loads).
-*   Appropriate permissions must be in place to read from the Unity Catalog Volume and write to the Delta table.
-
-**6. Trigger:** The DLT pipeline is triggered either manually or based on a defined schedule. New data appearing in the Unity Catalog Volume will also trigger the ingestion.
-
-**7. Main Flow / Functional Steps:**
-
-1.  The `load_customer_raw.py` script within the bronze layer is initiated.
-2.  The script utilizes `cloud_files` to ingest CSV data from the specified Unity Catalog Volume.
-3.  Checkpointing and incremental load mechanisms are enabled to process only new or updated files.
-4.  SCD Type 2 logic is applied using the customer ID as the primary key, creating `CreateDateTime`, `UpdateDateTime`, and `IsActive` columns.
-5.  The ingested data is written to the `bronzezone.data.customer_raw` Delta table.
-
-**8. Alternate Flows / Exceptions:**
-
-*   If a CSV file in the Unity Catalog Volume has an invalid format, the record will be skipped, and an error will be logged.
-*   If the target Delta table does not exist, the script will create it.
-*   If there are permission issues reading from the Unity Catalog Volume or writing to the Delta table, the DLT pipeline will fail.
-
-**9. Postconditions / Outputs:**
-
-*   The `bronzezone.data.customer_raw` Delta table is populated with the latest customer data from the Unity Catalog Volume.
-*   A history of customer data changes is maintained in the Delta table through SCD Type 2.
-*   Metadata about the load (e.g., number of records ingested, timestamp) is available in DLT pipeline logs.
-
-**10. Business Rules:**
-
-*   SCD Type 2 logic must be implemented to track changes to customer data over time.
-*   The `IsActive` flag should be set to `True` for the latest version of a customer record and `False` for previous versions.
-
-**11. Data Requirements:**
-
-*   **Input:** CSV files containing customer data in the Unity Catalog Volume. The CSV files should include a customer ID column.
-*   **Output:** `bronzezone.data.customer_raw` Delta table with columns: Customer ID, Customer Data Fields, `CreateDateTime`, `UpdateDateTime`, `IsActive`.
-
-**12. Assumptions:**
-
-*   The Unity Catalog Volume is accessible and properly configured.
-*   The CSV files in the Unity Catalog Volume adhere to a consistent schema.
-
-**13. Dependencies:**
-
-*   PySpark
-*   Databricks Delta Lake
-*   Unity Catalog
-*   `cloud_files`
-
-**14. Priority:** High
-
-**15. Acceptance Criteria:**
-
-*   The `bronzezone.data.customer_raw` Delta table is successfully created or updated with data from the Unity Catalog Volume.
-*   SCD Type 2 logic is correctly implemented, maintaining a history of customer data changes.
-*   Checkpointing and incremental load mechanisms are functional.
-*   Error handling is implemented to gracefully handle invalid data or permission issues.
-*   Unit tests in `tests/test_bronze.py` pass successfully using dummy data and mocking of the Delta table.
-
----
-
-**1. Requirement ID:** FR-BRONZE-002
-
-**2. Title:** Ingest Order Data from Unity Catalog Volume
-
-**3. Description:** Ingest order data in CSV format from a Unity Catalog Volume into a Databricks Delta table within the bronze layer. Implement checkpointing and incremental loads. Apply SCD Type 2 logic. Use watermarking on the `order_date` column.
-
-**4. Actor(s):** Databricks DLT Pipeline, Unity Catalog Volume, Order Data (CSV)
-
-**5. Preconditions:**
-
-*   The Unity Catalog Volume containing the order data CSV files must exist.
-*   The target Databricks Delta table (`bronzezone.data.orders_raw`) must be either non-existent (for initial load) or existing (for incremental loads).
-*   Appropriate permissions must be in place to read from the Unity Catalog Volume and write to the Delta table.
-
-**6. Trigger:** The DLT pipeline is triggered either manually or based on a defined schedule. New data appearing in the Unity Catalog Volume will also trigger the ingestion.
-
-**7. Main Flow / Functional Steps:**
-
-1.  The `load_orders_raw.py` script within the bronze layer is initiated.
-2.  The script utilizes `cloud_files` to ingest CSV data from the specified Unity Catalog Volume.
-3.  Checkpointing and incremental load mechanisms are enabled.
-4.  SCD Type 2 logic is applied using the order ID as the primary key, creating `CreateDateTime`, `UpdateDateTime`, and `IsActive` columns.
-5.  Watermarking is implemented on the `order_date` column.
-6.  The ingested data is written to the `bronzezone.data.orders_raw` Delta table.
-
-**8. Alternate Flows / Exceptions:**
-
-*   If a CSV file in the Unity Catalog Volume has an invalid format, the record will be skipped, and an error will be logged.
-*   If the target Delta table does not exist, the script will create it.
-*   If there are permission issues reading from the Unity Catalog Volume or writing to the Delta table, the DLT pipeline will fail.
-
-**9. Postconditions / Outputs:**
-
-*   The `bronzezone.data.orders_raw` Delta table is populated with the latest order data from the Unity Catalog Volume.
-*   A history of order data changes is maintained in the Delta table through SCD Type 2.
-*   Watermarking is enabled on the `order_date` column for efficient incremental processing.
-*   Metadata about the load is available in DLT pipeline logs.
-
-**10. Business Rules:**
-
-*   SCD Type 2 logic must be implemented.
-*   Watermarking must be used to efficiently process new order data based on the `order_date`.
-*   The `IsActive` flag should be set appropriately.
-
-**11. Data Requirements:**
-
-*   **Input:** CSV files containing order data in the Unity Catalog Volume.  The CSV files must include order ID and `order_date` columns.
-*   **Output:** `bronzezone.data.orders_raw` Delta table with columns: Order ID, Order Data Fields, `order_date`, `CreateDateTime`, `UpdateDateTime`, `IsActive`.
-
-**12. Assumptions:**
-
-*   The Unity Catalog Volume is accessible and properly configured.
-*   The CSV files in the Unity Catalog Volume adhere to a consistent schema, including the `order_date` column.
-
-**13. Dependencies:**
-
-*   PySpark
-*   Databricks Delta Lake
-*   Unity Catalog
-*   `cloud_files`
-
-**14. Priority:** High
-
-**15. Acceptance Criteria:**
-
-*   The `bronzezone.data.orders_raw` Delta table is successfully created or updated.
-*   SCD Type 2 logic is correctly implemented.
-*   Watermarking is correctly implemented on the `order_date` column.
-*   Error handling is implemented.
-*   Unit tests in `tests/test_bronze.py` pass.
-
----
-
-**1. Requirement ID:** FR-SILVER-001
-
-**2. Title:** Combine Customer and Order Data
-
-**3. Description:** Join the `bronzezone.data.customer_raw` and `bronzezone.data.orders_raw` Delta tables on the common ID column. Remove nulls and duplicates using SHA256 hash-based deduplication. Apply SCD Type 2 upsert logic.
-
-**4. Actor(s):** Databricks DLT Pipeline, `bronzezone.data.customer_raw` Delta table, `bronzezone.data.orders_raw` Delta table.
-
-**5. Preconditions:**
-
-*   The `bronzezone.data.customer_raw` and `bronzezone.data.orders_raw` Delta tables must exist and contain data.
-*   The tables must have a common ID column for joining.
-*   Appropriate permissions must be in place to read from the bronze layer tables and write to the silver layer table.
-
-**6. Trigger:** The DLT pipeline is triggered either manually or based on a defined schedule, or when new data is available in either `bronzezone.data.customer_raw` or `bronzezone.data.orders_raw`.
-
-**7. Main Flow / Functional Steps:**
-
-1.  The `transform_customer_orders.py` script within the silver layer is initiated.
-2.  The script reads data from the `bronzezone.data.customer_raw` and `bronzezone.data.orders_raw` Delta tables.
-3.  The tables are joined based on the common ID column.
-4.  Null values are removed from the joined data.
-5.  Duplicates are removed using SHA256 hash-based deduplication.
-6.  SCD Type 2 upsert logic is applied.
-7.  The transformed data is written to the `silverzone.data.customer_order_combined` Delta table.
-
-**8. Alternate Flows / Exceptions:**
-
-*   If either of the bronze layer Delta tables is missing, the DLT pipeline will fail.
-*   If the join operation results in an empty dataset, the DLT pipeline will log a warning.
-*   If the target Delta table does not exist, the script will create it.
-*   If there are permission issues, the DLT pipeline will fail.
-
-**9. Postconditions / Outputs:**
-
-*   The `silverzone.data.customer_order_combined` Delta table is populated with combined, cleaned, and deduplicated customer and order data.
-*   SCD Type 2 history is maintained.
-
-**10. Business Rules:**
-
-*   Data deduplication must be implemented to ensure data quality.
-*   SCD Type 2 logic must be correctly applied.
-
-**11. Data Requirements:**
-
-*   **Input:** `bronzezone.data.customer_raw` and `bronzezone.data.orders_raw` Delta tables.
-*   **Output:** `silverzone.data.customer_order_combined` Delta table with columns from both input tables, as well as `CreateDateTime`, `UpdateDateTime`, and `IsActive`.
-
-**12. Assumptions:**
-
-*   The common ID column exists in both input Delta tables.
-*   The `scd2.py` function is correctly implemented and available.
-
-**13. Dependencies:**
-
-*   PySpark
-*   Databricks Delta Lake
-*   `scd2.py`
-
-**14. Priority:** High
-
-**15. Acceptance Criteria:**
-
-*   The `silverzone.data.customer_order_combined` Delta table is successfully created or updated.
-*   The join operation is performed correctly.
-*   Null values and duplicates are removed as expected.
-*   SCD Type 2 upsert logic is correctly implemented.
-*   Unit tests in `tests/test_silver.py` pass.
-
----
-
-**1. Requirement ID:** FR-GOLD-001
-
-**2. Title:** Aggregate Customer Order Summary
-
-**3. Description:** Group and aggregate data from the `silverzone.data.customer_order_combined` Delta table by age or email domain. Calculate total revenue and average order amount metrics. Apply SCD Type 2 upsert logic.
-
-**4. Actor(s):** Databricks DLT Pipeline, `silverzone.data.customer_order_combined` Delta table.
-
-**5. Preconditions:**
-
-*   The `silverzone.data.customer_order_combined` Delta table must exist and contain data.
-*   Appropriate permissions must be in place to read from the silver layer table and write to the gold layer table.
-
-**6. Trigger:** The DLT pipeline is triggered either manually or based on a defined schedule, or when new data is available in `silverzone.data.customer_order_combined`.
-
-**7. Main Flow / Functional Steps:**
-
-1.  The `aggregate_summary.py` script within the gold layer is initiated.
-2.  The script reads data from the `silverzone.data.customer_order_combined` Delta table.
-3.  The data is grouped and aggregated either by customer age or email domain.
-4.  Total revenue and average order amount metrics are calculated for each group.
-5.  SCD Type 2 upsert logic is applied.
-6.  The aggregated data is written to the `goldzone.data.customer_order_summary` Delta table.
-
-**8. Alternate Flows / Exceptions:**
-
-*   If the `silverzone.data.customer_order_combined` Delta table is missing, the DLT pipeline will fail.
-*   If there are no records to aggregate, the DLT pipeline will log a warning.
-*   If the target Delta table does not exist, the script will create it.
-*   If there are permission issues, the DLT pipeline will fail.
-
-**9. Postconditions / Outputs:**
-
-*   The `goldzone.data.customer_order_summary` Delta table is populated with aggregated customer order data, including total revenue and average order amount.
-*   SCD Type 2 history is maintained.
-
-**10. Business Rules:**
-
-*   The aggregation can be performed by either age or email domain.
-*   SCD Type 2 logic must be correctly applied.
-
-**11. Data Requirements:**
-
-*   **Input:** `silverzone.data.customer_order_combined` Delta table.
-*   **Output:** `goldzone.data.customer_order_summary` Delta table with columns: Grouping Key (age or email domain), Total Revenue, Average Order Amount, `CreateDateTime`, `UpdateDateTime`, `IsActive`.
-
-**12. Assumptions:**
-
-*   The input data contains the necessary information for grouping by age or email domain and calculating the required metrics.
-*   The `scd2.py` function is correctly implemented and available.
-
-**13. Dependencies:**
-
-*   PySpark
-*   Databricks Delta Lake
-*   `scd2.py`
-
-**14. Priority:** High
-
-**15. Acceptance Criteria:**
-
-*   The `goldzone.data.customer_order_summary` Delta table is successfully created or updated.
-*   The aggregation is performed correctly, grouping by either age or email domain.
-*   Total revenue and average order amount are calculated accurately.
-*   SCD Type 2 upsert logic is correctly implemented.
-*   Unit tests in `tests/test_gold.py` pass.
-
----
-
-**1. Requirement ID:** FR-UTIL-001
-
-**2. Title:** Implement Unity Catalog Helper
-
-**3. Description:** Implement a helper method to check if a catalog.schema.table exists in Unity Catalog and create it if it doesn't.
-
-**4. Actor(s):** All DLT pipeline scripts (bronze, silver, gold).
-
-**5. Preconditions:**
-
-*   The Databricks environment is configured to use Unity Catalog.
-*   Appropriate permissions are in place to check for and create catalogs, schemas, and tables in Unity Catalog.
-
-**6. Trigger:** This helper method is called before writing to a target table in the bronze, silver, and gold layers.
-
-**7. Main Flow / Functional Steps:**
-
-1.  The DLT pipeline script calls the `catalog_helper.py` helper function, passing in the catalog, schema, and table name.
-2.  The helper function checks if the specified catalog.schema.table exists in Unity Catalog.
-3.  If the catalog.schema.table does not exist, the helper function creates it.
-4.  The helper function returns (or raises an exception if creation fails).
-
-**8. Alternate Flows / Exceptions:**
-
-*   If there are permission issues when checking for or creating the catalog.schema.table, the helper function will raise an exception.
-
-**9. Postconditions / Outputs:**
-
-*   The target catalog.schema.table exists in Unity Catalog.
-
-**10. Business Rules:**
-
-*   The helper function should ensure that the catalog, schema, and table are created if they do not already exist.
-
-**11. Data Requirements:**
-
-*   **Input:** Catalog name, Schema name, Table name (string).
-*   **Output:** None (but the table is created in Unity Catalog if it doesn't exist).
-
-**12. Assumptions:**
-
-*   The catalog and schema names are valid according to Unity Catalog naming conventions.
-*   The user has sufficient permissions to create catalogs, schemas, and tables.
-
-**13. Dependencies:**
-
-*   PySpark
-*   Databricks Unity Catalog
-
-**14. Priority:** High
-
-**15. Acceptance Criteria:**
-
-*   The helper function successfully creates the catalog.schema.table if it doesn't exist.
-*   The helper function does not attempt to re-create the catalog.schema.table if it already exists.
-*   The helper function handles permission errors gracefully.
-
----
-
-**1. Requirement ID:** FR-DLT-001
-
-**2. Title:** Configure DLT Pipeline Settings
-
-**3. Description:** Enable schema evolution and set the watermark for the DLT pipeline.
-
-**4. Actor(s):** Databricks DLT Pipeline.
-
-**5. Preconditions:**
-
-*   A DLT pipeline has been created.
-
-**6. Trigger:** This configuration is applied when creating or updating the DLT pipeline.
-
-**7. Main Flow / Functional Steps:**
-
-1.  When defining the DLT pipeline, the following settings are configured:
-    *   Schema evolution is enabled.
-    *   The watermark is set to the `order_date` column.
-
-**8. Alternate Flows / Exceptions:**
-
-*   If the `order_date` column does not exist, the DLT pipeline will fail.
-
-**9. Postconditions / Outputs:**
-
-*   Schema evolution is enabled for the DLT pipeline.
-*   The watermark is set to the `order_date` column.
-
-**10. Business Rules:**
-
-*   Schema evolution must be enabled to handle potential changes to the data schema.
-*   The `order_date` column should be used as a watermark.
-
-**11. Data Requirements:**
-
-*   **Input:** DLT pipeline configuration.
-*   **Output:** Modified DLT pipeline settings.
-
-**12. Assumptions:**
-
-*   The `order_date` column is present in the data being processed.
-
-**13. Dependencies:**
-
-*   Databricks DLT
-
-**14. Priority:** High
-
-**15. Acceptance Criteria:**
-
-*   Schema evolution is enabled in the DLT pipeline configuration.
-*   The watermark is set to `order_date` in the DLT pipeline configuration.
-
----
-
-**1. Requirement ID:** FR-ACL-001
-
-**2. Title:** Grant Access to Unity Catalog Tables
-
-**3. Description:** Provide a code snippet to grant SELECT and MODIFY access to roles for Unity Catalog tables.
-
-**4. Actor(s):** Databricks Admin.
-
-**5. Preconditions:**
-
-*   Unity Catalog is configured and operational.
-*   Roles are defined within Unity Catalog.
-*   The Unity Catalog tables have been created (bronze, silver, gold).
-
-**6. Trigger:** This script is executed by the Databricks admin after the tables are created in Unity Catalog.
-
-**7. Main Flow / Functional Steps:**
-
-1.  The Databricks admin executes the provided code snippet.
-2.  The code snippet uses SQL or a similar interface to grant SELECT access to the desired roles for each Unity Catalog table.
-3.  The code snippet also grants MODIFY access to specific roles for the same Unity Catalog tables.
-
-**8. Alternate Flows / Exceptions:**
-
-*   If the roles specified in the code snippet do not exist, the grant operation will fail.
-*   If the Unity Catalog tables specified in the code snippet do not exist, the grant operation will fail.
-*   If the admin does not have sufficient permissions to grant access, the operation will fail.
-
-**9. Postconditions / Outputs:**
-
-*   The specified roles have SELECT access to the Unity Catalog tables.
-*   The specified roles have MODIFY access to the Unity Catalog tables.
-
-**10. Business Rules:**
-
-*   The code snippet should clearly define which roles are being granted access to which tables.
-*   The access levels (SELECT and MODIFY) should be appropriate for each role.
-
-**11. Data Requirements:**
-
-*   **Input:** Roles to grant access to, Unity Catalog table names.
-*   **Output:** Modified Unity Catalog permissions.
-
-**12. Assumptions:**
-
-*   The Databricks admin has sufficient permissions to manage Unity Catalog access.
-*   The Unity Catalog roles have been defined.
-
-**13. Dependencies:**
-
-*   Databricks Unity Catalog
-
-**14. Priority:** High
-
-**15. Acceptance Criteria:**
-
-*   The code snippet is provided.
-*   The specified roles have SELECT access to the Unity Catalog tables.
-*   The specified roles have MODIFY access to the Unity Catalog tables.
-*   An example should be provided showing how to verify that permissions have been granted correctly.
-
----
-
-**1. Requirement ID:** FR-TEST-001
-
-**2. Title:** Implement Unit Tests for Each Layer
-
-**3. Description:** For each layer (bronze, silver, gold), include sample unit tests using dummy data. Use `unittest` and mock Delta tables where applicable.
-
-**4. Actor(s):** Developers.
-
-**5. Preconditions:**
-
-*   The bronze, silver, and gold layer scripts have been developed.
-*   The `unittest` framework is available.
-
-**6. Trigger:** The unit tests are executed during the development and testing phases.
-
-**7. Main Flow / Functional Steps:**
-
-1.  Developers create unit test files for each layer (e.g., `tests/test_bronze.py`, `tests/test_silver.py`, `tests/test_gold.py`).
-2.  Each unit test file contains multiple test cases.
-3.  Each test case uses dummy data to simulate input data.
-4.  Delta tables are mocked where necessary to isolate the code being tested.
-5.  Assertions are used to verify that the code produces the expected results.
-6.  The `unittest` framework is used to run the tests.
-
-**8. Alternate Flows / Exceptions:**
-
-*   If a test case fails, the developer will investigate the cause and fix the code or the test.
-
-**9. Postconditions / Outputs:**
-
-*   The bronze, silver, and gold layer scripts are thoroughly tested.
-*   Any bugs or errors are identified and fixed.
-*   The quality of the code is improved.
-
-**10. Business Rules:**
-
-*   Each layer should have adequate unit test coverage.
-*   The unit tests should be clear, concise, and easy to understand.
-
-**11. Data Requirements:**
-
-*   **Input:** Dummy data for each layer.
-*   **Output:** Test results (pass/fail).
-
-**12. Assumptions:**
-
-*   The developers have experience with unit testing and the `unittest` framework.
-*   The developers are familiar with mocking techniques.
-
-**13. Dependencies:**
-
-*   `unittest`
-*   Mocking libraries (e.g., `unittest.mock`).
-
-**14. Priority:** High
-
-**15. Acceptance Criteria:**
-
-*   Unit test files exist for each layer (bronze, silver, gold).
-*   Each unit test file contains multiple test cases.
-*   The unit tests use dummy data and mock Delta tables where applicable.
-*   All unit tests pass.
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD):
+
+**FR-DLT-001: Ingest CSV Data into Bronze Layer**
+
+* **Title**: Ingest CSV Data into Bronze Layer
+* **Description**: The system must ingest CSV data from Unity Catalog Volume into the bronze layer using cloud_files.
+* **Actor(s)**: Databricks Delta Tables, Unity Catalog
+* **Preconditions**: CSV data is available in Unity Catalog Volume.
+* **Trigger**: Triggered by the execution of the `load_customer_raw.py` and `load_orders_raw.py` scripts.
+* **Main Flow / Functional Steps**:
+	+ Ingest CSV data from Unity Catalog Volume using cloud_files.
+	+ Enable checkpointing and incremental loads.
+	+ Apply SCD Type 2 logic using id as primary key.
+	+ Create columns: CreateDateTime, UpdateDateTime, IsActive.
+	+ Use watermarking on order_date.
+* **Alternate Flows / Exceptions**:
+	+ If CSV data is missing or corrupted → Log error and notify admin.
+* **Postconditions / Outputs**: Bronze layer tables (customer_raw and orders_raw) are populated with ingested data.
+* **Business Rules**: SCD Type 2 logic is applied to maintain history and upsert updated data.
+* **Data Requirements**:
+	+ Input: CSV data from Unity Catalog Volume.
+	+ Output: Bronze layer tables (customer_raw and orders_raw).
+* **Assumptions**: Unity Catalog Volume is operational.
+* **Dependencies**: Unity Catalog, Databricks Delta Tables.
+* **Priority**: High.
+* **Acceptance Criteria**:
+	+ Data is ingested correctly into bronze layer tables.
+	+ SCD Type 2 logic is applied correctly.
+
+**FR-DLT-002: Transform Data into Silver Layer**
+
+* **Title**: Transform Data into Silver Layer
+* **Description**: The system must join bronze layer's customer_raw and orders_raw tables, remove nulls and duplicates, and apply SCD Type 2 upsert logic.
+* **Actor(s)**: Databricks Delta Tables.
+* **Preconditions**: Bronze layer tables (customer_raw and orders_raw) are populated.
+* **Trigger**: Triggered by the execution of the `transform_customer_orders.py` script.
+* **Main Flow / Functional Steps**:
+	+ Join bronze layer's customer_raw and orders_raw tables on id.
+	+ Remove nulls and duplicates using SHA256 hash-based deduplication.
+	+ Apply SCD Type 2 upsert logic.
+* **Alternate Flows / Exceptions**:
+	+ If join fails → Log error and notify admin.
+* **Postconditions / Outputs**: Silver layer table (customer_order_combined) is populated with transformed data.
+* **Business Rules**: SCD Type 2 logic is applied to maintain history and upsert updated data.
+* **Data Requirements**:
+	+ Input: Bronze layer tables (customer_raw and orders_raw).
+	+ Output: Silver layer table (customer_order_combined).
+* **Assumptions**: Bronze layer tables are populated correctly.
+* **Dependencies**: Databricks Delta Tables.
+* **Priority**: High.
+* **Acceptance Criteria**:
+	+ Data is transformed correctly into silver layer table.
+	+ SCD Type 2 logic is applied correctly.
+
+**FR-DLT-003: Aggregate Data into Gold Layer**
+
+* **Title**: Aggregate Data into Gold Layer
+* **Description**: The system must group and aggregate silver layer's customer_order_combined table by age or email domain, and apply SCD Type 2 upsert logic.
+* **Actor(s)**: Databricks Delta Tables.
+* **Preconditions**: Silver layer table (customer_order_combined) is populated.
+* **Trigger**: Triggered by the execution of the `aggregate_summary.py` script.
+* **Main Flow / Functional Steps**:
+	+ Group and aggregate silver layer's customer_order_combined table by age or email domain.
+	+ Calculate metrics: Total revenue, Average order amount.
+	+ Apply SCD Type 2 upsert logic.
+* **Alternate Flows / Exceptions**:
+	+ If aggregation fails → Log error and notify admin.
+* **Postconditions / Outputs**: Gold layer table (customer_order_summary) is populated with aggregated data.
+* **Business Rules**: SCD Type 2 logic is applied to maintain history and upsert updated data.
+* **Data Requirements**:
+	+ Input: Silver layer table (customer_order_combined).
+	+ Output: Gold layer table (customer_order_summary).
+* **Assumptions**: Silver layer table is populated correctly.
+* **Dependencies**: Databricks Delta Tables.
+* **Priority**: High.
+* **Acceptance Criteria**:
+	+ Data is aggregated correctly into gold layer table.
+	+ SCD Type 2 logic is applied correctly.
+
+**FR-DLT-004: Unity Catalog Handling**
+
+* **Title**: Unity Catalog Handling
+* **Description**: The system must use a helper method to check and create catalog.schema.table if not present.
+* **Actor(s)**: Unity Catalog.
+* **Preconditions**: None.
+* **Trigger**: Triggered by the execution of the `catalog_helper.py` script.
+* **Main Flow / Functional Steps**:
+	+ Check if catalog.schema.table exists.
+	+ Create catalog.schema.table if not present.
+* **Alternate Flows / Exceptions**:
+	+ If creation fails → Log error and notify admin.
+* **Postconditions / Outputs**: Catalog.schema.table is created if not present.
+* **Business Rules**: None.
+* **Data Requirements**: None.
+* **Assumptions**: Unity Catalog is operational.
+* **Dependencies**: Unity Catalog.
+* **Priority**: Medium.
+* **Acceptance Criteria**:
+	+ Catalog.schema.table is created correctly if not present.
+
+**FR-DLT-005: Access Control (ACL)**
+
+* **Title**: Access Control (ACL)
+* **Description**: The system must provide code snippet to grant SELECT and MODIFY access to roles for Unity Catalog tables.
+* **Actor(s)**: Unity Catalog.
+* **Preconditions**: None.
+* **Trigger**: Triggered by the execution of the ACL script.
+* **Main Flow / Functional Steps**:
+	+ Grant SELECT and MODIFY access to roles for Unity Catalog tables.
+* **Alternate Flows / Exceptions**:
+	+ If grant fails → Log error and notify admin.
+* **Postconditions / Outputs**: Roles have SELECT and MODIFY access to Unity Catalog tables.
+* **Business Rules**: None.
+* **Data Requirements**: None.
+* **Assumptions**: Unity Catalog is operational.
+* **Dependencies**: Unity Catalog.
+* **Priority**: Medium.
+* **Acceptance Criteria**:
+	+ Roles have correct access to Unity Catalog tables.
+
+**FR-DLT-006: Testing**
+
+* **Title**: Testing
+* **Description**: The system must include sample unit tests using dummy data for each layer.
+* **Actor(s)**: unittest, mock Delta tables.
+* **Preconditions**: None.
+* **Trigger**: Triggered by the execution of the test scripts.
+* **Main Flow / Functional Steps**:
+	+ Run unit tests using dummy data for each layer.
+* **Alternate Flows / Exceptions**:
+	+ If tests fail → Log error and notify admin.
+* **Postconditions / Outputs**: Tests are executed and results are reported.
+* **Business Rules**: None.
+* **Data Requirements**: Dummy data for testing.
+* **Assumptions**: unittest and mock Delta tables are operational.
+* **Dependencies**: unittest, mock Delta tables.
+* **Priority**: High.
+* **Acceptance Criteria**:
+	+ Tests are executed correctly and results are reported.
