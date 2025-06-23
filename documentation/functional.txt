@@ -1,0 +1,82 @@
+Here are the detailed Functional Requirements Documents (FRD) based on the Business Requirement Document (BRD):
+
+**FR-ETL-001: Load Raw Data to Bronze Layer**
+
+1. Title: Load Raw Data to Bronze Layer
+2. Description: The system must load raw Customer and Orders data from CSV files in Unity Catalog Volumes into the Bronze layer.
+3. Actor(s): Data Engineering Team, Data Ingestion Module
+4. Preconditions: Raw data files must be available in the specified location;/Volumes/catalog_sdlc/rawdata/customer and /Volumes/catalog_sdlc/rawdata/order.
+5. Trigger: Data Engineering Team initiates the load process.
+6. Main Flow / Functional Steps:
+	* System loads raw Customer data from CSV file located at /Volumes/catalog_sdlc/rawdata/customer into Bronze layer table customer_raw.
+	* System loads raw Orders data from CSV file located at /Volumes/catalog_sdlc/rawdata/orders into Bronze layer table orders_raw.
+	* System creates columns for CreateDateTime, UpdateDateTime, and IsActive flag for each table.
+	* System updates the UpdateDateTime and IsActive flag for each new update.
+7. Alternate Flows / Exceptions:
+	* If data file is missing → Log error and notify Data Engineering Team.
+	* If data loading fails → Retry twice, then log error and notify Data Engineering Team.
+8. Postconditions / Outputs: Raw data is loaded into Bronze layer tables.
+9. Business Rules: Raw data files must be in CSV format.
+
+**FR-ETL-002: Ingestion of Data Sources into Bronze Layer**
+
+1. Title: Ingestion of Data Sources into Bronze Layer
+2. Description: The system must ingest raw Customer and Orders data from the Bronze layer into the Silver layer.
+3. Actor(s): Data Engineering Team, Data Ingestion Module
+4. Preconditions: Raw data files must be available in the Bronze layer tables customer_raw and orders_raw.
+5. Trigger: Data Engineering Team initiates the ingestion process.
+6. Main Flow / Functional Steps:
+	* System joins the Customer and Orders data on the id column.
+	* System removes records with Null values.
+	* System removes duplicate records.
+	* System applies SCD type 2 using id as primary key, keeping history, using watermark columns, creating CreateDateTime, UpdateDateTime, and IsActive flag, and update script to update UpdateDateTime and IsActive flag when new data comes in.
+	* System enters data into Silver layer table customer_order_combined.
+7. Alternate Flows / Exceptions:
+	* If data is missing → Log error and notify Data Engineering Team.
+	* If data ingestion fails → Retry twice, then log error and notify Data Engineering Team.
+8. Postconditions / Outputs: Data is ingested into Silver layer table customer_order_combined.
+9. Business Rules: Data must be in correct format and free of errors.
+
+**FR-ETL-003: Load Data to Gold Layer**
+
+1. Title: Load Data to Gold Layer
+2. Description: The system must load data from the Silver layer into the Gold layer.
+3. Actor(s): Data Engineering Team, Data Ingestion Module
+4. Preconditions: Data must be available in the Silver layer table customer_order_combined.
+5. Trigger: Data Engineering Team initiates the load process.
+6. Main Flow / Functional Steps:
+	* System loads data from Silver layer table customer_order_combined into Gold layer table customer_order_summary.
+	* System groups by age or email domain.
+	* System aggregates metrics like total revenue and average order amount.
+7. Alternate Flows / Exceptions:
+	* If data is missing → Log error and notify Data Engineering Team.
+	* If data loading fails → Retry twice, then log error and notify Data Engineering Team.
+8. Postconditions / Outputs: Data is loaded into Gold layer table customer_order_summary.
+9. Business Rules: Data must be in correct format and free of errors.
+
+**FR-ETL-004: Generation of Metadata and Tests**
+
+1. Title: Generation of Metadata and Tests
+2. Description: The system must generate metadata and tests for the ETL pipeline.
+3. Actor(s): Data Engineering Team, Data Ingestion Module
+4. Preconditions: Data must be available in the Gold layer table customer_order_summary.
+5. Trigger: Data Engineering Team initiates the generation process.
+6. Main Flow / Functional Steps:
+	* System generates metadata for the ETL pipeline.
+	* System generates tests for the ETL pipeline.
+	* System updates directory structure for the ETL pipeline.
+7. Alternate Flows / Exceptions:
+	* If metadata generation fails → Log error and notify Data Engineering Team.
+	* If test generation fails → Log error and notify Data Engineering Team.
+8. Postconditions / Outputs: Metadata and tests are generated for the ETL pipeline.
+9. Business Rules: Metadata and tests must be in correct format and free of errors.
+
+**Priority:** High
+
+**Acceptance Criteria:**
+
+* Data is loaded into Bronze layer tables customer_raw and orders_raw.
+* Data is ingested into Silver layer table customer_order_combined.
+* Data is loaded into Gold layer table customer_order_summary.
+* Metadata and tests are generated for the ETL pipeline.
+* System handles errors gracefully.

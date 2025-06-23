@@ -1,0 +1,246 @@
+Here is the Technical Requirement Document (TRD) based on the Functional Requirement Documents (FRD) provided:
+
+**TR-ETL-001: Load Raw Data to Bronze Layer**
+
+1. Technical Requirement ID: TR-ETL-001
+2. Related Functional Requirement(s): FR-ETL-001
+3. Objective: Implement a data ingestion pipeline to load raw customer and orders data from CSV files in CSV format into the Bronze layer tables customer_raw and orders_raw.
+4. Target Cluster Configuration:
+Cluster Name: Load_Raw_Data_Cluster
+Databricks Runtime Version: 7.3
+Node Type: Standard_DS3_V2
+Driver Node: 1
+Worker Nodes: 2
+Autoscaling: Enabled
+Auto Termination: 10
+Libraries Installed: pandas, numpy, pySpark
+
+5. Source Data Details
+| Dataset Name | Location (Path/Table) | Format | Description |
+| --- | --- | --- | --- |
+| Customer Data | /Volumes/catalog_sdlc/rawdata/customer | CSV | Raw customer data from CSV file |
+| Orders Data | /Volumes/catalog_sdlc/rawdata/orders | CSV | Raw orders data from CSV file |
+
+6. Target Data Details
+| Output Name | Location | Format | Description |
+| --- | --- | --- | --- |
+| Customer Raw Data | Bronze layer - customer_raw | Parquet | Loaded raw customer data |
+| Orders Raw Data | Bronze layer - orders_raw | Parquet | Loaded raw orders data |
+
+7. Job Flow / Pipeline Stages
+* Step 1: Load raw customer data from CSV file into Bronze layer table customer_raw.
+* Step 2: Load raw orders data from CSV file into Bronze layer table orders_raw.
+* Step 3: Create columns for CreateDateTime, UpdateDateTime, and IsActive flag for each table.
+
+8. Data Transformations / Business Logic
+| Step | Description | Transformation Logic |
+| --- | --- | --- |
+| Step 1 | Load raw customer data | `spark.read.csv('/Volumes/catalog_sdlc/rawdata/customer', header=True, inferSchema=True)` |
+| Step 2 | Load raw orders data | `spark.read.csv('/Volumes/catalog_sdlc/rawdata/orders', header=True, inferSchema=True)` |
+| Step 3 | Create columns for CreateDateTime, UpdateDateTime, and IsActive flag | `df = df.withColumn('CreateDateTime', current_timestamp())` |
+
+9. Error Handling and Logging
+* If data file is missing, log error and notify Data Engineering Team.
+* If data loading fails, retry twice, then log error and notify Data Engineering Team.
+
+10. Scheduling & Triggering
+* Trigger: Data Engineering Team initiates the load process.
+
+11. Security & Access Control
+* Data access is restricted to authorized Data Engineering Team members.
+
+12. Dependencies
+* pandas, numpy, pySpark libraries are installed.
+
+13. Assumptions
+* Raw data files are available in the specified location.
+
+14. Acceptance Criteria
+* Raw data is loaded into Bronze layer tables customer_raw and orders_raw.
+* System handles errors gracefully.
+
+15. Notes / Implementation Suggestions
+* Consider using window functions for future enhancements (e.g., historical comparisons).
+
+**TR-ETL-002: Ingestion of Data Sources into Bronze Layer**
+
+1. Technical Requirement ID: TR-ETL-002
+2. Related Functional Requirement(s): FR-ETL-002
+3. Objective: Implement a data ingestion pipeline to ingest raw customer and orders data from the Bronze layer into the Silver layer.
+4. Target Cluster Configuration:
+Cluster Name: Ingest_Data_Cluster
+Databricks Runtime Version: 7.3
+Node Type: Standard_DS3_V2
+Driver Node: 1
+Worker Nodes: 2
+Autoscaling: Enabled
+Auto Termination: 10
+Libraries Installed: pandas, numpy, pySpark
+
+5. Source Data Details
+| Dataset Name | Location (Path/Table) | Format | Description |
+| --- | --- | --- | --- |
+| Customer Raw Data | Bronze layer - customer_raw | Parquet | Loaded raw customer data |
+| Orders Raw Data | Bronze layer - orders_raw | Parquet | Loaded raw orders data |
+
+6. Target Data Details
+| Output Name | Location | Format | Description |
+| --- | --- | --- | --- |
+| Combined Customer and Orders Data | Silver layer - customer_order_combined | Parquet | Ingested data from Bronze layer |
+
+7. Job Flow / Pipeline Stages
+* Step 1: Join customer and orders data on the id column.
+* Step 2: Remove records with Null values.
+* Step 3: Remove duplicate records.
+* Step 4: Apply SCD type 2 using id as primary key, keeping history, using watermark columns.
+
+8. Data Transformations / Business Logic
+| Step | Description | Transformation Logic |
+| --- | --- | --- |
+| Step 1 | Join customer and orders data | `df = spark.read.parquet('/bronze/customer_raw').join(spark.read.parquet('/bronze/orders_raw'), 'id', how='inner')` |
+| Step 2 | Remove records with Null values | `df = df.na.drop(subset=None)` |
+| Step 3 | Remove duplicate records | `df = df.dropDuplicates(subset=None)` |
+| Step 4 | Apply SCD type 2 | `df = df.withColumn('SCD_Start', current_timestamp())`
+
+9. Error Handling and Logging
+* If data is missing, log error and notify Data Engineering Team.
+* If data ingestion fails, retry twice, then log error and notify Data Engineering Team.
+
+10. Scheduling & Triggering
+* Trigger: Data Engineering Team initiates the ingestion process.
+
+11. Security & Access Control
+* Data access is restricted to authorized Data Engineering Team members.
+
+12. Dependencies
+* pandas, numpy, pySpark libraries are installed.
+
+13. Assumptions
+* Raw data is available in the Bronze layer tables customer_raw and orders_raw.
+
+14. Acceptance Criteria
+* Data is ingested into Silver layer table customer_order_combined.
+* System handles errors gracefully.
+
+15. Notes / Implementation Suggestions
+* Consider using window functions for future enhancements (e.g., historical comparisons).
+
+**TR-ETL-003: Load Data to Gold Layer**
+
+1. Technical Requirement ID: TR-ETL-003
+2. Related Functional Requirement(s): FR-ETL-003
+3. Objective: Implement a data aggregation pipeline to load data from the Silver layer into the Gold layer.
+4. Target Cluster Configuration:
+Cluster Name: Load_Gold_Data_Cluster
+Databricks Runtime Version: 7.3
+Node Type: Standard_DS3_V2
+Driver Node: 1
+Worker Nodes: 2
+Autoscaling: Enabled
+Auto Termination: 10
+Libraries Installed: pandas, numpy, pySpark
+
+5. Source Data Details
+| Dataset Name | Location (Path/Table) | Format | Description |
+| --- | --- | --- | --- |
+| Combined Customer and Orders Data | Silver layer - customer_order_combined | Parquet | Ingested data from Silver layer |
+
+6. Target Data Details
+| Output Name | Location | Format | Description |
+| --- | --- | --- | --- |
+| Customer and Orders Summary Data | Gold layer - customer_order_summary | Parquet | Loaded data from Silver layer |
+
+7. Job Flow / Pipeline Stages
+* Step 1: Load data from Silver layer table customer_order_combined into Gold layer table customer_order_summary.
+* Step 2: Group by age or email domain.
+* Step 3: Aggregate metrics like total revenue and average order amount.
+
+8. Data Transformations / Business Logic
+| Step | Description | Transformation Logic |
+| --- | --- | --- |
+| Step 1 | Load data from Silver layer | `spark.read.parquet('/silver/customer_order_combined')` |
+| Step 2 | Group by age or email domain | `df = df.groupBy('age' | 'email_domain')` |
+| Step 3 | Aggregate metrics | `df = df.agg({'total_revenue':'sum', 'avg_order_amount': 'avg'})` |
+
+9. Error Handling and Logging
+* If data is missing, log error and notify Data Engineering Team.
+* If data loading fails, retry twice, then log error and notify Data Engineering Team.
+
+10. Scheduling & Triggering
+* Trigger: Data Engineering Team initiates the load process.
+
+11. Security & Access Control
+* Data access is restricted to authorized Data Engineering Team members.
+
+12. Dependencies
+* pandas, numpy, pySpark libraries are installed.
+
+13. Assumptions
+* Data is available in the Silver layer table customer_order_combined.
+
+14. Acceptance Criteria
+* Data is loaded into Gold layer table customer_order_summary.
+* System handles errors gracefully.
+
+15. Notes / Implementation Suggestions
+* Consider using window functions for future enhancements (e.g., historical comparisons).
+
+**TR-ETL-004: Generation of Metadata and Tests**
+
+1. Technical Requirement ID: TR-ETL-004
+2. Related Functional Requirement(s): FR-ETL-004
+3. Objective: Implement a data metadata generation pipeline to generate metadata and tests for the ETL pipeline.
+4. Target Cluster Configuration:
+Cluster Name: Generate_Metadata_Cluster
+Databricks Runtime Version: 7.3
+Node Type: Standard_DS3_V2
+Driver Node: 1
+Worker Nodes: 2
+Autoscaling: Enabled
+Auto Termination: 10
+Libraries Installed: pandas, numpy, pySpark
+
+5. Source Data Details
+| Dataset Name | Location (Path/Table) | Format | Description |
+| --- | --- | --- | --- |
+| Customer and Orders Summary Data | Gold layer - customer_order_summary | Parquet | Loaded data from Gold layer |
+
+6. Target Data Details
+| Output Name | Location | Format | Description |
+| --- | --- | --- | --- |
+| Metadata and Tests | Output directory | CSV | Generated metadata and tests |
+
+7. Job Flow / Pipeline Stages
+* Step 1: Generate metadata for the ETL pipeline.
+* Step 2: Generate tests for the ETL pipeline.
+* Step 3: Update directory structure for the ETL pipeline.
+
+8. Data Transformations / Business Logic
+| Step | Description | Transformation Logic |
+| --- | --- | --- |
+| Step 1 | Generate metadata | `spark.read.parquet('/gold/customer_order_summary').describe()` |
+| Step 2 | Generate tests | `df = spark.read.parquet('/gold/customer_order_summary').toPandas()` |
+| Step 3 | Update directory structure | `df = df.write.csv('/output/directory')` |
+
+9. Error Handling and Logging
+* If metadata generation fails, log error and notify Data Engineering Team.
+* If test generation fails, log error and notify Data Engineering Team.
+
+10. Scheduling & Triggering
+* Trigger: Data Engineering Team initiates the generation process.
+
+11. Security & Access Control
+* Data access is restricted to authorized Data Engineering Team members.
+
+12. Dependencies
+* pandas, numpy, pySpark libraries are installed.
+
+13. Assumptions
+* Data is available in the Gold layer table customer_order_summary.
+
+14. Acceptance Criteria
+* Metadata and tests are generated for the ETL pipeline.
+* System handles errors gracefully.
+
+15. Notes / Implementation Suggestions
+* Consider using window functions for future enhancements (e.g., historical comparisons).
