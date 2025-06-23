@@ -1,0 +1,177 @@
+Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **TR-ETL-001: Load Raw Data to Bronze Layer**
+	+ Related Functional Requirement(s): FR-ETL-001
+	+ Objective: Implement a Delta Live Tables (DLT) pipeline to ingest raw Customer and Order data from CSV files into the Bronze layer.
+	+ Target Cluster Configuration:
+		- Cluster Name: Bronze Layer Cluster
+		- Databricks Runtime Version: 10.4.x-scala2.12
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 2-5 (autoscaling)
+		- Autoscaling: Enabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: Delta Live Tables, Auto Loader
+	+ Source Data Details:
+		- Dataset Name: Customer and Order CSV files
+		- Location (Path/Table): Unity Catalog Volumes
+		- Format: CSV
+		- Description: Raw Customer and Order data
+	+ Target Data Details:
+		- Output Name: customer_raw and orders_raw tables
+		- Location: Bronze layer (catalog "bronzezone", schema "data")
+		- Format: Delta Lake
+		- Description: Loaded raw Customer and Order data
+	+ Job Flow / Pipeline Stages:
+		- Create catalog "bronzezone", schema "data", and tables "customer_raw" and "orders_raw" if they do not exist.
+		- Ingest CSV data into "customer_raw" and "orders_raw" tables using DLT syntax and Auto Loader.
+	+ Data Transformations / Business Logic:
+		- Step: Create columns such as CreateDateTime, UpdateDateTime, and IsActive flag.
+		- Transformation Logic: Use DLT syntax to create columns and apply SCD type 2 logic.
+	+ Error Handling and Logging:
+		- Log errors and notify the Data Engineering Team if CSV files are not found or are malformed.
+		- Log errors and notify the Data Engineering Team if data ingestion fails.
+	+ Scheduling & Triggering:
+		- Manual trigger or scheduled trigger to initiate the data load process.
+	+ Security & Access Control:
+		- Manage access control lists (ACLs) for Unity Catalog objects.
+	+ Dependencies:
+		- Unity Catalog, Delta Live Tables (DLT) syntax, Auto Loader.
+	+ Assumptions:
+		- Unity Catalog is properly configured and accessible.
+	+ Acceptance Criteria:
+		- Data is correctly loaded into "customer_raw" and "orders_raw" tables.
+		- CreateDateTime, UpdateDateTime, and IsActive flag are correctly populated.
+	+ Notes / Implementation Suggestions:
+		- Use SCD type 2 to keep history.
+		- Use watermark columns to track data changes.
+
+* **TR-ETL-002: Load Data to Silver Layer**
+	+ Related Functional Requirement(s): FR-ETL-002
+	+ Objective: Implement a Delta Live Tables (DLT) pipeline to load data from Bronze layer tables "customer_raw" and "orders_raw" into the Silver layer, applying data cleansing and SCD type 2 logic.
+	+ Target Cluster Configuration:
+		- Cluster Name: Silver Layer Cluster
+		- Databricks Runtime Version: 10.4.x-scala2.12
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 2-5 (autoscaling)
+		- Autoscaling: Enabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: Delta Live Tables, Auto Loader
+	+ Source Data Details:
+		- Dataset Name: customer_raw and orders_raw tables
+		- Location (Path/Table): Bronze layer (catalog "bronzezone", schema "data")
+		- Format: Delta Lake
+		- Description: Loaded raw Customer and Order data
+	+ Target Data Details:
+		- Output Name: customer_order_combined table
+		- Location: Silver layer (catalog "silverzone", schema "data")
+		- Format: Delta Lake
+		- Description: Cleaned and transformed Customer and Order data
+	+ Job Flow / Pipeline Stages:
+		- Load data from "customer_raw" and "orders_raw" tables into the Silver layer.
+		- Join the two tables on the "id" column.
+		- Remove records with Null values.
+		- Remove duplicate records.
+		- Apply SCD type 2 logic using "id" as the primary key.
+	+ Data Transformations / Business Logic:
+		- Step: Create columns such as CreateDateTime, UpdateDateTime, and IsActive flag.
+		- Transformation Logic: Use DLT syntax to create columns and apply SCD type 2 logic.
+	+ Error Handling and Logging:
+		- Log errors and notify the Data Engineering Team if data loading fails.
+		- Log errors and notify the Data Engineering Team if data cleansing fails.
+	+ Scheduling & Triggering:
+		- Manual trigger or scheduled trigger to initiate the data load process.
+	+ Security & Access Control:
+		- Manage access control lists (ACLs) for Unity Catalog objects.
+	+ Dependencies:
+		- Unity Catalog, Delta Live Tables (DLT) syntax, Auto Loader.
+	+ Assumptions:
+		- Unity Catalog is properly configured and accessible.
+	+ Acceptance Criteria:
+		- Data is correctly loaded into "customer_order_combined" table.
+		- Data is correctly cleansed and transformed.
+	+ Notes / Implementation Suggestions:
+		- Use SCD type 2 to keep history.
+		- Use watermark columns to track data changes.
+
+* **TR-ETL-003: Load Data to Gold Layer**
+	+ Related Functional Requirement(s): FR-ETL-003
+	+ Objective: Implement a Delta Live Tables (DLT) pipeline to load data from Silver layer table "customer_order_combined" into the Gold layer, applying aggregation and curation logic.
+	+ Target Cluster Configuration:
+		- Cluster Name: Gold Layer Cluster
+		- Databricks Runtime Version: 10.4.x-scala2.12
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 2-5 (autoscaling)
+		- Autoscaling: Enabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: Delta Live Tables, Auto Loader
+	+ Source Data Details:
+		- Dataset Name: customer_order_combined table
+		- Location (Path/Table): Silver layer (catalog "silverzone", schema "data")
+		- Format: Delta Lake
+		- Description: Cleaned and transformed Customer and Order data
+	+ Target Data Details:
+		- Output Name: customer_order_summary table
+		- Location: Gold layer (catalog "goldzone", schema "data")
+		- Format: Delta Lake
+		- Description: Aggregated and curated Customer and Order data
+	+ Job Flow / Pipeline Stages:
+		- Load data from "customer_order_combined" table into the Gold layer.
+		- Group data by "age" or "email domain".
+		- Aggregate metrics such as Total revenue and Average order amount.
+	+ Data Transformations / Business Logic:
+		- Step: Create columns such as CreateDateTime, UpdateDateTime, and IsActive flag.
+		- Transformation Logic: Use DLT syntax to create columns and apply aggregation and curation logic.
+	+ Error Handling and Logging:
+		- Log errors and notify the Data Engineering Team if data loading fails.
+		- Log errors and notify the Data Engineering Team if aggregation or curation fails.
+	+ Scheduling & Triggering:
+		- Manual trigger or scheduled trigger to initiate the data load process.
+	+ Security & Access Control:
+		- Manage access control lists (ACLs) for Unity Catalog objects.
+	+ Dependencies:
+		- Unity Catalog, Delta Live Tables (DLT) syntax, Auto Loader.
+	+ Assumptions:
+		- Unity Catalog is properly configured and accessible.
+	+ Acceptance Criteria:
+		- Data is correctly loaded into "customer_order_summary" table.
+		- Data is correctly aggregated and curated.
+	+ Notes / Implementation Suggestions:
+		- Use SCD type 2 to keep history.
+		- Use watermark columns to track data changes.
+
+* **TR-ETL-004: Manage Unity Catalog Objects**
+	+ Related Functional Requirement(s): FR-ETL-004
+	+ Objective: Implement a script to create and manage Unity Catalog objects such as catalogs, schemas, and tables.
+	+ Target Cluster Configuration:
+		- Cluster Name: Unity Catalog Cluster
+		- Databricks Runtime Version: 10.4.x-scala2.12
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 1 (no autoscaling)
+		- Autoscaling: Disabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: Unity Catalog API
+	+ Source Data Details: None
+	+ Target Data Details: None
+	+ Job Flow / Pipeline Stages:
+		- Create catalogs, schemas, and tables as required.
+		- Manage access control lists (ACLs) for Unity Catalog objects.
+	+ Data Transformations / Business Logic: None
+	+ Error Handling and Logging:
+		- Log errors and notify the Data Engineering Team if object creation fails.
+		- Log errors and notify the Data Engineering Team if ACL management fails.
+	+ Scheduling & Triggering:
+		- Manual trigger or scheduled trigger to initiate the object creation process.
+	+ Security & Access Control:
+		- Manage access control lists (ACLs) for Unity Catalog objects.
+	+ Dependencies:
+		- Unity Catalog API.
+	+ Assumptions:
+		- Unity Catalog is properly configured and accessible.
+	+ Acceptance Criteria:
+		- Unity Catalog objects are correctly created and managed.
+		- ACLs are correctly managed.
+	+ Notes / Implementation Suggestions: None
