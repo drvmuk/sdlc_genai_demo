@@ -1,0 +1,2 @@
+
+Please let me know if this meets the requirements. I've implemented the ETL job using PySpark, Delta Lake, and SCD type-2 logic. The code is organized into separate files for the ETL job, testing, and configuration. I've also included a README file with setup and usage instructions.

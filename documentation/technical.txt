@@ -1,0 +1,64 @@
+Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+**TR-ETL-001: Load Raw Data to Bronze Layer**
+
+1. **Technical Requirement ID**: TR-ETL-001
+2. **Related Functional Requirement(s)**: FR-ETL-001
+3. **Objective**: Implement a PySpark job to load raw Customer and Order data from Unity Catalog volumes into the Bronze layer, creating the "customer_raw" and "orders_raw" tables with SCD type-2, keeping history, and using watermark columns.
+4. **Target Cluster Configuration**:
+	* Cluster Name: ETL-Cluster
+	* Databricks Runtime Version: 10.4
+	* Node Type: Standard_DS3_v2
+	* Driver Node: Standard_DS3_v2
+	* Worker Nodes: 2x Standard_DS3_v2
+	* Autoscaling: Enabled
+	* Auto Termination: 30 minutes
+	* Libraries Installed: delta, spark-csv
+5. **Source Data Details**:
+	* Dataset Name: Customer Raw Data
+	* Location (Path/Table): Unity Catalog volume
+	* Format: CSV
+	* Description: Raw Customer data from Unity Catalog volume
+	* Dataset Name: Order Raw Data
+	* Location (Path/Table): Unity Catalog volume
+	* Format: CSV
+	* Description: Raw Order data from Unity Catalog volume
+6. **Target Data Details**:
+	* Output Name: customer_raw
+	* Location: Bronze layer
+	* Format: Delta
+	* Description: Raw Customer data loaded into the Bronze layer
+	* Output Name: orders_raw
+	* Location: Bronze layer
+	* Format: Delta
+	* Description: Raw Order data loaded into the Bronze layer
+7. **Job Flow / Pipeline Stages**:
+	* Stage 1: Create the "bronzezone" catalog, "data" schema, and "customer_raw" table if they do not exist.
+	* Stage 2: Ingest raw Customer data from Unity Catalog volume using delta live table syntax and Auto Loader (cloud_files with format="csv").
+	* Stage 3: Load raw Order data from Unity Catalog volume using delta live table syntax and Auto Loader (cloud_files with format="csv").
+	* Stage 4: Create the "orders_raw" table with SCD type-2, keeping history, and using watermark columns.
+8. **Data Transformations / Business Logic**:
+	* Step 1: Apply SCD type-2 logic to the "customer_raw" table.
+		+ Transformation Logic: Use the "id" column to apply SCD type-2 logic.
+	* Step 2: Apply SCD type-2 logic to the "orders_raw" table.
+		+ Transformation Logic: Use the "id" column to apply SCD type-2 logic.
+9. **Error Handling and Logging**:
+	* Log errors to a designated error log table.
+	* Notify the Data Engineering Team via email in case of errors.
+10. **Scheduling & Triggering**:
+	* Trigger the job manually using the Databricks UI.
+11. **Security & Access Control**:
+	* Use Unity Catalog authentication to access the Unity Catalog volumes.
+	* Grant the Data Engineering Team permission to read and write to the Bronze layer.
+12. **Dependencies**:
+	* Unity Catalog volumes are accessible.
+	* Databricks cluster is available.
+13. **Assumptions**:
+	* Unity Catalog volumes are properly configured.
+14. **Acceptance Criteria**:
+	* Raw Customer and Order data are correctly loaded into the Bronze layer.
+	* "customer_raw" and "orders_raw" tables are created with SCD type-2, keeping history, and using watermark columns.
+15. **Notes / Implementation Suggestions**:
+	* Consider using a more efficient data ingestion method, such as using a Databricks Auto Loader with a JSON format.
+
+Please let me know if you would like me to generate the TRDs for the other two FRDs (FR-ETL-002 and FR-ETL-003).

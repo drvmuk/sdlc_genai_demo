@@ -1,0 +1,82 @@
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD):
+
+**FR-ETL-001: Load Raw Data to Bronze Layer**
+
+1. **Title**: Load Raw Data to Bronze Layer
+2. **Description**: The system must load raw Customer and Order data from Unity Catalog volumes into the Bronze layer, creating the "customer_raw" and "orders_raw" tables with SCD type-2, keeping history, and using watermark columns.
+3. **Actor(s)**: Data Engineering Team, Unity Catalog, Databricks
+4. **Preconditions**: Unity Catalog volumes are accessible, and the necessary schema and tables do not exist.
+5. **Trigger**: Triggered manually by the Data Engineering Team.
+6. **Main Flow / Functional Steps**:
+	* Create the "bronzezone" catalog, "data" schema, and "customer_raw" table if they do not exist.
+	* Ingest raw Customer data from Unity Catalog volume using delta live table syntax and Auto Loader (cloud_files with format="csv").
+	* Load raw Order data from Unity Catalog volume using delta live table syntax and Auto Loader (cloud_files with format="csv").
+	* Create the "orders_raw" table with SCD type-2, keeping history, and using watermark columns.
+7. **Alternate Flows / Exceptions**:
+	* If data ingestion fails → Log error and notify Data Engineering Team.
+8. **Postconditions / Outputs**: Raw Customer and Order data are loaded into the Bronze layer, and the "customer_raw" and "orders_raw" tables are created.
+9. **Business Rules**: Use delta live table syntax and Auto Loader (cloud_files with format="csv") for data ingestion.
+10. **Data Requirements**:
+	* Input: Raw Customer and Order data from Unity Catalog volumes.
+	* Output: "customer_raw" and "orders_raw" tables in the Bronze layer.
+11. **Assumptions**: Unity Catalog volumes are properly configured.
+12. **Dependencies**: Databricks, Unity Catalog.
+13. **Priority**: High.
+14. **Acceptance Criteria**:
+	* Raw Customer and Order data are correctly loaded into the Bronze layer.
+	* "customer_raw" and "orders_raw" tables are created with SCD type-2, keeping history, and using watermark columns.
+
+**FR-ETL-002: Load Data to Silver Layer**
+
+1. **Title**: Load Data to Silver Layer
+2. **Description**: The system must load data from the Bronze layer into the Silver layer, joining Customer and Order data, removing records with Null values and duplicates, and applying SCD type-2 using the "id" column.
+3. **Actor(s)**: Data Engineering Team, Databricks.
+4. **Preconditions**: Bronze layer data is available.
+5. **Trigger**: Triggered manually by the Data Engineering Team.
+6. **Main Flow / Functional Steps**:
+	* Load data from the "customer_raw" and "orders_raw" tables in the Bronze layer.
+	* Join the two datasets on the "id" column.
+	* Remove records with Null values and duplicates.
+	* Apply SCD type-2 using the "id" column, keeping history, and using watermark columns.
+	* Create the "customer_order_combined" table in the Silver layer.
+7. **Alternate Flows / Exceptions**:
+	* If data loading fails → Log error and notify Data Engineering Team.
+8. **Postconditions / Outputs**: Data is loaded into the Silver layer, and the "customer_order_combined" table is created.
+9. **Business Rules**: Use delta live table syntax and Auto Loader (cloud_files) for data loading.
+10. **Data Requirements**:
+	* Input: Bronze layer data.
+	* Output: "customer_order_combined" table in the Silver layer.
+11. **Assumptions**: Bronze layer data is properly formatted.
+12. **Dependencies**: Databricks.
+13. **Priority**: High.
+14. **Acceptance Criteria**:
+	* Data is correctly loaded into the Silver layer.
+	* "customer_order_combined" table is created with SCD type-2, keeping history, and using watermark columns.
+
+**FR-ETL-003: Load Data to Gold Layer**
+
+1. **Title**: Load Data to Gold Layer
+2. **Description**: The system must load data from the Silver layer into the Gold layer, grouping data by age or email domain, and aggregating metrics such as total revenue and average order amount.
+3. **Actor(s)**: Data Engineering Team, Databricks.
+4. **Preconditions**: Silver layer data is available.
+5. **Trigger**: Triggered manually by the Data Engineering Team.
+6. **Main Flow / Functional Steps**:
+	* Load data from the "customer_order_combined" table in the Silver layer.
+	* Group data by age or email domain.
+	* Aggregate metrics such as total revenue and average order amount.
+	* Create the "customer_order_summary" table in the Gold layer.
+7. **Alternate Flows / Exceptions**:
+	* If data loading fails → Log error and notify Data Engineering Team.
+8. **Postconditions / Outputs**: Data is loaded into the Gold layer, and the "customer_order_summary" table is created.
+9. **Business Rules**: Use delta live table syntax and Auto Loader (cloud_files) for data loading.
+10. **Data Requirements**:
+	* Input: Silver layer data.
+	* Output: "customer_order_summary" table in the Gold layer.
+11. **Assumptions**: Silver layer data is properly formatted.
+12. **Dependencies**: Databricks.
+13. **Priority**: High.
+14. **Acceptance Criteria**:
+	* Data is correctly loaded into the Gold layer.
+	* "customer_order_summary" table is created with aggregated metrics.
+
+Note that these FRDs are based on the provided BRD and may require additional refinement or clarification based on specific project requirements.
