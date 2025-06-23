@@ -1,0 +1,8 @@
+.databricks/
+*.pyc
+__pycache__/
+.idea/
+.vscode/
+*.log
+*.db
+data/  #Exclude data folder

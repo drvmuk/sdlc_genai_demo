@@ -1,0 +1,291 @@
+```
+## Functional Requirements Document (FRD) - End-to-End ETL Pipeline for Product Data
+
+**Project Title:** End-to-End ETL Pipeline for Product Data
+**Owner:** Data Engineering Team
+**Prepared By:** John Doe
+**Date:** June 10, 2025
+
+---
+
+### Step 1: Load Raw Data to Bronze Layer
+
+**1. Requirement ID:** FR-BRZ-001
+
+**2. Title:** Ingest Customer Data from CSV to Bronze Layer
+
+**3. Description:** The system must ingest customer data from a CSV file located in a Unity Catalog Volume into a Delta table in the Bronze layer, applying SCD type-2 logic with history tracking, watermark columns, and activity flags.
+
+**4. Actor(s):** Delta Live Tables (DLT) Pipeline, Auto Loader
+
+**5. Preconditions:**
+    *   The Unity Catalog Volume `/Volumes/catalog_sdlc/rawdata/customer` exists and is accessible.
+    *   The CSV file containing customer data exists at the specified path.
+    *   The Delta Live Tables environment is properly configured.
+    *   The catalog "bronzezone" and schema "data" may or may not exist.
+
+**6. Trigger:** Execution of the Delta Live Tables pipeline.
+
+**7. Main Flow / Functional Steps:**
+    1.  The DLT pipeline checks if the catalog "bronzezone" exists. If not, it creates the catalog.
+    2.  The DLT pipeline checks if the schema "data" exists in the "bronzezone" catalog. If not, it creates the schema.
+    3.  The DLT pipeline checks if the table "customer_raw" exists in the "bronzezone.data" schema. If not, it creates the table.
+    4.  The Auto Loader function of DLT is used to read the CSV file from the specified Unity Catalog Volume.
+    5.  The Auto Loader infers the schema of the CSV file if not explicitly defined.
+    6.  The system creates the columns CreateDateTime, UpdateDateTime, and IsActive.
+    7.  The system loads customer data into the `bronzezone.data.customer_raw` table using SCD type-2 logic:
+        *   If a record with the same ID exists, the `UpdateDateTime` of the existing record is updated, and `IsActive` is set to `false`. A new record with updated values is inserted with a new `CreateDateTime` and `IsActive` set to `true`.
+        *   If a record with the same ID does not exist, a new record is inserted with `CreateDateTime` and `UpdateDateTime` set to the current timestamp, and `IsActive` set to `true`.
+    8.  Watermark columns are used to track changes.
+
+**8. Alternate Flows / Exceptions:**
+    *   If the Unity Catalog Volume is inaccessible, the pipeline logs an error and fails.
+    *   If the CSV file is not found, the pipeline logs an error and fails.
+    *   If the CSV file contains invalid data (e.g., incorrect data types), the pipeline logs an error and rejects the invalid records (if possible).
+    *   If the target table already exists but has a different schema, the pipeline logs an error and fails.
+
+**9. Postconditions / Outputs:**
+    *   The `bronzezone.data.customer_raw` table is populated with customer data from the CSV file, including history, watermark columns, and activity flags.
+    *   The history of customer data changes is maintained in the table.
+
+**10. Business Rules:**
+    *   SCD type-2 logic is applied using the `id` column as the primary key.
+    *   `CreateDateTime` and `UpdateDateTime` are populated with the timestamp of the data insertion or update.
+    *   `IsActive` flag indicates the current active record for a given `id`.
+
+**11. Data Requirements (Optional):**
+    *   Input: CSV file from `/Volumes/catalog_sdlc/rawdata/customer` with schema (id(STRING), name(STRING), email(STRING), age(INT))
+    *   Output: Delta table `bronzezone.data.customer_raw` with added columns (`CreateDateTime`, `UpdateDateTime`, `IsActive`) and SCD type-2 implementation.
+
+**12. Assumptions (Optional):**
+    *   The CSV file is properly formatted.
+    *   The Unity Catalog Volume is configured correctly.
+    *   The Data Engineering Team has the proper privileges to create and write to the Unity Catalog Volume.
+
+**13. Dependencies (Optional):**
+    *   Unity Catalog
+    *   Delta Live Tables
+    *   Auto Loader
+
+**14. Priority:** High
+
+**15. Acceptance Criteria:**
+    *   The pipeline successfully ingests customer data from the CSV file into the `bronzezone.data.customer_raw` table.
+    *   The table schema matches the expected schema.
+    *   SCD type-2 logic is correctly implemented.
+    *   `CreateDateTime`, `UpdateDateTime`, and `IsActive` columns are populated correctly.
+    *   The pipeline handles errors gracefully.
+
+---
+
+**1. Requirement ID:** FR-BRZ-002
+
+**2. Title:** Ingest Orders Data from CSV to Bronze Layer
+
+**3. Description:** The system must ingest order data from a CSV file located in a Unity Catalog Volume into a Delta table in the Bronze layer, applying SCD type-2 logic with history tracking, watermark columns, and activity flags.
+
+**4. Actor(s):** Delta Live Tables (DLT) Pipeline, Auto Loader
+
+**5. Preconditions:**
+    *   The Unity Catalog Volume `/Volumes/catalog_sdlc/rawdata/order` exists and is accessible.
+    *   The CSV file containing order data exists at the specified path.
+    *   The Delta Live Tables environment is properly configured.
+    *   The catalog "bronzezone" and schema "data" may or may not exist.
+
+**6. Trigger:** Execution of the Delta Live Tables pipeline.
+
+**7. Main Flow / Functional Steps:**
+    1.  The DLT pipeline checks if the catalog "bronzezone" exists. If not, it creates the catalog.
+    2.  The DLT pipeline checks if the schema "data" exists in the "bronzezone" catalog. If not, it creates the schema.
+    3.  The DLT pipeline checks if the table "orders_raw" exists in the "bronzezone.data" schema. If not, it creates the table.
+    4.  The Auto Loader function of DLT is used to read the CSV file from the specified Unity Catalog Volume.
+    5.  The Auto Loader infers the schema of the CSV file if not explicitly defined.
+    6.  The system creates the columns CreateDateTime, UpdateDateTime, and IsActive.
+    7.  The system loads order data into the `bronzezone.data.orders_raw` table using SCD type-2 logic:
+        *   If a record with the same ID exists, the `UpdateDateTime` of the existing record is updated, and `IsActive` is set to `false`. A new record with updated values is inserted with a new `CreateDateTime` and `IsActive` set to `true`.
+        *   If a record with the same ID does not exist, a new record is inserted with `CreateDateTime` and `UpdateDateTime` set to the current timestamp, and `IsActive` set to `true`.
+    8.  Watermark columns are used to track changes.
+
+**8. Alternate Flows / Exceptions:**
+    *   If the Unity Catalog Volume is inaccessible, the pipeline logs an error and fails.
+    *   If the CSV file is not found, the pipeline logs an error and fails.
+    *   If the CSV file contains invalid data (e.g., incorrect data types), the pipeline logs an error and rejects the invalid records (if possible).
+    *   If the target table already exists but has a different schema, the pipeline logs an error and fails.
+
+**9. Postconditions / Outputs:**
+    *   The `bronzezone.data.orders_raw` table is populated with order data from the CSV file, including history, watermark columns, and activity flags.
+    *   The history of order data changes is maintained in the table.
+
+**10. Business Rules:**
+    *   SCD type-2 logic is applied using the `id` column as the primary key.
+    *   `CreateDateTime` and `UpdateDateTime` are populated with the timestamp of the data insertion or update.
+    *   `IsActive` flag indicates the current active record for a given `id`.
+
+**11. Data Requirements (Optional):**
+    *   Input: CSV file from `/Volumes/catalog_sdlc/rawdata/order` with schema (id(STRING), order_amount(FLOAT), order_date(DATE))
+    *   Output: Delta table `bronzezone.data.orders_raw` with added columns (`CreateDateTime`, `UpdateDateTime`, `IsActive`) and SCD type-2 implementation.
+
+**12. Assumptions (Optional):**
+    *   The CSV file is properly formatted.
+    *   The Unity Catalog Volume is configured correctly.
+    *   The Data Engineering Team has the proper privileges to create and write to the Unity Catalog Volume.
+
+**13. Dependencies (Optional):**
+    *   Unity Catalog
+    *   Delta Live Tables
+    *   Auto Loader
+
+**14. Priority:** High
+
+**15. Acceptance Criteria:**
+    *   The pipeline successfully ingests order data from the CSV file into the `bronzezone.data.orders_raw` table.
+    *   The table schema matches the expected schema.
+    *   SCD type-2 logic is correctly implemented.
+    *   `CreateDateTime`, `UpdateDateTime`, and `IsActive` columns are populated correctly.
+    *   The pipeline handles errors gracefully.
+
+---
+
+### Step 2: Load Data to Silver Layer
+
+**1. Requirement ID:** FR-SLV-001
+
+**2. Title:** Join and Cleanse Customer and Order Data in Silver Layer
+
+**3. Description:** The system must load data from the `customer_raw` and `orders_raw` tables in the Bronze layer, join them on the `id` column, cleanse the data by removing records with null values and duplicates, and apply SCD type-2 logic to the resulting table in the Silver layer.
+
+**4. Actor(s):** Delta Live Tables (DLT) Pipeline
+
+**5. Preconditions:**
+    *   The `bronzezone.data.customer_raw` and `bronzezone.data.orders_raw` tables exist and contain data.
+    *   The Delta Live Tables environment is properly configured.
+    *   The catalog "silverzone" and schema "data" may or may not exist.
+
+**6. Trigger:** Execution of the Delta Live Tables pipeline.
+
+**7. Main Flow / Functional Steps:**
+    1. The DLT pipeline checks if the catalog "silverzone" exists. If not, it creates the catalog.
+    2. The DLT pipeline checks if the schema "data" exists in the "silverzone" catalog. If not, it creates the schema.
+    3. The DLT pipeline checks if the table "customer_order_combined" exists in the "silverzone.data" schema. If not, it creates the table.
+    4.  The DLT pipeline reads data from `bronzezone.data.customer_raw` and `bronzezone.data.orders_raw` using Auto Loader.
+    5.  The system joins the two datasets on the `id` column.
+    6.  The system removes any records where any of the fields are null.
+    7.  The system removes any duplicate records based on all columns.
+    8.  The system applies SCD type-2 logic using the `id` column as the primary key:
+        *   If a record with the same ID exists, the `UpdateDateTime` of the existing record is updated, and `IsActive` is set to `false`. A new record with updated values is inserted with a new `CreateDateTime` and `IsActive` set to `true`.
+        *   If a record with the same ID does not exist, a new record is inserted with `CreateDateTime` and `UpdateDateTime` set to the current timestamp, and `IsActive` set to `true`.
+    9. The system creates the columns CreateDateTime, UpdateDateTime, and IsActive.
+    10.  Watermark columns are used to track changes.
+    11. The processed data is written to the `silverzone.data.customer_order_combined` table.
+
+**8. Alternate Flows / Exceptions:**
+    *   If either `bronzezone.data.customer_raw` or `bronzezone.data.orders_raw` tables do not exist, the pipeline logs an error and fails.
+    *   If the join operation fails, the pipeline logs an error and fails.
+    *   If there is an issue applying SCD type-2 logic, the pipeline logs an error and fails.
+
+**9. Postconditions / Outputs:**
+    *   The `silverzone.data.customer_order_combined` table is populated with joined and cleansed data, including history, watermark columns, and activity flags.
+    *   The history of changes to the combined customer and order data is maintained in the table.
+
+**10. Business Rules:**
+    *   SCD type-2 logic is applied using the `id` column as the primary key.
+    *   Records with null values are removed.
+    *   Duplicate records are removed.
+    *   `CreateDateTime` and `UpdateDateTime` are populated with the timestamp of the data insertion or update.
+    *   `IsActive` flag indicates the current active record for a given `id`.
+
+**11. Data Requirements (Optional):**
+    *   Input: `bronzezone.data.customer_raw`, `bronzezone.data.orders_raw`
+    *   Output: Delta table `silverzone.data.customer_order_combined` with joined, cleansed data and added columns (`CreateDateTime`, `UpdateDateTime`, `IsActive`) and SCD type-2 implementation.
+
+**12. Assumptions (Optional):**
+    *   The join operation on the `id` column is successful.
+    *   Data quality issues beyond nulls and duplicates are handled elsewhere.
+
+**13. Dependencies (Optional):**
+    *   Unity Catalog
+    *   Delta Live Tables
+    *   `bronzezone.data.customer_raw`
+    *   `bronzezone.data.orders_raw`
+
+**14. Priority:** High
+
+**15. Acceptance Criteria:**
+    *   The pipeline successfully joins and cleanses the data from the Bronze layer and loads it into `silverzone.data.customer_order_combined`.
+    *   The table schema matches the expected schema.
+    *   SCD type-2 logic is correctly implemented.
+    *   Null values and duplicate records are removed.
+    *   `CreateDateTime`, `UpdateDateTime`, and `IsActive` columns are populated correctly.
+    *   The pipeline handles errors gracefully.
+
+---
+
+### Step 3: Load Data to Gold Layer
+
+**1. Requirement ID:** FR-GLD-001
+
+**2. Title:** Aggregate Customer Order Data in Gold Layer
+
+**3. Description:** The system must load data from the `customer_order_combined` table in the Silver layer, group the data by age or email domain, aggregate key metrics, and store the results in a Delta table in the Gold layer, using SCD type-2 logic.
+
+**4. Actor(s):** Delta Live Tables (DLT) Pipeline
+
+**5. Preconditions:**
+    *   The `silverzone.data.customer_order_combined` table exists and contains data.
+    *   The Delta Live Tables environment is properly configured.
+        *   The catalog "goldzone" and schema "data" may or may not exist.
+
+**6. Trigger:** Execution of the Delta Live Tables pipeline.
+
+**7. Main Flow / Functional Steps:**
+    1. The DLT pipeline checks if the catalog "goldzone" exists. If not, it creates the catalog.
+    2. The DLT pipeline checks if the schema "data" exists in the "goldzone" catalog. If not, it creates the schema.
+    3. The DLT pipeline checks if the table "customer_order_summary" exists in the "goldzone.data" schema. If not, it creates the table.
+    4.  The DLT pipeline reads data from `silverzone.data.customer_order_combined` using Auto Loader.
+    5.  The system groups the data by either `age` or `email domain` (selectable as a configuration option – default to `age`).
+    6.  The system calculates the following aggregate metrics for each group:
+        *   Total revenue (`SUM(order_amount)`)
+        *   Average order amount (`AVG(order_amount)`)
+    7. The system creates the columns CreateDateTime, UpdateDateTime, and IsActive.
+    8.  The system applies SCD type-2 logic using the grouping key (age or email domain) as the primary key:
+        *   If a record with the same grouping key exists, the `UpdateDateTime` of the existing record is updated, and `IsActive` is set to `false`. A new record with updated aggregate metrics is inserted with a new `CreateDateTime` and `IsActive` set to `true`.
+        *   If a record with the same grouping key does not exist, a new record is inserted with `CreateDateTime` and `UpdateDateTime` set to the current timestamp, and `IsActive` set to `true`.
+    9.  Watermark columns are used to track changes.
+    10. The aggregated data is written to the `goldzone.data.customer_order_summary` table.
+
+**8. Alternate Flows / Exceptions:**
+    *   If the `silverzone.data.customer_order_combined` table does not exist, the pipeline logs an error and fails.
+    *   If the aggregation operation fails, the pipeline logs an error and fails.
+    *   If there is an issue applying SCD type-2 logic, the pipeline logs an error and fails.
+
+**9. Postconditions / Outputs:**
+    *   The `goldzone.data.customer_order_summary` table is populated with aggregated data, including history, watermark columns, and activity flags.
+    *   The history of changes to the aggregated customer and order data is maintained in the table.
+
+**10. Business Rules:**
+    *   SCD type-2 logic is applied using the grouping key (age or email domain) as the primary key.
+    *   `CreateDateTime` and `UpdateDateTime` are populated with the timestamp of the data insertion or update.
+    *   `IsActive` flag indicates the current active record for a given grouping key.
+
+**11. Data Requirements (Optional):**
+    *   Input: `silverzone.data.customer_order_combined`
+    *   Output: Delta table `goldzone.data.customer_order_summary` with aggregated data (total revenue, average order amount) and added columns (`CreateDateTime`, `UpdateDateTime`, `IsActive`) and SCD type-2 implementation.
+
+**12. Assumptions (Optional):**
+    *   The aggregation operation is successful.
+
+**13. Dependencies (Optional):**
+    *   Unity Catalog
+    *   Delta Live Tables
+    *   `silverzone.data.customer_order_combined`
+
+**14. Priority:** High
+
+**15. Acceptance Criteria:**
+    *   The pipeline successfully aggregates the data from the Silver layer and loads it into `goldzone.data.customer_order_summary`.
+    *   The table schema matches the expected schema.
+    *   SCD type-2 logic is correctly implemented.
+    *   Aggregate metrics are calculated correctly.
+    *   `CreateDateTime`, `UpdateDateTime`, and `IsActive` columns are populated correctly.
+    *   The pipeline handles errors gracefully.
+```

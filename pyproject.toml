@@ -1,0 +1,14 @@
+[project]
+name = "product_data_etl"
+version = "0.1.0"
+description = "End-to-end ETL pipeline for product data using Delta Live Tables"
+authors = [
+    { name = "AI Assistant", email = "ai@example.com" }
+]
+dependencies = [
+    "delta-spark"  # Explicitly declare delta-spark dependency
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
