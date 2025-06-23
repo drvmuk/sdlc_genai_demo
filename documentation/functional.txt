@@ -1,0 +1,91 @@
+Here is the Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD):
+
+**FR-ETL-001: Load Raw Data to Bronze Layer**
+
+1. **Requirement ID**: FR-ETL-001
+2. **Title**: Load Raw Data to Bronze Layer
+3. **Description**: The system must load raw Customer and Order data from Unity Catalog Volumes into the Bronze layer using Delta Live Tables (DLT) pipeline.
+4. **Actor(s)**: Data Engineering Team, Unity Catalog Volumes
+5. **Preconditions**: Unity Catalog Volumes must be configured and accessible; raw data must be available in CSV format.
+6. **Trigger**: Triggered manually or automatically based on file versioning.
+7. **Main Flow / Functional Steps**:
+	* Create catalog "bronzezone" and schema "data" if they do not exist.
+	* Ingest CSV files from Unity Catalog Volumes into Bronze layer using Auto Loader (cloud_files with format="csv").
+	* Load raw data into separate tables for Customer and Order data.
+	* Create columns such as CreateDateTime, UpdateDateTime, and IsActive flag for each table.
+	* Update UpdateDateTime and IsActive flag when new data arrives.
+8. **Alternate Flows / Exceptions**:
+	* If raw data is missing or corrupted → Log error and notify Data Engineering Team.
+	* If Unity Catalog Volumes are unavailable → Retry connection and notify Data Engineering Team.
+9. **Postconditions / Outputs**: Raw data is loaded into Bronze layer; tables are created with required columns.
+10. **Business Rules**: Use watermark columns to track data updates; apply SCD type 2 to handle data changes.
+11. **Data Requirements**:
+	* Input: Customer data (id, name, email, age), Order data (id, order_amount, order_date)
+	* Output: customer_raw table, orders_raw table
+12. **Assumptions**: Unity Catalog Volumes are properly configured and accessible.
+13. **Dependencies**: Depends on Unity Catalog Volumes for raw data.
+14. **Priority**: High
+15. **Acceptance Criteria**:
+	* Raw data is loaded correctly into Bronze layer.
+	* Tables are created with required columns.
+	* Data is correctly updated when new data arrives.
+
+**FR-ETL-002: Load Data to Silver Layer**
+
+1. **Requirement ID**: FR-ETL-002
+2. **Title**: Load Data to Silver Layer
+3. **Description**: The system must load data from Bronze layer into Silver layer using Delta Live Tables (DLT) pipeline.
+4. **Actor(s)**: Data Engineering Team, Bronze layer
+5. **Preconditions**: Bronze layer must be populated with raw data; Silver layer must be configured.
+6. **Trigger**: Triggered manually or automatically based on data updates.
+7. **Main Flow / Functional Steps**:
+	* Load data from Bronze layer into Silver layer using Auto Loader (cloud_files).
+	* Join Customer and Order data on id column.
+	* Remove records with Null values.
+	* Remove duplicate records.
+	* Apply SCD type 2 to handle data changes.
+	* Create columns such as CreateDateTime, UpdateDateTime, and IsActive flag.
+8. **Alternate Flows / Exceptions**:
+	* If data is missing or corrupted → Log error and notify Data Engineering Team.
+	* If Silver layer is unavailable → Retry connection and notify Data Engineering Team.
+9. **Postconditions / Outputs**: Data is loaded into Silver layer; tables are created with required columns.
+10. **Business Rules**: Use watermark columns to track data updates; apply SCD type 2 to handle data changes.
+11. **Data Requirements**:
+	* Input: customer_raw table, orders_raw table
+	* Output: customer_order_combined table
+12. **Assumptions**: Bronze layer is populated with raw data; Silver layer is configured.
+13. **Dependencies**: Depends on Bronze layer for raw data.
+14. **Priority**: High
+15. **Acceptance Criteria**:
+	* Data is loaded correctly into Silver layer.
+	* Tables are created with required columns.
+	* Data is correctly updated when new data arrives.
+
+**FR-ETL-003: Load Data to Gold Layer**
+
+1. **Requirement ID**: FR-ETL-003
+2. **Title**: Load Data to Gold Layer
+3. **Description**: The system must load data from Silver layer into Gold layer using Delta Live Tables (DLT) pipeline.
+4. **Actor(s)**: Data Engineering Team, Silver layer
+5. **Preconditions**: Silver layer must be populated with data; Gold layer must be configured.
+6. **Trigger**: Triggered manually or automatically based on data updates.
+7. **Main Flow / Functional Steps**:
+	* Load data from Silver layer into Gold layer using Auto Loader (cloud_files).
+	* Group data by age or email domain.
+	* Aggregate metrics such as Total revenue and Average order amount.
+	* Create columns such as CreateDateTime, UpdateDateTime, and IsActive flag.
+8. **Alternate Flows / Exceptions**:
+	* If data is missing or corrupted → Log error and notify Data Engineering Team.
+	* If Gold layer is unavailable → Retry connection and notify Data Engineering Team.
+9. **Postconditions / Outputs**: Data is loaded into Gold layer; tables are created with required columns.
+10. **Business Rules**: Use watermark columns to track data updates; apply SCD type 2 to handle data changes.
+11. **Data Requirements**:
+	* Input: customer_order_combined table
+	* Output: customer_order_summary table
+12. **Assumptions**: Silver layer is populated with data; Gold layer is configured.
+13. **Dependencies**: Depends on Silver layer for data.
+14. **Priority**: High
+15. **Acceptance Criteria**:
+	* Data is loaded correctly into Gold layer.
+	* Tables are created with required columns.
+	* Data is correctly updated when new data arrives.

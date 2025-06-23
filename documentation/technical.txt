@@ -1,0 +1,78 @@
+Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **Technical Requirement ID**: TR-ETL-001
+* **Related Functional Requirement(s)**: FR-ETL-001, FR-ETL-002, FR-ETL-003
+* **Objective**: Implement a Delta Live Tables (DLT) pipeline to load raw Customer and Order data from Unity Catalog Volumes into the Bronze layer, then transform and load the data into Silver and Gold layers using PySpark jobs.
+* **Target Cluster Configuration**:
+	+ Cluster Name: ETL-Cluster
+	+ Databricks Runtime Version: 7.3 LTS
+	+ Node Type: Standard_DS14_v2
+	+ Driver Node: Standard_DS14_v2
+	+ Worker Nodes: 2-4 Standard_DS14_v2 nodes
+	+ Autoscaling: Enabled
+	+ Auto Termination: Enabled (after 2 hours of inactivity)
+	+ Libraries Installed: PySpark, Delta Lake, Apache Spark SQL
+* **Source Data Details**:
+	+ Dataset Name: Customer Data
+	+ Location (Path/Table): Unity Catalog Volumes (CSV files)
+	+ Format: CSV
+	+ Description: Raw Customer data (id, name, email, age)
+	+ Dataset Name: Order Data
+	+ Location (Path/Table): Unity Catalog Volumes (CSV files)
+	+ Format: CSV
+	+ Description: Raw Order data (id, order_amount, order_date)
+* **Target Data Details**:
+	+ Output Name: customer_raw table
+	+ Location: Bronze layer
+	+ Format: Delta Lake
+	+ Description: Raw Customer data loaded into Bronze layer
+	+ Output Name: orders_raw table
+	+ Location: Bronze layer
+	+ Format: Delta Lake
+	+ Description: Raw Order data loaded into Bronze layer
+	+ Output Name: customer_order_combined table
+	+ Location: Silver layer
+	+ Format: Delta Lake
+	+ Description: Combined Customer and Order data loaded into Silver layer
+	+ Output Name: customer_order_summary table
+	+ Location: Gold layer
+	+ Format: Delta Lake
+	+ Description: Aggregated Customer and Order data loaded into Gold layer
+* **Job Flow / Pipeline Stages**:
+	+ Stage 1: Load raw Customer and Order data from Unity Catalog Volumes into Bronze layer using Auto Loader
+	+ Stage 2: Transform and load data from Bronze layer into Silver layer using PySpark job
+	+ Stage 3: Transform and load data from Silver layer into Gold layer using PySpark job
+* **Data Transformations / Business Logic**:
+	+ Step 1: Create columns such as CreateDateTime, UpdateDateTime, and IsActive flag for each table
+	+ Step 2: Join Customer and Order data on id column
+	+ Step 3: Remove records with Null values
+	+ Step 4: Remove duplicate records
+	+ Step 5: Apply SCD type 2 to handle data changes
+	+ Step 6: Group data by age or email domain
+	+ Step 7: Aggregate metrics such as Total revenue and Average order amount
+* **Error Handling and Logging**:
+	+ Log errors and exceptions using Apache Spark logging
+	+ Notify Data Engineering Team via email or alerting system in case of errors or exceptions
+* **Scheduling & Triggering**:
+	+ Schedule jobs to run manually or automatically based on file versioning or data updates
+	+ Trigger jobs using Databricks Jobs API or Apache Airflow
+* **Security & Access Control**:
+	+ Use Databricks security features such as authentication and authorization to control access to data and jobs
+	+ Use encryption to protect data at rest and in transit
+* **Dependencies**:
+	+ Unity Catalog Volumes for raw data
+	+ Bronze layer for transformed data
+	+ Silver layer for combined data
+	+ Gold layer for aggregated data
+* **Assumptions**:
+	+ Unity Catalog Volumes are properly configured and accessible
+	+ Bronze, Silver, and Gold layers are configured and accessible
+* **Acceptance Criteria**:
+	+ Raw data is loaded correctly into Bronze layer
+	+ Tables are created with required columns
+	+ Data is correctly updated when new data arrives
+	+ Data is loaded correctly into Silver and Gold layers
+	+ Tables are created with required columns in Silver and Gold layers
+* **Notes / Implementation Suggestions**:
+	+ Consider using window functions for future enhancements (e.g., historical comparisons)
+	+ Use Databricks best practices for job optimization and performance tuning

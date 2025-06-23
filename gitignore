@@ -1,0 +1,21 @@
+# Ignore Spark and Python files
+*.pyc
+*.spark
+
+# Ignore test files
+tests/
+
+# Ignore data files
+data/
+
+# Ignore requirements file
+requirements.txt
+
+# Ignore pyproject file
+pyproject.toml
+
+# Ignore README file
+README.md
+
+# Ignore LICENSE file
+LICENSE
