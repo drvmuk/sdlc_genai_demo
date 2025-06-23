@@ -1,0 +1,9 @@
+[tool.poetry]
+name = "databricks_etl_project"
+version = "1.0.0"
+description = "Databricks ETL Project"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+pyspark = "^3.3.0"
+databricks-sql-connector = "^2.0.0"

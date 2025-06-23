@@ -1,122 +1,133 @@
-Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirements Document (BRD):
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD):
 
 **FR-ETL-001: Load Raw Data to Bronze Layer**
 
-1. **Title**: Load Raw Customer and Order Data to Bronze Layer
-2. **Description**: The system must ingest raw Customer and Order data from CSV files stored in Unity Catalog Volumes into the Bronze layer using Delta Live Tables (DLT) syntax and Auto Loader.
-3. **Actor(s)**: Data Engineering Team, Unity Catalog
-4. **Preconditions**: 
-	* CSV files are available in Unity Catalog Volumes at the specified paths.
-	* Unity Catalog is properly configured.
-5. **Trigger**: Manual trigger or scheduled trigger to initiate the data load process.
-6. **Main Flow / Functional Steps**:
-	* Create catalog "bronzezone", schema "data", and tables "customer_raw" and "orders_raw" if they do not exist.
-	* Ingest CSV data into "customer_raw" and "orders_raw" tables using DLT syntax and Auto Loader.
-	* Create columns such as CreateDateTime, UpdateDateTime, and IsActive flag.
+1. **Requirement ID**: FR-ETL-001
+2. **Title**: Load Raw Customer and Order Data to Bronze Layer
+3. **Description**: The system must ingest raw Customer and Order data from CSV files stored in Unity Catalog Volumes into the Bronze layer.
+4. **Actor(s)**: Data Engineering Team, Unity Catalog
+5. **Preconditions**: 
+	* Raw data files are available in Unity Catalog Volumes.
+	* Bronze layer catalog and schema exist.
+6. **Trigger**: Manual trigger or automated pipeline execution.
+7. **Main Flow / Functional Steps**:
+	* Create catalog "bronzezone" and schema "data" if not exists.
+	* Ingest Customer data from CSV file using Delta Live Table syntax and Auto Loader.
+	* Ingest Order data from CSV file using Delta Live Table syntax and Auto Loader.
+	* Create tables "customer_raw" and "orders_raw" with SCD type-2, keeping history, and using watermark columns.
+	* Create columns CreateDateTime, UpdateDateTime, and IsActive flag.
 	* Update UpdateDateTime and IsActive flag when new data arrives.
-7. **Alternate Flows / Exceptions**:
-	* If CSV files are not found or are malformed, log an error and notify the Data Engineering Team.
-	* If data ingestion fails, retry the process and log the error.
-8. **Postconditions / Outputs**: Raw Customer and Order data is loaded into the Bronze layer.
-9. **Business Rules**:
-	* Use SCD type 2 to keep history.
-	* Use watermark columns to track data changes.
-10. **Data Requirements**:
-	* Input: CSV files containing Customer and Order data.
-	* Output: Loaded data in "customer_raw" and "orders_raw" tables.
-11. **Assumptions**: Unity Catalog is properly configured and accessible.
-12. **Dependencies**: Unity Catalog, Delta Live Tables (DLT) syntax.
-13. **Priority**: High
-14. **Acceptance Criteria**:
-	* Data is correctly loaded into "customer_raw" and "orders_raw" tables.
-	* CreateDateTime, UpdateDateTime, and IsActive flag are correctly populated.
+8. **Alternate Flows / Exceptions**:
+	* If data ingestion fails, log error and notify admin.
+	* If data is malformed, handle according to data quality rules.
+9. **Postconditions / Outputs**: Raw data is loaded into Bronze layer tables.
+10. **Business Rules**: 
+	* Use Delta Live Table syntax for data ingestion.
+	* Use Auto Loader for incremental data loading.
+11. **Data Requirements**:
+	* Input: Customer and Order data CSV files.
+	* Output: "customer_raw" and "orders_raw" tables in Bronze layer.
+12. **Assumptions**: Unity Catalog Volumes are accessible.
+13. **Dependencies**: Unity Catalog, Delta Live Tables.
+14. **Priority**: High.
+15. **Acceptance Criteria**:
+	* Data is correctly ingested into Bronze layer tables.
+	* SCD type-2 is applied correctly.
+	* Watermark columns are updated correctly.
 
 **FR-ETL-002: Load Data to Silver Layer**
 
-1. **Title**: Load Data to Silver Layer
-2. **Description**: The system must load data from Bronze layer tables "customer_raw" and "orders_raw" into the Silver layer using DLT syntax and Auto Loader, applying data cleansing and SCD type 2 logic.
-3. **Actor(s)**: Data Engineering Team, Unity Catalog
-4. **Preconditions**: 
-	* Data is loaded into "customer_raw" and "orders_raw" tables.
-	* Unity Catalog is properly configured.
-5. **Trigger**: Manual trigger or scheduled trigger to initiate the data load process.
-6. **Main Flow / Functional Steps**:
-	* Load data from "customer_raw" and "orders_raw" tables into the Silver layer.
-	* Join the two tables on the "id" column.
+1. **Requirement ID**: FR-ETL-002
+2. **Title**: Load Data to Silver Layer
+3. **Description**: The system must load data from Bronze layer to Silver layer, applying data cleansing and transformation.
+4. **Actor(s)**: Data Engineering Team, Unity Catalog.
+5. **Preconditions**: 
+	* Bronze layer data is available.
+	* Silver layer catalog and schema exist.
+6. **Trigger**: Manual trigger or automated pipeline execution.
+7. **Main Flow / Functional Steps**:
+	* Load data from "customer_raw" and "orders_raw" tables in Bronze layer.
+	* Join data on "id" column.
 	* Remove records with Null values.
 	* Remove duplicate records.
-	* Apply SCD type 2 logic using "id" as the primary key.
-	* Create columns such as CreateDateTime, UpdateDateTime, and IsActive flag.
+	* Apply SCD type 2 using "id" as primary key.
+	* Create columns CreateDateTime, UpdateDateTime, and IsActive flag.
 	* Update UpdateDateTime and IsActive flag when new data arrives.
-7. **Alternate Flows / Exceptions**:
-	* If data loading fails, log an error and notify the Data Engineering Team.
-	* If data cleansing fails, log an error and notify the Data Engineering Team.
-8. **Postconditions / Outputs**: Cleaned and transformed data is loaded into the Silver layer table "customer_order_combined".
-9. **Business Rules**:
-	* Use SCD type 2 to keep history.
-	* Use watermark columns to track data changes.
-10. **Data Requirements**:
-	* Input: Data from "customer_raw" and "orders_raw" tables.
-	* Output: Loaded data in "customer_order_combined" table.
-11. **Assumptions**: Unity Catalog is properly configured and accessible.
-12. **Dependencies**: Unity Catalog, Delta Live Tables (DLT) syntax.
-13. **Priority**: High
-14. **Acceptance Criteria**:
-	* Data is correctly loaded into "customer_order_combined" table.
-	* Data is correctly cleansed and transformed.
+8. **Alternate Flows / Exceptions**:
+	* If data transformation fails, log error and notify admin.
+	* If data is malformed, handle according to data quality rules.
+9. **Postconditions / Outputs**: Transformed data is loaded into Silver layer table.
+10. **Business Rules**: 
+	* Use Delta Live Table syntax for data transformation.
+	* Use Auto Loader for incremental data loading.
+11. **Data Requirements**:
+	* Input: "customer_raw" and "orders_raw" tables in Bronze layer.
+	* Output: "customer_order_combined" table in Silver layer.
+12. **Assumptions**: Bronze layer data is correctly ingested.
+13. **Dependencies**: Unity Catalog, Delta Live Tables.
+14. **Priority**: High.
+15. **Acceptance Criteria**:
+	* Data is correctly transformed and loaded into Silver layer table.
+	* SCD type-2 is applied correctly.
+	* Watermark columns are updated correctly.
 
 **FR-ETL-003: Load Data to Gold Layer**
 
-1. **Title**: Load Data to Gold Layer
-2. **Description**: The system must load data from Silver layer table "customer_order_combined" into the Gold layer using DLT syntax and Auto Loader, applying aggregation and curation logic.
-3. **Actor(s)**: Data Engineering Team, Unity Catalog
-4. **Preconditions**: 
-	* Data is loaded into "customer_order_combined" table.
-	* Unity Catalog is properly configured.
-5. **Trigger**: Manual trigger or scheduled trigger to initiate the data load process.
-6. **Main Flow / Functional Steps**:
-	* Load data from "customer_order_combined" table into the Gold layer.
+1. **Requirement ID**: FR-ETL-003
+2. **Title**: Load Data to Gold Layer
+3. **Description**: The system must load data from Silver layer to Gold layer, applying aggregation and curation.
+4. **Actor(s)**: Data Engineering Team, Unity Catalog.
+5. **Preconditions**: 
+	* Silver layer data is available.
+	* Gold layer catalog and schema exist.
+6. **Trigger**: Manual trigger or automated pipeline execution.
+7. **Main Flow / Functional Steps**:
+	* Load data from "customer_order_combined" table in Silver layer.
 	* Group data by "age" or "email domain".
-	* Aggregate metrics such as Total revenue and Average order amount.
-	* Create columns such as CreateDateTime, UpdateDateTime, and IsActive flag.
+	* Aggregate metrics (Total revenue, Average order amount).
+	* Create columns CreateDateTime, UpdateDateTime, and IsActive flag.
 	* Update UpdateDateTime and IsActive flag when new data arrives.
-7. **Alternate Flows / Exceptions**:
-	* If data loading fails, log an error and notify the Data Engineering Team.
-	* If aggregation or curation fails, log an error and notify the Data Engineering Team.
-8. **Postconditions / Outputs**: Aggregated and curated data is loaded into the Gold layer table "customer_order_summary".
-9. **Business Rules**:
-	* Use SCD type 2 to keep history.
-	* Use watermark columns to track data changes.
-10. **Data Requirements**:
-	* Input: Data from "customer_order_combined" table.
-	* Output: Loaded data in "customer_order_summary" table.
-11. **Assumptions**: Unity Catalog is properly configured and accessible.
-12. **Dependencies**: Unity Catalog, Delta Live Tables (DLT) syntax.
-13. **Priority**: High
-14. **Acceptance Criteria**:
-	* Data is correctly loaded into "customer_order_summary" table.
-	* Data is correctly aggregated and curated.
+8. **Alternate Flows / Exceptions**:
+	* If data aggregation fails, log error and notify admin.
+	* If data is malformed, handle according to data quality rules.
+9. **Postconditions / Outputs**: Aggregated data is loaded into Gold layer table.
+10. **Business Rules**: 
+	* Use Delta Live Table syntax for data aggregation.
+	* Use Auto Loader for incremental data loading.
+11. **Data Requirements**:
+	* Input: "customer_order_combined" table in Silver layer.
+	* Output: "customer_order_summary" table in Gold layer.
+12. **Assumptions**: Silver layer data is correctly transformed.
+13. **Dependencies**: Unity Catalog, Delta Live Tables.
+14. **Priority**: High.
+15. **Acceptance Criteria**:
+	* Data is correctly aggregated and loaded into Gold layer table.
+	* Aggregation metrics are correctly calculated.
+	* Watermark columns are updated correctly.
 
 **FR-ETL-004: Manage Unity Catalog Objects**
 
-1. **Title**: Manage Unity Catalog Objects
-2. **Description**: The system must create and manage Unity Catalog objects such as catalogs, schemas, and tables.
-3. **Actor(s)**: Data Engineering Team, Unity Catalog
-4. **Preconditions**: 
-	* Unity Catalog is properly configured.
-5. **Trigger**: Manual trigger or scheduled trigger to initiate the object creation process.
-6. **Main Flow / Functional Steps**:
+1. **Requirement ID**: FR-ETL-004
+2. **Title**: Manage Unity Catalog Objects
+3. **Description**: The system must create and manage Unity Catalog objects (catalogs, schemas, tables).
+4. **Actor(s)**: Data Engineering Team.
+5. **Preconditions**: 
+	* Unity Catalog is accessible.
+6. **Trigger**: Manual trigger or automated pipeline execution.
+7. **Main Flow / Functional Steps**:
 	* Create catalogs, schemas, and tables as required.
-	* Manage access control lists (ACLs) for Unity Catalog objects.
-7. **Alternate Flows / Exceptions**:
-	* If object creation fails, log an error and notify the Data Engineering Team.
-	* If ACL management fails, log an error and notify the Data Engineering Team.
-8. **Postconditions / Outputs**: Unity Catalog objects are created and managed correctly.
-9. **Business Rules**: None.
-10. **Data Requirements**: None.
-11. **Assumptions**: Unity Catalog is properly configured and accessible.
-12. **Dependencies**: Unity Catalog.
-13. **Priority**: Medium
-14. **Acceptance Criteria**:
+	* Manage ACLs for Unity Catalog objects.
+8. **Alternate Flows / Exceptions**:
+	* If object creation fails, log error and notify admin.
+9. **Postconditions / Outputs**: Unity Catalog objects are created and managed correctly.
+10. **Business Rules**: 
+	* Use separate catalogs and schemas for each layer.
+11. **Data Requirements**:
+	* Input: None.
+	* Output: Created and managed Unity Catalog objects.
+12. **Assumptions**: Unity Catalog is operational.
+13. **Dependencies**: Unity Catalog.
+14. **Priority**: Medium.
+15. **Acceptance Criteria**:
 	* Unity Catalog objects are correctly created and managed.
-	* ACLs are correctly managed.
+	* ACLs are correctly applied.

@@ -1,177 +1,259 @@
 Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
 
-* **TR-ETL-001: Load Raw Data to Bronze Layer**
-	+ Related Functional Requirement(s): FR-ETL-001
-	+ Objective: Implement a Delta Live Tables (DLT) pipeline to ingest raw Customer and Order data from CSV files into the Bronze layer.
-	+ Target Cluster Configuration:
-		- Cluster Name: Bronze Layer Cluster
-		- Databricks Runtime Version: 10.4.x-scala2.12
-		- Node Type: Standard_DS3_v2
-		- Driver Node: Standard_DS3_v2
-		- Worker Nodes: 2-5 (autoscaling)
-		- Autoscaling: Enabled
-		- Auto Termination: 30 minutes
-		- Libraries Installed: Delta Live Tables, Auto Loader
-	+ Source Data Details:
-		- Dataset Name: Customer and Order CSV files
-		- Location (Path/Table): Unity Catalog Volumes
-		- Format: CSV
-		- Description: Raw Customer and Order data
-	+ Target Data Details:
-		- Output Name: customer_raw and orders_raw tables
-		- Location: Bronze layer (catalog "bronzezone", schema "data")
-		- Format: Delta Lake
-		- Description: Loaded raw Customer and Order data
-	+ Job Flow / Pipeline Stages:
-		- Create catalog "bronzezone", schema "data", and tables "customer_raw" and "orders_raw" if they do not exist.
-		- Ingest CSV data into "customer_raw" and "orders_raw" tables using DLT syntax and Auto Loader.
-	+ Data Transformations / Business Logic:
-		- Step: Create columns such as CreateDateTime, UpdateDateTime, and IsActive flag.
-		- Transformation Logic: Use DLT syntax to create columns and apply SCD type 2 logic.
-	+ Error Handling and Logging:
-		- Log errors and notify the Data Engineering Team if CSV files are not found or are malformed.
-		- Log errors and notify the Data Engineering Team if data ingestion fails.
-	+ Scheduling & Triggering:
-		- Manual trigger or scheduled trigger to initiate the data load process.
-	+ Security & Access Control:
-		- Manage access control lists (ACLs) for Unity Catalog objects.
-	+ Dependencies:
-		- Unity Catalog, Delta Live Tables (DLT) syntax, Auto Loader.
-	+ Assumptions:
-		- Unity Catalog is properly configured and accessible.
-	+ Acceptance Criteria:
-		- Data is correctly loaded into "customer_raw" and "orders_raw" tables.
-		- CreateDateTime, UpdateDateTime, and IsActive flag are correctly populated.
-	+ Notes / Implementation Suggestions:
-		- Use SCD type 2 to keep history.
-		- Use watermark columns to track data changes.
+**TR-ETL-001: Load Raw Data to Bronze Layer**
+* Related Functional Requirement(s): FR-ETL-001
+* Objective: Implement a Delta Live Table pipeline to ingest raw Customer and Order data from CSV files into the Bronze layer, applying SCD type-2 and watermark columns.
 
-* **TR-ETL-002: Load Data to Silver Layer**
-	+ Related Functional Requirement(s): FR-ETL-002
-	+ Objective: Implement a Delta Live Tables (DLT) pipeline to load data from Bronze layer tables "customer_raw" and "orders_raw" into the Silver layer, applying data cleansing and SCD type 2 logic.
-	+ Target Cluster Configuration:
-		- Cluster Name: Silver Layer Cluster
-		- Databricks Runtime Version: 10.4.x-scala2.12
-		- Node Type: Standard_DS3_v2
-		- Driver Node: Standard_DS3_v2
-		- Worker Nodes: 2-5 (autoscaling)
-		- Autoscaling: Enabled
-		- Auto Termination: 30 minutes
-		- Libraries Installed: Delta Live Tables, Auto Loader
-	+ Source Data Details:
-		- Dataset Name: customer_raw and orders_raw tables
-		- Location (Path/Table): Bronze layer (catalog "bronzezone", schema "data")
-		- Format: Delta Lake
-		- Description: Loaded raw Customer and Order data
-	+ Target Data Details:
-		- Output Name: customer_order_combined table
-		- Location: Silver layer (catalog "silverzone", schema "data")
-		- Format: Delta Lake
-		- Description: Cleaned and transformed Customer and Order data
-	+ Job Flow / Pipeline Stages:
-		- Load data from "customer_raw" and "orders_raw" tables into the Silver layer.
-		- Join the two tables on the "id" column.
-		- Remove records with Null values.
-		- Remove duplicate records.
-		- Apply SCD type 2 logic using "id" as the primary key.
-	+ Data Transformations / Business Logic:
-		- Step: Create columns such as CreateDateTime, UpdateDateTime, and IsActive flag.
-		- Transformation Logic: Use DLT syntax to create columns and apply SCD type 2 logic.
-	+ Error Handling and Logging:
-		- Log errors and notify the Data Engineering Team if data loading fails.
-		- Log errors and notify the Data Engineering Team if data cleansing fails.
-	+ Scheduling & Triggering:
-		- Manual trigger or scheduled trigger to initiate the data load process.
-	+ Security & Access Control:
-		- Manage access control lists (ACLs) for Unity Catalog objects.
-	+ Dependencies:
-		- Unity Catalog, Delta Live Tables (DLT) syntax, Auto Loader.
-	+ Assumptions:
-		- Unity Catalog is properly configured and accessible.
-	+ Acceptance Criteria:
-		- Data is correctly loaded into "customer_order_combined" table.
-		- Data is correctly cleansed and transformed.
-	+ Notes / Implementation Suggestions:
-		- Use SCD type 2 to keep history.
-		- Use watermark columns to track data changes.
+* Target Cluster Configuration:
+	+ Cluster Name: Bronze Layer Ingestion Cluster
+	+ Databricks Runtime Version: 10.4.x-scala2.12
+	+ Node Type: Standard_DS3_v2
+	+ Driver Node: Standard_DS3_v2
+	+ Worker Nodes: 2-4 Standard_DS3_v2
+	+ Autoscaling: Enabled
+	+ Auto Termination: 30 minutes
+	+ Libraries Installed: Delta Live Tables, Auto Loader
 
-* **TR-ETL-003: Load Data to Gold Layer**
-	+ Related Functional Requirement(s): FR-ETL-003
-	+ Objective: Implement a Delta Live Tables (DLT) pipeline to load data from Silver layer table "customer_order_combined" into the Gold layer, applying aggregation and curation logic.
-	+ Target Cluster Configuration:
-		- Cluster Name: Gold Layer Cluster
-		- Databricks Runtime Version: 10.4.x-scala2.12
-		- Node Type: Standard_DS3_v2
-		- Driver Node: Standard_DS3_v2
-		- Worker Nodes: 2-5 (autoscaling)
-		- Autoscaling: Enabled
-		- Auto Termination: 30 minutes
-		- Libraries Installed: Delta Live Tables, Auto Loader
-	+ Source Data Details:
-		- Dataset Name: customer_order_combined table
-		- Location (Path/Table): Silver layer (catalog "silverzone", schema "data")
-		- Format: Delta Lake
-		- Description: Cleaned and transformed Customer and Order data
-	+ Target Data Details:
-		- Output Name: customer_order_summary table
-		- Location: Gold layer (catalog "goldzone", schema "data")
-		- Format: Delta Lake
-		- Description: Aggregated and curated Customer and Order data
-	+ Job Flow / Pipeline Stages:
-		- Load data from "customer_order_combined" table into the Gold layer.
-		- Group data by "age" or "email domain".
-		- Aggregate metrics such as Total revenue and Average order amount.
-	+ Data Transformations / Business Logic:
-		- Step: Create columns such as CreateDateTime, UpdateDateTime, and IsActive flag.
-		- Transformation Logic: Use DLT syntax to create columns and apply aggregation and curation logic.
-	+ Error Handling and Logging:
-		- Log errors and notify the Data Engineering Team if data loading fails.
-		- Log errors and notify the Data Engineering Team if aggregation or curation fails.
-	+ Scheduling & Triggering:
-		- Manual trigger or scheduled trigger to initiate the data load process.
-	+ Security & Access Control:
-		- Manage access control lists (ACLs) for Unity Catalog objects.
-	+ Dependencies:
-		- Unity Catalog, Delta Live Tables (DLT) syntax, Auto Loader.
-	+ Assumptions:
-		- Unity Catalog is properly configured and accessible.
-	+ Acceptance Criteria:
-		- Data is correctly loaded into "customer_order_summary" table.
-		- Data is correctly aggregated and curated.
-	+ Notes / Implementation Suggestions:
-		- Use SCD type 2 to keep history.
-		- Use watermark columns to track data changes.
+* Source Data Details:
+	+ Dataset Name: Customer and Order data CSV files
+	+ Location (Path/Table): Unity Catalog Volumes
+	+ Format: CSV
+	+ Description: Raw Customer and Order data
 
-* **TR-ETL-004: Manage Unity Catalog Objects**
-	+ Related Functional Requirement(s): FR-ETL-004
-	+ Objective: Implement a script to create and manage Unity Catalog objects such as catalogs, schemas, and tables.
-	+ Target Cluster Configuration:
-		- Cluster Name: Unity Catalog Cluster
-		- Databricks Runtime Version: 10.4.x-scala2.12
-		- Node Type: Standard_DS3_v2
-		- Driver Node: Standard_DS3_v2
-		- Worker Nodes: 1 (no autoscaling)
-		- Autoscaling: Disabled
-		- Auto Termination: 30 minutes
-		- Libraries Installed: Unity Catalog API
-	+ Source Data Details: None
-	+ Target Data Details: None
-	+ Job Flow / Pipeline Stages:
-		- Create catalogs, schemas, and tables as required.
-		- Manage access control lists (ACLs) for Unity Catalog objects.
-	+ Data Transformations / Business Logic: None
-	+ Error Handling and Logging:
-		- Log errors and notify the Data Engineering Team if object creation fails.
-		- Log errors and notify the Data Engineering Team if ACL management fails.
-	+ Scheduling & Triggering:
-		- Manual trigger or scheduled trigger to initiate the object creation process.
-	+ Security & Access Control:
-		- Manage access control lists (ACLs) for Unity Catalog objects.
-	+ Dependencies:
-		- Unity Catalog API.
-	+ Assumptions:
-		- Unity Catalog is properly configured and accessible.
-	+ Acceptance Criteria:
-		- Unity Catalog objects are correctly created and managed.
-		- ACLs are correctly managed.
-	+ Notes / Implementation Suggestions: None
+* Target Data Details:
+	+ Output Name: customer_raw and orders_raw tables
+	+ Location: Bronze layer catalog and schema
+	+ Format: Delta
+	+ Description: Raw Customer and Order data with SCD type-2 and watermark columns
+
+* Job Flow / Pipeline Stages:
+	+ Create catalog "bronzezone" and schema "data" if not exists
+	+ Ingest Customer data from CSV file using Delta Live Table syntax and Auto Loader
+	+ Ingest Order data from CSV file using Delta Live Table syntax and Auto Loader
+	+ Create tables "customer_raw" and "orders_raw" with SCD type-2, keeping history, and using watermark columns
+
+* Data Transformations / Business Logic:
+	+ Step: Ingest Customer data
+	+ Description: Ingest Customer data from CSV file
+	+ Transformation Logic: Use Delta Live Table syntax and Auto Loader to ingest data
+	+ Step: Ingest Order data
+	+ Description: Ingest Order data from CSV file
+	+ Transformation Logic: Use Delta Live Table syntax and Auto Loader to ingest data
+	+ Step: Apply SCD type-2
+	+ Description: Apply SCD type-2 to customer_raw and orders_raw tables
+	+ Transformation Logic: Use Delta Live Table syntax to apply SCD type-2
+
+* Error Handling and Logging:
+	+ Log error and notify admin if data ingestion fails
+	+ Handle malformed data according to data quality rules
+
+* Scheduling & Triggering:
+	+ Manual trigger or automated pipeline execution
+
+* Security & Access Control:
+	+ Manage ACLs for Unity Catalog objects
+
+* Dependencies:
+	+ Unity Catalog
+	+ Delta Live Tables
+
+* Assumptions:
+	+ Unity Catalog Volumes are accessible
+
+* Acceptance Criteria:
+	+ Data is correctly ingested into Bronze layer tables
+	+ SCD type-2 is applied correctly
+	+ Watermark columns are updated correctly
+
+* Notes / Implementation Suggestions:
+	+ Consider using Auto Loader for incremental data loading
+
+**TR-ETL-002: Load Data to Silver Layer**
+* Related Functional Requirement(s): FR-ETL-002
+* Objective: Implement a Delta Live Table pipeline to load data from Bronze layer to Silver layer, applying data cleansing and transformation.
+
+* Target Cluster Configuration:
+	+ Cluster Name: Silver Layer Transformation Cluster
+	+ Databricks Runtime Version: 10.4.x-scala2.12
+	+ Node Type: Standard_DS3_v2
+	+ Driver Node: Standard_DS3_v2
+	+ Worker Nodes: 2-4 Standard_DS3_v2
+	+ Autoscaling: Enabled
+	+ Auto Termination: 30 minutes
+	+ Libraries Installed: Delta Live Tables, Auto Loader
+
+* Source Data Details:
+	+ Dataset Name: customer_raw and orders_raw tables
+	+ Location (Path/Table): Bronze layer catalog and schema
+	+ Format: Delta
+	+ Description: Raw Customer and Order data
+
+* Target Data Details:
+	+ Output Name: customer_order_combined table
+	+ Location: Silver layer catalog and schema
+	+ Format: Delta
+	+ Description: Transformed Customer and Order data
+
+* Job Flow / Pipeline Stages:
+	+ Load data from "customer_raw" and "orders_raw" tables in Bronze layer
+	+ Join data on "id" column
+	+ Remove records with Null values
+	+ Remove duplicate records
+	+ Apply SCD type 2 using "id" as primary key
+
+* Data Transformations / Business Logic:
+	+ Step: Join data
+	+ Description: Join Customer and Order data on "id" column
+	+ Transformation Logic: Use Delta Live Table syntax to join data
+	+ Step: Remove Null values
+	+ Description: Remove records with Null values
+	+ Transformation Logic: Use Delta Live Table syntax to filter out Null values
+	+ Step: Apply SCD type 2
+	+ Description: Apply SCD type 2 to customer_order_combined table
+	+ Transformation Logic: Use Delta Live Table syntax to apply SCD type 2
+
+* Error Handling and Logging:
+	+ Log error and notify admin if data transformation fails
+	+ Handle malformed data according to data quality rules
+
+* Scheduling & Triggering:
+	+ Manual trigger or automated pipeline execution
+
+* Security & Access Control:
+	+ Manage ACLs for Unity Catalog objects
+
+* Dependencies:
+	+ Unity Catalog
+	+ Delta Live Tables
+
+* Assumptions:
+	+ Bronze layer data is correctly ingested
+
+* Acceptance Criteria:
+	+ Data is correctly transformed and loaded into Silver layer table
+	+ SCD type-2 is applied correctly
+	+ Watermark columns are updated correctly
+
+* Notes / Implementation Suggestions:
+	+ Consider using Auto Loader for incremental data loading
+
+**TR-ETL-003: Load Data to Gold Layer**
+* Related Functional Requirement(s): FR-ETL-003
+* Objective: Implement a Delta Live Table pipeline to load data from Silver layer to Gold layer, applying aggregation and curation.
+
+* Target Cluster Configuration:
+	+ Cluster Name: Gold Layer Aggregation Cluster
+	+ Databricks Runtime Version: 10.4.x-scala2.12
+	+ Node Type: Standard_DS3_v2
+	+ Driver Node: Standard_DS3_v2
+	+ Worker Nodes: 2-4 Standard_DS3_v2
+	+ Autoscaling: Enabled
+	+ Auto Termination: 30 minutes
+	+ Libraries Installed: Delta Live Tables, Auto Loader
+
+* Source Data Details:
+	+ Dataset Name: customer_order_combined table
+	+ Location (Path/Table): Silver layer catalog and schema
+	+ Format: Delta
+	+ Description: Transformed Customer and Order data
+
+* Target Data Details:
+	+ Output Name: customer_order_summary table
+	+ Location: Gold layer catalog and schema
+	+ Format: Delta
+	+ Description: Aggregated Customer and Order data
+
+* Job Flow / Pipeline Stages:
+	+ Load data from "customer_order_combined" table in Silver layer
+	+ Group data by "age" or "email domain"
+	+ Aggregate metrics (Total revenue, Average order amount)
+
+* Data Transformations / Business Logic:
+	+ Step: Group data
+	+ Description: Group data by "age" or "email domain"
+	+ Transformation Logic: Use Delta Live Table syntax to group data
+	+ Step: Aggregate metrics
+	+ Description: Aggregate metrics (Total revenue, Average order amount)
+	+ Transformation Logic: Use Delta Live Table syntax to aggregate metrics
+
+* Error Handling and Logging:
+	+ Log error and notify admin if data aggregation fails
+	+ Handle malformed data according to data quality rules
+
+* Scheduling & Triggering:
+	+ Manual trigger or automated pipeline execution
+
+* Security & Access Control:
+	+ Manage ACLs for Unity Catalog objects
+
+* Dependencies:
+	+ Unity Catalog
+	+ Delta Live Tables
+
+* Assumptions:
+	+ Silver layer data is correctly transformed
+
+* Acceptance Criteria:
+	+ Data is correctly aggregated and loaded into Gold layer table
+	+ Aggregation metrics are correctly calculated
+	+ Watermark columns are updated correctly
+
+* Notes / Implementation Suggestions:
+	+ Consider using window functions for future enhancements (e.g., historical comparisons)
+
+**TR-ETL-004: Manage Unity Catalog Objects**
+* Related Functional Requirement(s): FR-ETL-004
+* Objective: Implement a script to create and manage Unity Catalog objects (catalogs, schemas, tables).
+
+* Target Cluster Configuration:
+	+ Cluster Name: Unity Catalog Management Cluster
+	+ Databricks Runtime Version: 10.4.x-scala2.12
+	+ Node Type: Standard_DS3_v2
+	+ Driver Node: Standard_DS3_v2
+	+ Worker Nodes: 1 Standard_DS3_v2
+	+ Autoscaling: Disabled
+	+ Auto Termination: 30 minutes
+	+ Libraries Installed: Unity Catalog API
+
+* Source Data Details:
+	+ None
+
+* Target Data Details:
+	+ Output Name: Created and managed Unity Catalog objects
+	+ Location: Unity Catalog
+	+ Format: N/A
+	+ Description: Created and managed Unity Catalog objects
+
+* Job Flow / Pipeline Stages:
+	+ Create catalogs, schemas, and tables as required
+	+ Manage ACLs for Unity Catalog objects
+
+* Data Transformations / Business Logic:
+	+ Step: Create catalogs, schemas, and tables
+	+ Description: Create catalogs, schemas, and tables as required
+	+ Transformation Logic: Use Unity Catalog API to create objects
+	+ Step: Manage ACLs
+	+ Description: Manage ACLs for Unity Catalog objects
+	+ Transformation Logic: Use Unity Catalog API to manage ACLs
+
+* Error Handling and Logging:
+	+ Log error and notify admin if object creation fails
+
+* Scheduling & Triggering:
+	+ Manual trigger or automated pipeline execution
+
+* Security & Access Control:
+	+ Manage ACLs for Unity Catalog objects
+
+* Dependencies:
+	+ Unity Catalog
+
+* Assumptions:
+	+ Unity Catalog is operational
+
+* Acceptance Criteria:
+	+ Unity Catalog objects are correctly created and managed
+	+ ACLs are correctly applied
+
+* Notes / Implementation Suggestions:
+	+ Consider using separate catalogs and schemas for each layer
