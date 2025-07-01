@@ -1,0 +1,71 @@
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD):
+
+**FR-ETL-001: Load Raw Data to Bronze Layer**
+
+1. **Requirement ID**: FR-ETL-001
+2. **Title**: Load Raw Customer and Order Data to Bronze Layer
+3. **Description**: The system must ingest raw Customer and Order data from CSV files stored in Unity Catalog Volumes into the Bronze layer, creating separate tables for each data source.
+4. **Preconditions**:
+	* Unity Catalog Volumes contain CSV files for Customer and Order data.
+	* Catalog "bronzezone", schema "data" exist or can be created.
+5. **Main Flow / Functional Steps**:
+	* Create catalog "bronzezone" and schema "data" if they do not exist.
+	* Ingest Customer data from CSV file located at /Volumes/catalog_sdlc/rawdata/customer into bronzezone.data.customer_raw using Delta Live Table syntax and Auto Loader.
+	* Ingest Order data from CSV file located at /Volumes/catalog_sdlc/rawdata/order into bronzezone.data.orders_raw using Delta Live Table syntax and Auto Loader.
+	* Create columns CreateDateTime, UpdateDateTime, and IsActive flag for both tables.
+	* Apply SCD type 2 using id as primary key, keeping history and updating IsActive flag and UpdateDateTime accordingly.
+
+**FR-ETL-002: Load Data to Silver Layer**
+
+1. **Requirement ID**: FR-ETL-002
+2. **Title**: Load Data to Silver Layer and Apply Transformations
+3. **Description**: The system must load data from Bronze layer tables, apply transformations, and store the results in the Silver layer.
+4. **Preconditions**:
+	* Bronze layer tables (customer_raw and orders_raw) exist and contain data.
+	* Catalog "silverzone", schema "data" exist or can be created.
+5. **Main Flow / Functional Steps**:
+	* Load data from bronzezone.data.customer_raw and bronzezone.data.orders_raw into Silver layer using Delta Live Table syntax and Auto Loader.
+	* Join the two datasets on the id column.
+	* Remove records with Null values.
+	* Remove duplicate records.
+	* Apply SCD type 2 using id as primary key, keeping history and updating IsActive flag and UpdateDateTime accordingly.
+	* Store the transformed data in silverzone.data.customer_order_combined.
+
+**FR-ETL-003: Load Data to Gold Layer**
+
+1. **Requirement ID**: FR-ETL-003
+2. **Title**: Load Data to Gold Layer and Aggregate Metrics
+3. **Description**: The system must load data from Silver layer, aggregate metrics, and store the results in the Gold layer.
+4. **Preconditions**:
+	* Silver layer table (customer_order_combined) exists and contains data.
+	* Catalog "goldzone", schema "data" exist or can be created.
+5. **Main Flow / Functional Steps**:
+	* Load data from silverzone.data.customer_order_combined into Gold layer using Delta Live Table syntax and Auto Loader.
+	* Group data by age or email domain.
+	* Aggregate metrics (Total revenue and Average order amount).
+	* Create columns CreateDateTime, UpdateDateTime, and IsActive flag.
+	* Apply SCD type 2 using id as primary key, keeping history and updating IsActive flag and UpdateDateTime accordingly.
+	* Store the aggregated data in goldzone.data.customer_order_summary.
+
+**FR-ETL-004: Manage Unity Catalog Objects and ACL**
+
+1. **Requirement ID**: FR-ETL-004
+2. **Title**: Manage Unity Catalog Objects and ACL
+3. **Description**: The system must create and manage Unity Catalog objects, including catalogs, schemas, and tables, and provide separate ACL code to manage access.
+4. **Preconditions**:
+	* Unity Catalog is configured and accessible.
+5. **Main Flow / Functional Steps**:
+	* Create catalogs, schemas, and tables as required for Bronze, Silver, and Gold layers.
+	* Provide separate ACL code to manage access to Unity Catalog objects.
+
+**FR-ETL-005: Enable Real-time Streaming Ingestion and Auto Loader Checkpointing**
+
+1. **Requirement ID**: FR-ETL-005
+2. **Title**: Enable Real-time Streaming Ingestion and Auto Loader Checkpointing
+3. **Description**: The system must enable real-time streaming ingestion with incremental load and Auto Loader checkpointing to handle version-aware ingestion.
+4. **Preconditions**:
+	* Auto Loader is configured and accessible.
+5. **Main Flow / Functional Steps**:
+	* Enable real-time streaming ingestion for all objects.
+	* Configure Auto Loader checkpointing to handle version-aware ingestion.
+	* Ensure that only new or changed records are ingested during reruns.

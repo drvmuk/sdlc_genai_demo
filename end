@@ -1,0 +1,2 @@
+
+This template provides a basic structure for a PySpark project, including a simple PySpark job that reads a CSV file, performs a basic transformation, and writes the result back to a CSV file. The project is set up with a `pyproject.toml` file for dependency management, a `requirements.txt` file for pip installations, and a `README.md` file with setup and usage instructions. The `tests` directory includes a unit test for the PySpark job using `unittest`.
