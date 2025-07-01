@@ -1,0 +1,11 @@
+[tool.poetry]
+name = "etl-pipeline"
+version = "1.0.0"
+description = "ETL Pipeline for Customer and Order Data"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+pyspark = "^3.3"
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.2"

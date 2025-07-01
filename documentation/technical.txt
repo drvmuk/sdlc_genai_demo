@@ -1,0 +1,171 @@
+Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+**TR-ETL-001: Load Raw Data to Bronze Layer**
+
+* Technical Requirement ID: TR-ETL-001
+* Related Functional Requirement(s): FR-ETL-001
+* Objective: Implement a Delta Live Table pipeline to ingest raw Customer and Order data from CSV files and load it into the Bronze layer.
+* Target Cluster Configuration:
+	+ Cluster Name: Bronze Layer Cluster
+	+ Databricks Runtime Version: 11.3.x-scala2.12
+	+ Node Type: Standard_DS3_v2
+	+ Driver Node: Standard_DS3_v2
+	+ Worker Nodes: 2-4 Standard_DS3_v2
+	+ Autoscaling: Enabled
+	+ Auto Termination: 30 minutes
+	+ Libraries Installed: Delta Live Tables, spark-csv
+* Source Data Details:
+	+ CSV files containing Customer and Order data
+	+ Location: Unity Catalog Volumes
+	+ Format: CSV
+* Target Data Details:
+	+ `bronzezone.data.customer_raw` table
+	+ `bronzezone.data.orders_raw` table
+	+ Location: Bronze layer
+	+ Format: Delta Lake
+* Job Flow / Pipeline Stages:
+	+ Create catalog "bronzezone" and schema "data" if they do not exist
+	+ Ingest CSV files using Delta Live Table syntax and Auto Loader
+	+ Load Customer data into `bronzezone.data.customer_raw` table with SCD type-2
+	+ Load Order data into `bronzezone.data.orders_raw` table with SCD type-2
+* Data Transformations / Business Logic:
+	+ Step 1: Ingest CSV files using Auto Loader with format="csv"
+	+ Step 2: Apply SCD type-2 to Customer data using watermark columns and create CreateDateTime, UpdateDateTime, and IsActive flag
+	+ Step 3: Apply SCD type-2 to Order data using watermark columns and create CreateDateTime, UpdateDateTime, and IsActive flag
+* Error Handling and Logging:
+	+ Log errors to a designated error log table
+	+ Implement retry mechanism for failed ingestions
+
+**TR-ETL-002: Load Data to Silver Layer**
+
+* Technical Requirement ID: TR-ETL-002
+* Related Functional Requirement(s): FR-ETL-002
+* Objective: Implement a Delta Live Table pipeline to load data from Bronze layer, join Customer and Order data, and apply SCD type 2 to create a combined Silver layer table.
+* Target Cluster Configuration:
+	+ Cluster Name: Silver Layer Cluster
+	+ Databricks Runtime Version: 11.3.x-scala2.12
+	+ Node Type: Standard_DS3_v2
+	+ Driver Node: Standard_DS3_v2
+	+ Worker Nodes: 2-4 Standard_DS3_v2
+	+ Autoscaling: Enabled
+	+ Auto Termination: 30 minutes
+	+ Libraries Installed: Delta Live Tables
+* Source Data Details:
+	+ `bronzezone.data.customer_raw` table
+	+ `bronzezone.data.orders_raw` table
+	+ Location: Bronze layer
+	+ Format: Delta Lake
+* Target Data Details:
+	+ `silverzone.data.customer_order_combined` table
+	+ Location: Silver layer
+	+ Format: Delta Lake
+* Job Flow / Pipeline Stages:
+	+ Load data from `bronzezone.data.customer_raw` and `bronzezone.data.orders_raw` tables
+	+ Join Customer and Order data on the "id" column
+	+ Remove records with null values
+	+ Remove duplicate records
+	+ Apply SCD type 2 using "id" as primary key
+* Data Transformations / Business Logic:
+	+ Step 1: Join Customer and Order data using inner join
+	+ Step 2: Remove records with null values using filter transformation
+	+ Step 3: Remove duplicate records using dropDuplicates transformation
+	+ Step 4: Apply SCD type 2 using watermark columns and create CreateDateTime, UpdateDateTime, and IsActive flag
+* Error Handling and Logging:
+	+ Log errors to a designated error log table
+	+ Implement retry mechanism for failed transformations
+
+**TR-ETL-003: Load Data to Gold Layer**
+
+* Technical Requirement ID: TR-ETL-003
+* Related Functional Requirement(s): FR-ETL-003
+* Objective: Implement a Delta Live Table pipeline to load data from Silver layer, aggregate metrics, and create a summary table in the Gold layer.
+* Target Cluster Configuration:
+	+ Cluster Name: Gold Layer Cluster
+	+ Databricks Runtime Version: 11.3.x-scala2.12
+	+ Node Type: Standard_DS3_v2
+	+ Driver Node: Standard_DS3_v2
+	+ Worker Nodes: 2-4 Standard_DS3_v2
+	+ Autoscaling: Enabled
+	+ Auto Termination: 30 minutes
+	+ Libraries Installed: Delta Live Tables
+* Source Data Details:
+	+ `silverzone.data.customer_order_combined` table
+	+ Location: Silver layer
+	+ Format: Delta Lake
+* Target Data Details:
+	+ `goldzone.data.customer_order_summary` table
+	+ Location: Gold layer
+	+ Format: Delta Lake
+* Job Flow / Pipeline Stages:
+	+ Load data from `silverzone.data.customer_order_combined` table
+	+ Group data by "age" or "email domain"
+	+ Aggregate metrics: Total revenue and Average order amount
+	+ Create CreateDateTime, UpdateDateTime, and IsActive flag
+* Data Transformations / Business Logic:
+	+ Step 1: Group data by "age" or "email domain" using groupBy transformation
+	+ Step 2: Aggregate metrics using agg transformation
+	+ Step 3: Create CreateDateTime, UpdateDateTime, and IsActive flag using withColumn transformation
+* Error Handling and Logging:
+	+ Log errors to a designated error log table
+	+ Implement retry mechanism for failed aggregations
+
+**TR-ETL-004: Manage Unity Catalog Objects and ACL**
+
+* Technical Requirement ID: TR-ETL-004
+* Related Functional Requirement(s): FR-ETL-004
+* Objective: Implement a script to create and manage Unity Catalog objects and provide separate ACL code to manage access.
+* Target Cluster Configuration:
+	+ Cluster Name: Unity Catalog Cluster
+	+ Databricks Runtime Version: 11.3.x-scala2.12
+	+ Node Type: Standard_DS3_v2
+	+ Driver Node: Standard_DS3_v2
+	+ Worker Nodes: 1 Standard_DS3_v2
+	+ Autoscaling: Disabled
+	+ Auto Termination: 30 minutes
+	+ Libraries Installed: Unity Catalog SDK
+* Job Flow / Pipeline Stages:
+	+ Create catalogs, schemas, and tables as required
+	+ Provide separate ACL code to manage access to Unity Catalog objects
+* Error Handling and Logging:
+	+ Log errors to a designated error log table
+
+**TR-ETL-005: Enable Real-time Streaming Ingestion and Incremental Load**
+
+* Technical Requirement ID: TR-ETL-005
+* Related Functional Requirement(s): FR-ETL-005
+* Objective: Implement Auto Loader checkpointing to handle version-aware ingestion and ensure that only new or changed records are ingested during reruns.
+* Target Cluster Configuration:
+	+ Cluster Name: Bronze Layer Cluster
+	+ Databricks Runtime Version: 11.3.x-scala2.12
+	+ Node Type: Standard_DS3_v2
+	+ Driver Node: Standard_DS3_v2
+	+ Worker Nodes: 2-4 Standard_DS3_v2
+	+ Autoscaling: Enabled
+	+ Auto Termination: 30 minutes
+	+ Libraries Installed: Delta Live Tables, Auto Loader
+* Job Flow / Pipeline Stages:
+	+ Enable Auto Loader checkpointing
+	+ Ensure that only new or changed records are ingested during reruns
+* Error Handling and Logging:
+	+ Log errors to a designated error log table
+
+**TR-ETL-006: Generate Metadata, Tests, and Directory Structure**
+
+* Technical Requirement ID: TR-ETL-006
+* Related Functional Requirement(s): FR-ETL-006
+* Objective: Generate metadata, tests, and directory structure for the ETL pipeline.
+* Target Cluster Configuration:
+	+ Cluster Name: ETL Pipeline Cluster
+	+ Databricks Runtime Version: 11.3.x-scala2.12
+	+ Node Type: Standard_DS3_v2
+	+ Driver Node: Standard_DS3_v2
+	+ Worker Nodes: 1 Standard_DS3_v2
+	+ Autoscaling: Disabled
+	+ Auto Termination: 30 minutes
+	+ Libraries Installed: Delta Live Tables, testing libraries
+* Job Flow / Pipeline Stages:
+	+ Generate metadata for the ETL pipeline
+	+ Create tests to validate the ETL pipeline
+	+ Create a directory structure to organize the ETL pipeline components
+* Error Handling and Logging:
+	+ Log errors to a designated error log table
