@@ -2,10 +2,10 @@ Here is the Technical Requirement Document (TRD) based on the provided Functiona
 
 * **TR-ETL-001: Load Raw Data to Bronze Layer**
 	+ Related Functional Requirement(s): FR-ETL-001
-	+ Objective: Implement a Delta Live Tables (DLT) pipeline to load raw Customer and Order data from CSV files to the Bronze layer.
+	+ Objective: Implement a Delta Live Tables (DLT) pipeline to ingest raw Customer and Order data from CSV files into the Bronze layer.
 	+ Target Cluster Configuration:
-		- Cluster Name: ETL Cluster
-		- Databricks Runtime Version: 10.4.x-scala2.12
+		- Cluster Name: ETL_CLUSTER
+		- Databricks Runtime Version: 11.3.x-scala2.12
 		- Node Type: Standard_DS3_v2
 		- Driver Node: Standard_DS3_v2
 		- Worker Nodes: 2-4 Standard_DS3_v2
@@ -13,141 +13,161 @@ Here is the Technical Requirement Document (TRD) based on the provided Functiona
 		- Auto Termination: 30 minutes
 		- Libraries Installed: delta-lake, spark-csv
 	+ Source Data Details:
-		- Dataset Name: Customer and Order CSV files
-		- Location: Unity Catalog Volumes paths
+		- Dataset Name: Customer and Order data
+		- Location: /Volumes/catalog_sdlc/rawdata/customer and /Volumes/catalog_sdlc/rawdata/order
 		- Format: CSV
 		- Description: Raw Customer and Order data
 	+ Target Data Details:
-		- Output Name: customer_raw and orders_raw tables
-		- Location: Bronze layer catalog "bronzezone", schema "data"
-		- Format: Delta Lake
-		- Description: Raw Customer and Order data loaded into Bronze layer tables
+		- Output Name: bronzezone.data.customer_raw and bronzezone.data.orders_raw
+		- Location: Unity Catalog
+		- Format: Delta
+		- Description: Raw Customer and Order data in Bronze layer
 	+ Job Flow / Pipeline Stages:
-		- Create Bronze layer catalog, schema, and tables if not exists
-		- Ingest CSV data into Bronze layer tables using Auto Loader
-		- Apply SCD type-2 and create CreateDateTime, UpdateDateTime, and IsActive flag
+		- Create bronzezone catalog and data schema if not exist
+		- Ingest Customer data into bronzezone.data.customer_raw using DLT and Auto Loader
+		- Ingest Order data into bronzezone.data.orders_raw using DLT and Auto Loader
+		- Apply SCD type 2 to both tables
 	+ Data Transformations / Business Logic:
-		- Step: Ingest CSV data
-		- Description: Load CSV data into Bronze layer tables
-		- Transformation Logic: Use Auto Loader with cloud_files and format="csv"
-		- Step: Apply SCD type-2
-		- Description: Keep history and create CreateDateTime, UpdateDateTime, and IsActive flag
-		- Transformation Logic: Use DLT syntax to apply SCD type-2
+		- Step: Ingest data from CSV files
+		- Description: Use Auto Loader to ingest data from CSV files
+		- Transformation Logic: Use DLT syntax to ingest data
+		- Step: Apply SCD type 2
+		- Description: Apply SCD type 2 to customer_raw and orders_raw tables
+		- Transformation Logic: Use watermark columns and create CreateDateTime, UpdateDateTime, and IsActive flag columns
 	+ Error Handling and Logging:
-		- Use try-except blocks to catch and log exceptions
-		- Log errors to a logging framework (e.g., Databricks logging)
+		- Use try-except blocks to handle errors during data ingestion and transformation
+		- Log errors and exceptions to a logging table
 
 * **TR-ETL-002: Load Data to Silver Layer**
 	+ Related Functional Requirement(s): FR-ETL-002
-	+ Objective: Implement a DLT pipeline to load data from Bronze layer tables to Silver layer, perform data cleansing, and apply SCD type 2.
+	+ Objective: Implement a DLT pipeline to load data from Bronze layer into Silver layer.
 	+ Target Cluster Configuration:
-		- Cluster Name: ETL Cluster
-		- Databricks Runtime Version: 10.4.x-scala2.12
+		- Cluster Name: ETL_CLUSTER
+		- Databricks Runtime Version: 11.3.x-scala2.12
 		- Node Type: Standard_DS3_v2
 		- Driver Node: Standard_DS3_v2
 		- Worker Nodes: 2-4 Standard_DS3_v2
 		- Autoscaling: Enabled
 		- Auto Termination: 30 minutes
-		- Libraries Installed: delta-lake, spark-csv
+		- Libraries Installed: delta-lake
 	+ Source Data Details:
-		- Dataset Name: customer_raw and orders_raw tables
-		- Location: Bronze layer catalog "bronzezone", schema "data"
-		- Format: Delta Lake
-		- Description: Raw Customer and Order data
+		- Dataset Name: bronzezone.data.customer_raw and bronzezone.data.orders_raw
+		- Location: Unity Catalog
+		- Format: Delta
+		- Description: Raw Customer and Order data in Bronze layer
 	+ Target Data Details:
-		- Output Name: customer_order_combined table
-		- Location: Silver layer catalog, schema
-		- Format: Delta Lake
-		- Description: Cleansed and transformed Customer and Order data
+		- Output Name: silverzone.data.customer_order_combined
+		- Location: Unity Catalog
+		- Format: Delta
+		- Description: Combined Customer and Order data in Silver layer
 	+ Job Flow / Pipeline Stages:
-		- Load data from Bronze layer tables to Silver layer
-		- Join customer_raw and orders_raw tables on "id" column
-		- Remove records with Null values and duplicates
-		- Apply SCD type 2 using "id" as primary key
+		- Load data from bronzezone.data.customer_raw and bronzezone.data.orders_raw into Silver layer
+		- Join the two tables on id column
+		- Remove records with Null values
+		- Remove duplicate records
+		- Apply SCD type 2
 	+ Data Transformations / Business Logic:
 		- Step: Join customer_raw and orders_raw tables
-		- Description: Join tables on "id" column
-		- Transformation Logic: Use Spark SQL to join tables
-		- Step: Remove records with Null values and duplicates
-		- Description: Remove invalid records
-		- Transformation Logic: Use Spark SQL to filter and drop duplicates
+		- Description: Join the two tables on id column
+		- Transformation Logic: Use DLT syntax to join tables
+		- Step: Apply SCD type 2
+		- Description: Apply SCD type 2 to customer_order_combined table
+		- Transformation Logic: Use watermark columns and create CreateDateTime, UpdateDateTime, and IsActive flag columns
 	+ Error Handling and Logging:
-		- Use try-except blocks to catch and log exceptions
-		- Log errors to a logging framework (e.g., Databricks logging)
+		- Use try-except blocks to handle errors during data ingestion and transformation
+		- Log errors and exceptions to a logging table
 
-* **TR-ETL-003: Load Data to Gold Layer and Perform Aggregation**
+* **TR-ETL-003: Load Data to Gold Layer**
 	+ Related Functional Requirement(s): FR-ETL-003
-	+ Objective: Implement a DLT pipeline to load data from Silver layer table to Gold layer, perform aggregation, and apply SCD type 2.
+	+ Objective: Implement a DLT pipeline to load data from Silver layer into Gold layer.
 	+ Target Cluster Configuration:
-		- Cluster Name: ETL Cluster
-		- Databricks Runtime Version: 10.4.x-scala2.12
+		- Cluster Name: ETL_CLUSTER
+		- Databricks Runtime Version: 11.3.x-scala2.12
 		- Node Type: Standard_DS3_v2
 		- Driver Node: Standard_DS3_v2
 		- Worker Nodes: 2-4 Standard_DS3_v2
 		- Autoscaling: Enabled
 		- Auto Termination: 30 minutes
-		- Libraries Installed: delta-lake, spark-csv
+		- Libraries Installed: delta-lake
 	+ Source Data Details:
-		- Dataset Name: customer_order_combined table
-		- Location: Silver layer catalog, schema
-		- Format: Delta Lake
-		- Description: Cleansed and transformed Customer and Order data
+		- Dataset Name: silverzone.data.customer_order_combined
+		- Location: Unity Catalog
+		- Format: Delta
+		- Description: Combined Customer and Order data in Silver layer
 	+ Target Data Details:
-		- Output Name: customer_order_summary table
-		- Location: Gold layer catalog, schema
-		- Format: Delta Lake
-		- Description: Aggregated Customer and Order data
+		- Output Name: goldzone.data.customer_order_summary
+		- Location: Unity Catalog
+		- Format: Delta
+		- Description: Summary of Customer and Order data in Gold layer
 	+ Job Flow / Pipeline Stages:
-		- Load data from Silver layer table to Gold layer
-		- Group data by "age" or "email domain"
-		- Aggregate metrics (Total revenue and Average order amount)
-		- Apply SCD type 2 using primary key
+		- Load data from silverzone.data.customer_order_combined into Gold layer
+		- Group data by age or email domain
+		- Aggregate metrics like Total revenue and Average order amount
+		- Apply SCD type 2
 	+ Data Transformations / Business Logic:
-		- Step: Group data by "age" or "email domain"
-		- Description: Group data for aggregation
-		- Transformation Logic: Use Spark SQL to group data
+		- Step: Group data by age or email domain
+		- Description: Group data by age or email domain
+		- Transformation Logic: Use DLT syntax to group data
 		- Step: Aggregate metrics
-		- Description: Calculate Total revenue and Average order amount
-		- Transformation Logic: Use Spark SQL to aggregate metrics
+		- Description: Aggregate metrics like Total revenue and Average order amount
+		- Transformation Logic: Use DLT syntax to aggregate metrics
 	+ Error Handling and Logging:
-		- Use try-except blocks to catch and log exceptions
-		- Log errors to a logging framework (e.g., Databricks logging)
+		- Use try-except blocks to handle errors during data ingestion and transformation
+		- Log errors and exceptions to a logging table
 
-* **TR-ETL-004: Manage Unity Catalog Objects and ACL**
+* **TR-ETL-004: Manage Unity Catalog Objects**
 	+ Related Functional Requirement(s): FR-ETL-004
-	+ Objective: Create relevant catalogs, schemas, and objects in Unity Catalog and manage ACL.
+	+ Objective: Create and manage Unity Catalog objects required for the ETL pipeline.
 	+ Target Cluster Configuration:
-		- Cluster Name: ETL Cluster
-		- Databricks Runtime Version: 10.4.x-scala2.12
+		- Cluster Name: ETL_CLUSTER
+		- Databricks Runtime Version: 11.3.x-scala2.12
 		- Node Type: Standard_DS3_v2
 		- Driver Node: Standard_DS3_v2
 		- Worker Nodes: 2-4 Standard_DS3_v2
 		- Autoscaling: Enabled
 		- Auto Termination: 30 minutes
-		- Libraries Installed: unity-catalog
+		- Libraries Installed: delta-lake
 	+ Job Flow / Pipeline Stages:
-		- Create catalogs, schemas, and objects in Unity Catalog
-		- Manage ACL for Unity Catalog objects
+		- Create bronzezone, silverzone, and goldzone catalogs if not exist
+		- Create data schema within each catalog if not exist
+		- Create required tables if not exist
 	+ Error Handling and Logging:
-		- Use try-except blocks to catch and log exceptions
-		- Log errors to a logging framework (e.g., Databricks logging)
+		- Use try-except blocks to handle errors during catalog and schema creation
+		- Log errors and exceptions to a logging table
 
-* **TR-ETL-005: Enable Real-time Streaming Ingestion and Incremental Load**
+* **TR-ETL-005: Provide Separate ACL Code**
 	+ Related Functional Requirement(s): FR-ETL-005
-	+ Objective: Enable real-time streaming ingestion with incremental load and handle version-aware ingestion using Auto Loader checkpointing.
+	+ Objective: Provide separate ACL code to manage Unity Catalog objects.
 	+ Target Cluster Configuration:
-		- Cluster Name: ETL Cluster
-		- Databricks Runtime Version: 10.4.x-scala2.12
+		- Cluster Name: ETL_CLUSTER
+		- Databricks Runtime Version: 11.3.x-scala2.12
 		- Node Type: Standard_DS3_v2
 		- Driver Node: Standard_DS3_v2
 		- Worker Nodes: 2-4 Standard_DS3_v2
 		- Autoscaling: Enabled
 		- Auto Termination: 30 minutes
-		- Libraries Installed: delta-lake, spark-csv, auto-loader
+		- Libraries Installed: delta-lake
 	+ Job Flow / Pipeline Stages:
-		- Enable real-time streaming ingestion using Auto Loader
-		- Configure incremental load to ingest new or changed records
-		- Use Auto Loader checkpointing for version-aware ingestion
+		- Provide separate ACL code to manage Unity Catalog objects
 	+ Error Handling and Logging:
-		- Use try-except blocks to catch and log exceptions
-		- Log errors to a logging framework (e.g., Databricks logging)
+		- Use try-except blocks to handle errors during ACL code execution
+		- Log errors and exceptions to a logging table
+
+* **TR-ETL-006: Enable Real-time Streaming Ingestion**
+	+ Related Functional Requirement(s): FR-ETL-006
+	+ Objective: Enable real-time streaming ingestion with incremental load enabled in all objects.
+	+ Target Cluster Configuration:
+		- Cluster Name: ETL_CLUSTER
+		- Databricks Runtime Version: 11.3.x-scala2.12
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 2-4 Standard_DS3_v2
+		- Autoscaling: Enabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: delta-lake
+	+ Job Flow / Pipeline Stages:
+		- Enable Auto Loader checkpointing to handle version-aware ingestion
+		- Ensure that only new or changed records are ingested during reruns
+	+ Error Handling and Logging:
+		- Use try-except blocks to handle errors during data ingestion and transformation
+		- Log errors and exceptions to a logging table

@@ -3,65 +3,72 @@ Here is the detailed Functional Requirement Document (FRD) based on the provided
 **FR-ETL-001: Load Raw Data to Bronze Layer**
 
 1. **Title**: Load Raw Customer and Order Data to Bronze Layer
-2. **Description**: The system must load raw Customer and Order data from CSV files stored in Unity Catalog Volumes to the Bronze layer using Delta Live Tables (DLT) syntax and Auto Loader.
+2. **Description**: The system must ingest raw Customer and Order data from CSV files stored in Unity Catalog Volumes into the Bronze layer using Delta Live Tables (DLT) syntax and Auto Loader.
 3. **Preconditions**:
-	* CSV files are available in the specified Unity Catalog Volumes paths.
-	* The Bronze layer catalog, schema, and tables do not exist or are created if not exists.
+	* Raw Customer and Order data CSV files exist in the specified Unity Catalog Volumes paths (/Volumes/catalog_sdlc/rawdata/customer and /Volumes/catalog_sdlc/rawdata/order).
+	* The bronzezone catalog and data schema exist in Unity Catalog.
 4. **Main Flow / Functional Steps**:
-	* Create the Bronze layer catalog "bronzezone", schema "data", and tables "customer_raw" and "orders_raw" if they do not exist.
-	* Ingest CSV data from the specified paths using Auto Loader (cloud_files with format="csv") into the Bronze layer tables.
-	* Load Customer data into "customer_raw" table with SCD type-2, keeping history, using watermark columns, and creating CreateDateTime, UpdateDateTime, and IsActive flag.
-	* Load Order data into "orders_raw" table with SCD type-2, keeping history, using watermark columns, and creating CreateDateTime, UpdateDateTime, and IsActive flag.
-	* Write an upsert script to update the IsActive flag and UpdateDateTime when a matching record is found with changes.
+	* Create the bronzezone catalog and data schema if they do not exist.
+	* Ingest Customer data from CSV files into the bronzezone.data.customer_raw table using DLT syntax and Auto Loader.
+	* Ingest Order data from CSV files into the bronzezone.data.orders_raw table using DLT syntax and Auto Loader.
+	* Apply SCD type 2 to both tables, keeping history, using watermark columns, and creating CreateDateTime, UpdateDateTime, and IsActive flag columns.
+	* Write an upsert script to update existing records and insert new records, expiring old records by setting IsActive = 'N' and putting IsActive = 'Y' for new records, and updating UpdateDateTime.
 
 **FR-ETL-002: Load Data to Silver Layer**
 
-1. **Title**: Load Data to Silver Layer and Perform Data Cleansing
-2. **Description**: The system must load data from the Bronze layer tables to the Silver layer, perform data cleansing, and apply SCD type 2 using Delta Live Tables (DLT) syntax and Auto Loader.
+1. **Title**: Load Data to Silver Layer
+2. **Description**: The system must load data from the Bronze layer (bronzezone.data.customer_raw and bronzezone.data.orders_raw) into the Silver layer (silverzone.data.customer_order_combined) using DLT syntax and Auto Loader.
 3. **Preconditions**:
-	* Data is available in the Bronze layer tables "customer_raw" and "orders_raw".
-	* The Silver layer catalog, schema, and tables do not exist or are created if not exists.
+	* Data exists in the bronzezone.data.customer_raw and bronzezone.data.orders_raw tables.
+	* The silverzone catalog and data schema exist in Unity Catalog.
 4. **Main Flow / Functional Steps**:
-	* Load data from Bronze layer tables "customer_raw" and "orders_raw" into the Silver layer using Auto Loader (cloud_files).
-	* Join the two tables on the "id" column.
+	* Load data from bronzezone.data.customer_raw and bronzezone.data.orders_raw tables into the Silver layer using DLT syntax and Auto Loader.
+	* Join the two tables on the id column.
 	* Remove records with Null values.
 	* Remove duplicate records.
-	* Apply SCD type 2 using "id" as the primary key, keeping history, using watermark columns, and creating CreateDateTime, UpdateDateTime, and IsActive flag.
-	* Write an upsert script to update the IsActive flag and UpdateDateTime when a matching record is found with changes.
-	* Load the cleansed data into the Silver layer table "customer_order_combined".
+	* Apply SCD type 2 using the id column as the primary key, keeping history, using watermark columns, and creating CreateDateTime, UpdateDateTime, and IsActive flag columns.
+	* Write an upsert script to update existing records and insert new records, expiring old records by setting IsActive = 'N' and putting IsActive = 'Y' for new records, and updating UpdateDateTime.
 
-**FR-ETL-003: Load Data to Gold Layer and Perform Aggregation**
+**FR-ETL-003: Load Data to Gold Layer**
 
-1. **Title**: Load Data to Gold Layer and Perform Aggregation
-2. **Description**: The system must load data from the Silver layer table to the Gold layer, perform aggregation, and apply SCD type 2 using Delta Live Tables (DLT) syntax and Auto Loader.
+1. **Title**: Load Data to Gold Layer
+2. **Description**: The system must load data from the Silver layer (silverzone.data.customer_order_combined) into the Gold layer (goldzone.data.customer_order_summary) using DLT syntax and Auto Loader.
 3. **Preconditions**:
-	* Data is available in the Silver layer table "customer_order_combined".
-	* The Gold layer catalog, schema, and tables do not exist or are created if not exists.
+	* Data exists in the silverzone.data.customer_order_combined table.
+	* The goldzone catalog and data schema exist in Unity Catalog.
 4. **Main Flow / Functional Steps**:
-	* Load data from the Silver layer table "customer_order_combined" into the Gold layer using Auto Loader (cloud_files).
-	* Group the data by "age" or "email domain".
-	* Aggregate metrics such as Total revenue and Average order amount.
-	* Apply SCD type 2 using the primary key, keeping history, using watermark columns, and creating CreateDateTime, UpdateDateTime, and IsActive flag.
-	* Write an upsert script to update the IsActive flag and UpdateDateTime when a matching record is found with changes.
-	* Load the aggregated data into the Gold layer table "customer_order_summary".
+	* Load data from the silverzone.data.customer_order_combined table into the Gold layer using DLT syntax and Auto Loader.
+	* Group data by age or email domain.
+	* Aggregate metrics like Total revenue and Average order amount.
+	* Apply SCD type 2, keeping history, using watermark columns, and creating CreateDateTime, UpdateDateTime, and IsActive flag columns.
+	* Write an upsert script to update existing records and insert new records, expiring old records by setting IsActive = 'N' and putting IsActive = 'Y' for new records, and updating UpdateDateTime.
 
-**FR-ETL-004: Manage Unity Catalog Objects and ACL**
+**FR-ETL-004: Manage Unity Catalog Objects**
 
-1. **Title**: Manage Unity Catalog Objects and ACL
-2. **Description**: The system must create relevant catalogs, schemas, and objects in Unity Catalog if they do not exist and provide separate ACL code to manage Unity Catalog objects.
+1. **Title**: Manage Unity Catalog Objects
+2. **Description**: The system must create and manage Unity Catalog objects (catalogs, schemas, and tables) as required for the ETL pipeline.
 3. **Preconditions**:
 	* Unity Catalog is configured and accessible.
 4. **Main Flow / Functional Steps**:
-	* Create catalogs, schemas, and objects in Unity Catalog as required.
+	* Create the bronzezone, silverzone, and goldzone catalogs if they do not exist.
+	* Create the data schema within each catalog if it does not exist.
+	* Create the required tables (customer_raw, orders_raw, customer_order_combined, and customer_order_summary) if they do not exist.
+
+**FR-ETL-005: Provide Separate ACL Code**
+
+1. **Title**: Provide Separate ACL Code
+2. **Description**: The system must provide separate ACL code to manage Unity Catalog objects.
+3. **Preconditions**:
+	* Unity Catalog is configured and accessible.
+4. **Main Flow / Functional Steps**:
 	* Provide separate ACL code to manage Unity Catalog objects.
 
-**FR-ETL-005: Enable Real-time Streaming Ingestion and Incremental Load**
+**FR-ETL-006: Enable Real-time Streaming Ingestion**
 
-1. **Title**: Enable Real-time Streaming Ingestion and Incremental Load
-2. **Description**: The system must enable real-time streaming ingestion with incremental load enabled in all objects and handle version-aware ingestion using Auto Loader checkpointing.
+1. **Title**: Enable Real-time Streaming Ingestion
+2. **Description**: The system must enable real-time streaming ingestion with incremental load enabled in all objects.
 3. **Preconditions**:
-	* Data is available in the source CSV files.
+	* Data is being ingested into the Bronze layer.
 4. **Main Flow / Functional Steps**:
-	* Enable real-time streaming ingestion using Auto Loader.
-	* Configure incremental load to ingest only new or changed records during reruns.
-	* Use Auto Loader checkpointing to handle version-aware ingestion.
+	* Enable Auto Loader checkpointing to handle version-aware ingestion.
+	* Ensure that only new or changed records are ingested during reruns.
