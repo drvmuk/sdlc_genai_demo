@@ -1,0 +1,65 @@
+Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **Technical Requirement ID**: TR-LOD-001
+* **Related Functional Requirement(s)**: FR-ORD-001
+* **Objective**: Implement a PySpark job to load customer and order data into Delta tables, remove null and duplicate records, and generate an order summary table using SCD type 2.
+
+* **Target Cluster Configuration**
+	+ Cluster Name: Databricks Cluster for Data Ingestion
+	+ Databricks Runtime Version: 10.4 LTS (or latest compatible version)
+	+ Node Type: Standard_DS3_v2 (or equivalent)
+	+ Driver Node: Standard_DS3_v2 (or equivalent)
+	+ Worker Nodes: 2-5 nodes (autoscaling enabled)
+	+ Autoscaling: Enabled (min: 2, max: 5)
+	+ Auto Termination: Enabled (30 minutes)
+	+ Libraries Installed: 
+		- delta-lake
+		- pyspark
+
+* **Source Data Details**
+	+ Customer Data: 
+		- Location: `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata`
+		- Format: CSV
+		- Description: Customer information
+	+ Order Data: 
+		- Location: `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata`
+		- Format: CSV
+		- Description: Order information
+
+* **Target Data Details**
+	+ Customer Delta Table: 
+		- Location: `gen_ai_poc_databrickscoe.sdlc_wizard.customer`
+		- Format: Delta
+		- Description: Customer data loaded into Delta table
+	+ Order Delta Table: 
+		- Location: `gen_ai_poc_databrickscoe.sdlc_wizard.order`
+		- Format: Delta
+		- Description: Order data loaded into Delta table
+	+ Order Summary Table: 
+		- Location: `gen_ai_poc_databrickscoe.sdlc_wizard.ordersummary`
+		- Format: Delta
+		- Description: Order summary data generated using SCD type 2
+
+* **Job Flow / Pipeline Stages**
+	+ Read source CSV data
+	+ Remove null and duplicate records
+	+ Create order summary table if not exists
+	+ Join customer and order data
+	+ Update order summary table using SCD type 2
+
+* **Data Transformations / Business Logic**
+	+ Step 1: Read source CSV data
+		- Transformation Logic: Use PySpark to read CSV files into DataFrames
+	+ Step 2: Remove null and duplicate records
+		- Transformation Logic: Use PySpark to drop null and duplicate records from DataFrames
+	+ Step 3: Create order summary table if not exists
+		- Transformation Logic: Use PySpark to check if table exists and create it if not
+	+ Step 4: Join customer and order data
+		- Transformation Logic: Use PySpark to join customer and order DataFrames on CustId
+	+ Step 5: Update order summary table using SCD type 2
+		- Transformation Logic: Use PySpark to perform upsert operation and update StartDate, EndDate, and IsActive columns
+
+* **Error Handling and Logging**
+	+ Log errors and exceptions to a designated log file or table
+	+ Implement retry mechanism for failed tasks (e.g., reading CSV files)
+	+ Use try-except blocks to catch and handle exceptions during data transformations and loading

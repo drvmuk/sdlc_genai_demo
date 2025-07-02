@@ -1,0 +1,35 @@
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD):
+
+**FR-ORD-001: Load Customer and Order Data into Delta Tables**
+
+* **Title**: Load Customer and Order Data into Delta Tables and Generate Order Summary
+* **Description**: The system must read customer and order data from CSV files, load it into delta tables, remove null and duplicate records, and generate an order summary table using SCD type 2.
+
+**Preconditions**
+
+* CSV files containing customer and order data are available at the specified locations:
+	+ Customer data: `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata`
+	+ Order data: `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata`
+* The catalog `gen_ai_poc_databrickscoe` and schema `sdlc_wizard` exist in the system.
+
+**Main Flow / Functional Steps**
+
+1. **Read Source CSV Data**
+	* System reads customer data from CSV file located at `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata`.
+	* System reads order data from CSV file located at `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata`.
+	* System loads the data into delta tables `customer` and `order`.
+2. **Remove Null and Duplicate Records**
+	* System removes records with null values from both `customer` and `order` tables.
+	* System removes duplicate records from both `customer` and `order` tables.
+3. **Create Order Summary Table**
+	* System checks if the `ordersummary` table exists in the catalog `gen_ai_poc_databrickscoe` and schema `sdlc_wizard`.
+	* If the table does not exist, system creates it.
+4. **Join Customer and Order Data**
+	* System joins the `customer` and `order` tables using the `CustId` field.
+	* System loads the joined data into the `ordersummary` table using SCD type 2.
+5. **Update Order Summary Table**
+	* System performs an upsert operation to update new records in the `ordersummary` table.
+	* System updates the `StartDate`, `EndDate`, and `IsActive` columns for new records.
+	* System marks the `IsActive` column as 'Y' for new records and 'N' for older records.
+
+Let me know if you'd like me to make any changes.
