@@ -1,0 +1,62 @@
+Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* Technical Requirement ID: TR-ORD-001
+* Related Functional Requirement(s): FR-ORD-001
+* Objective: Implement a PySpark job to read customer and order data from CSV files, clean and process the data, and load it into a Slowly Changing Dimension (SCD) Type 2 table called "ordersummary".
+
+* Target Cluster Configuration:
+  * Cluster Name: Databricks Cluster for Data Ingestion
+  * Databricks Runtime Version: 10.4 LTS
+  * Node Type: Standard_DS3_v2
+  * Driver Node: Standard_DS3_v2
+  * Worker Nodes: 2-4 nodes, depending on data volume
+  * Autoscaling: Enabled
+  * Auto Termination: 30 minutes
+  * Libraries Installed: 
+    * PySpark
+    * Delta Lake
+
+* Source Data Details:
+  * Customer Data: 
+    * Dataset Name: customerdata
+    * Location (Path/Table): /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata
+    * Format: CSV
+    * Description: Customer information
+  * Order Data: 
+    * Dataset Name: orderdata
+    * Location (Path/Table): /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata
+    * Format: CSV
+    * Description: Order information
+
+* Target Data Details:
+  * Output Name: ordersummary
+  * Location: gen_ai_poc_databrickscoe.sdlc_wizard.ordersummary
+  * Format: Delta Lake
+  * Description: Slowly Changing Dimension (SCD) Type 2 table containing customer and order data
+
+* Job Flow / Pipeline Stages:
+  * Read customer data from CSV file
+  * Read order data from CSV file
+  * Load customer data into a delta table
+  * Load order data into a delta table
+  * Remove "Null"/Null and duplicate records from both customer and order tables
+  * Create the "ordersummary" table if it does not exist
+  * Join customer and order data using the "CustId" field
+  * Load the joined data into the "ordersummary" SCD Type 2 table
+  * Update the "ordersummary" table with new records
+
+* Data Transformations / Business Logic:
+  * Step: Remove "Null"/Null and duplicate records
+    * Description: Clean customer and order data
+    * Transformation Logic: Use PySpark to filter out null records and drop duplicates
+  * Step: Join customer and order data
+    * Description: Join customer and order data using CustId
+    * Transformation Logic: Use PySpark to join customer and order data on CustId
+  * Step: Update SCD Type 2 table
+    * Description: Update "ordersummary" table with new records
+    * Transformation Logic: Use Delta Lake to implement SCD Type 2 logic, updating StartDate, EndDate, and IsActive columns
+
+* Error Handling and Logging:
+  * Log errors and exceptions to a designated log file
+  * Handle null and duplicate records by removing them from the dataset
+  * Implement retry mechanism for failed jobs due to transient errors

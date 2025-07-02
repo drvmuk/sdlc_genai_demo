@@ -1,0 +1,34 @@
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD):
+
+**FR-ORD-001: Load Customer and Order Data into SCD Type 2 Table**
+
+**Title:** Load Customer and Order Data into SCD Type 2 Table
+
+**Description:** The system must read customer and order data from CSV files, clean and process the data, and load it into a Slowly Changing Dimension (SCD) Type 2 table called "ordersummary".
+
+**Preconditions:**
+
+* CSV files containing customer and order data are available at the specified locations.
+* The "ordersummary" table does not exist or is available for update in the specified catalog and schema.
+
+**Main Flow / Functional Steps:**
+
+* Read customer data from CSV file located at `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata`.
+* Read order data from CSV file located at `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata`.
+* Load customer data into a delta table with the schema: CustId, Name, EmailId, Region.
+* Load order data into a delta table with the schema: OrderId, ItemName, PricePerUnit, Qty, Date, CustId.
+* Remove "Null"/Null and duplicate records from both customer and order tables.
+* Create the "ordersummary" table if it does not exist in the catalog "gen_ai_poc_databrickscoe" and schema "sdlc_wizard".
+* Join customer and order data using the "CustId" field.
+* Load the joined data into the "ordersummary" SCD Type 2 table.
+* Update the "ordersummary" table with new records, adding and updating the following columns:
+	+ StartDate
+	+ EndDate
+	+ IsActive
+* Mark the IsActive column as "Y" for new records and "N" for older records.
+
+**Additional Requirements:**
+
+* The system must handle upsert operations to update new records in the "ordersummary" table.
+
+Let me know if you need any further clarification or if this meets your requirements.

@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "order-summary-processor"
+version = "1.0.0"
+description = "PySpark job to process customer and order data into SCD Type 2 table"
+authors = [
+    {name = "Data Engineering Team", email = "data-engineering@example.com"}
+]
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.dependencies]
+pyspark = "^3.3.0"
+delta-spark = "^2.2.0"
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.3.1",
+]
+
+[tool.pytest]
+testpaths = ["tests"]

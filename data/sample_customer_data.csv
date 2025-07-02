@@ -1,0 +1,8 @@
+CustId,FirstName,LastName,Address,City,State,ZipCode
+C001,John,Doe,123 Main St,New York,NY,10001
+C002,Jane,Smith,456 Oak Ave,Los Angeles,CA,90001
+C003,Bob,Johnson,789 Pine Rd,Chicago,IL,60007
+C004,Alice,Williams,101 Maple Dr,Houston,TX,77001
+C005,Michael,Brown,202 Cedar Ln,Phoenix,AZ,85001
+C006,Null,Null,Null,Null,Null,Null
+C003,Bob,Johnson,789 Pine Rd,Chicago,IL,60007
