@@ -1,0 +1,64 @@
+Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **Technical Requirement ID:** TR-DTL-001
+* **Related Functional Requirement(s):** FR-DTL-001
+* **Objective:** Implement a PySpark job to load customer and order data into delta tables, remove null and duplicate records, and create an order summary SCD Type 2 table.
+
+* **Target Cluster Configuration:**
+	+ Cluster Name: Gen AI POC Databricks Cluster
+	+ Databricks Runtime Version: 10.4.x-scala2.12
+	+ Node Type: Standard_DS3_v2
+	+ Driver Node: Standard_DS3_v2
+	+ Worker Nodes: 2-4 (autoscaling)
+	+ Autoscaling: Enabled
+	+ Auto Termination: Enabled (30 minutes)
+	+ Libraries Installed: 
+		- delta-lake_2.12
+		- spark-sql_2.12
+
+* **Source Data Details:**
+	+ Customer data: 
+		- Location: `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata`
+		- Format: CSV
+		- Description: Customer data with schema `CustId, Name, EmailId, Region`
+	+ Order data: 
+		- Location: `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata`
+		- Format: CSV
+		- Description: Order data with schema `OrderId, ItemName, PricePerUnit, Qty, Date, CustId`
+
+* **Target Data Details:**
+	+ Customer delta table: 
+		- Location: `gen_ai_poc_databrickscoe.sdlc_wizard.customer`
+		- Format: Delta
+		- Description: Customer data loaded into a delta table
+	+ Order delta table: 
+		- Location: `gen_ai_poc_databrickscoe.sdlc_wizard.order`
+		- Format: Delta
+		- Description: Order data loaded into a delta table
+	+ Order summary SCD Type 2 table: 
+		- Location: `gen_ai_poc_databrickscoe.sdlc_wizard.ordersummary`
+		- Format: Delta
+		- Description: Order summary data loaded into an SCD Type 2 table
+
+* **Job Flow / Pipeline Stages:**
+	+ Read customer and order data from CSV files
+	+ Load data into delta tables
+	+ Remove null and duplicate records
+	+ Create order summary SCD Type 2 table if not exists
+	+ Join customer and order data and load into SCD Type 2 table
+
+* **Data Transformations / Business Logic:**
+	+ Step 1: Read customer and order data from CSV files and load into delta tables
+		- Transformation Logic: Use PySpark to read CSV files and write to delta tables
+	+ Step 2: Remove null and duplicate records from delta tables
+		- Transformation Logic: Use PySpark to filter out null records and drop duplicates
+	+ Step 3: Create order summary SCD Type 2 table if not exists
+		- Transformation Logic: Use PySpark to check if table exists and create if not
+	+ Step 4: Join customer and order data and load into SCD Type 2 table
+		- Transformation Logic: Use PySpark to join data and apply SCD Type 2 logic
+
+* **Error Handling and Logging:**
+	+ Log errors and exceptions to a logging table or file
+	+ Implement retry mechanism for failed tasks
+	+ Use try-except blocks to handle errors and exceptions
+	+ Log job execution metrics and statistics

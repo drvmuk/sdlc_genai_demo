@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "customer_order_pipeline"
+version = "1.0.0"
+description = "PySpark pipeline for processing customer and order data into Delta tables with SCD Type 2 implementation"
+authors = [
+    {name = "Data Engineering Team", email = "dataeng@example.com"}
+]
+requires-python = ">=3.8"
+
+[project.dependencies]
+pyspark = ">=3.2.0"
+delta-spark = ">=2.0.0"
+
+[tool.pytest]
+testpaths = ["tests"]

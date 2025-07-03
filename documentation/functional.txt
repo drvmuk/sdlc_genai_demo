@@ -1,0 +1,34 @@
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD):
+
+**FR-DTL-001: Load Customer and Order Data into Delta Tables**
+
+* **Title:** Load Customer and Order Data into Delta Tables and Create Order Summary SCD Type 2 Table
+* **Description:** The system must read source CSV data from a specified volume, load it into delta tables for customer and order data, remove null and duplicate records, and create an order summary table using SCD Type 2 logic.
+
+**Preconditions:**
+
+* The source CSV files for customer and order data exist in the specified volume: `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata` and `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata`.
+* The schema of the customer and order data is known: `CustId, Name, EmailId, Region` for customer and `OrderId, ItemName, PricePerUnit, Qty, Date, CustId` for order.
+
+**Main Flow / Functional Steps:**
+
+1. **Read source CSV data from volume and load to delta tables:**
+	* Read customer data from `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata` into a delta table named "customer".
+	* Read order data from `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata` into a delta table named "order".
+2. **Remove null and duplicate records from both tables:**
+	* Remove rows with null values in either table.
+	* Remove duplicate records from both tables.
+3. **Create "ordersummary" table if not exists:**
+	* Check if the "ordersummary" table exists in the catalog "gen_ai_poc_databrickscoe" and schema "sdlc_wizard".
+	* If it does not exist, create the table with the required schema.
+4. **Join customer and order data and load into SCD Type 2 table:**
+	* Join the customer and order delta tables on the "CustId" field.
+	* Load the joined data into the "ordersummary" table using SCD Type 2 logic.
+5. **Implement SCD Type 2 updates on the target table "ordersummary":**
+	* Compare new data with existing records on the business key column "CustId".
+	* If data is unchanged, do not create new records.
+	* If data has changed:
+		+ Mark the existing record as inactive (set `IsActive` = 'N' and set `EndDate` to current date).
+		+ Insert the new version as a new row with `IsActive` = 'Y' and `StartDate` set to current date.
+	* Keep full history of changes in the table.
+	* New records should be inserted directly with `IsActive` = 'Y'.

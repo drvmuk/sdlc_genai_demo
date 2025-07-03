@@ -1,0 +1,6 @@
+CustId,Name,EmailId,Region
+1,John Doe,john@example.com,North
+2,Jane Smith,jane@example.com,South
+3,Bob Johnson,bob@example.com,East
+4,Alice Brown,alice@example.com,West
+5,,invalid@example.com,North
