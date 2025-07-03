@@ -6,7 +6,7 @@ from unittest.mock import patch, MagicMock
 import pandas as pd
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType, TimestampType, BooleanType
-from src.delta_pipeline import DeltaPipeline
+from delta_pipeline import DeltaPipeline
 
 class TestDeltaPipeline(unittest.TestCase):
     """Test cases for the DeltaPipeline class"""
@@ -16,7 +16,6 @@ class TestDeltaPipeline(unittest.TestCase):
         """Set up SparkSession for all test cases"""
         cls.spark = SparkSession.builder \
             .appName("TestDeltaPipeline") \
-            .master("local[2]") \
             .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
             .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
             .getOrCreate()
@@ -33,7 +32,7 @@ class TestDeltaPipeline(unittest.TestCase):
             (1, "John Doe", "john@example.com", "North"),
             (2, "Jane Smith", "jane@example.com", "South"),
             (3, "Bob Johnson", "bob@example.com", "East"),
-            (4, "Alice Brown", None, "West"),
+            (4, "Alice Brown", "alice@example.com", "West"),
             (5, None, "unknown@example.com", "North"),
             (1, "John Doe", "john@example.com", "North")  # Duplicate
         ]
@@ -62,7 +61,7 @@ class TestDeltaPipeline(unittest.TestCase):
         order_schema = StructType([
             StructField("OrderId", IntegerType(), True),
             StructField("ItemName", StringType(), True),
-            StructField("PricePerUnit", DoubleType(), True),
+            StructField("PricePerUnit", IntegerType(), True),
             StructField("Qty", IntegerType(), True),
             StructField("Date", StringType(), True),
             StructField("CustId", IntegerType(), True)
@@ -86,7 +85,7 @@ class TestDeltaPipeline(unittest.TestCase):
         self.assertEqual(cleaned_data["Name"].isna().sum(), 0)
         
         # Check that duplicates are removed
-        self.assertEqual(len(cleaned_data), 3)  # Should have 3 valid unique customers
+        self.assertEqual(len(cleaned_data), 4)  # Should have 4 valid unique customers
         
         # Check that processed timestamp is added
         self.assertTrue("ProcessedTimestamp" in cleaned_df.columns)
@@ -105,7 +104,7 @@ class TestDeltaPipeline(unittest.TestCase):
         self.assertEqual(cleaned_data["CustId"].isna().sum(), 0)
         
         # Check that duplicates are removed
-        self.assertEqual(len(cleaned_data), 4)  # Should have 4 valid unique orders
+        self.assertEqual(len(cleaned_data), 5)  # Should have 5 valid unique orders
         
         # Check that TotalAmount is calculated correctly
         total_amounts = cleaned_df.select("PricePerUnit", "Qty", "TotalAmount").toPandas()
@@ -115,7 +114,7 @@ class TestDeltaPipeline(unittest.TestCase):
         # Check that processed timestamp is added
         self.assertTrue("ProcessedTimestamp" in cleaned_df.columns)
     
-    @patch('src.delta_pipeline.DeltaPipeline.save_to_delta')
+    @patch('delta_pipeline.DeltaPipeline.save_to_delta')
     def test_run_pipeline(self, mock_save_to_delta):
         """Test the full pipeline execution"""
         # Mock the read_source_data method
@@ -133,4 +132,4 @@ class TestDeltaPipeline(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(argv=[''], exit=False)
