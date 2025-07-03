@@ -192,6 +192,8 @@ class DeltaPipeline:
                 F.lit(True).alias("IsCurrent")
             )
             
+            summary_df.createOrReplaceTempView("source_view") #Added to fix issue at line 230
+
             # Check if summary table exists
             tables = self.spark.sql("SHOW TABLES IN gen_ai_poc_databrickscoe.sdlc_wizard").collect()
             table_exists = any(row.tableName == "ordersummary" for row in tables)
@@ -225,11 +227,13 @@ class DeltaPipeline:
                 changed_records = self.spark.sql(f"""
                     SELECT source.*
                     FROM {self.summary_table} target
-                    JOIN {summary_df.createOrReplaceTempView("source_view")} source
+                    JOIN source_view source
                     ON target.OrderId = source.OrderId
                     WHERE target.EffectiveEndDate IS NOT NULL
                     AND target.IsCurrent = false
                 """)
+
+                changed_records = changed_records.dropDuplicates(["CustId","Name","EmailId","Region"]) # Added to fix duplicate insert issue in ordersummary table
                 
                 if changed_records.count() > 0:
                     changed_records.write.format("delta").mode("append").saveAsTable(self.summary_table)
