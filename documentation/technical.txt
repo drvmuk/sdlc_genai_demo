@@ -1,0 +1,58 @@
+Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **Technical Requirement ID:** TR-DLT-001
+* **Related Functional Requirement(s):** FR-DTL-001, FR-DTL-002
+* **Objective:** Implement a PySpark job to load customer and order data into delta tables, perform data cleansing, and create a summary table using SCD type 2.
+
+* **Target Cluster Configuration:**
+	+ Cluster Name: Data Engineering Cluster
+	+ Databricks Runtime Version: 10.4.x-scala2.12
+	+ Node Type: Standard_DS3_v2
+	+ Driver Node: Standard_DS3_v2
+	+ Worker Nodes: 2-5 (autoscaling)
+	+ Autoscaling: Enabled
+	+ Auto Termination: 30 minutes
+	+ Libraries Installed: delta-lake, spark-sql-kafka-0-10
+
+* **Source Data Details:**
+	+ Dataset Name: Customer Data
+	+ Location: `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata`
+	+ Format: CSV
+	+ Description: Customer data with schema `CustId, Name, EmailId, Region`
+	+ Dataset Name: Order Data
+	+ Location: `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata`
+	+ Format: CSV
+	+ Description: Order data with schema `OrderId, ItemName, PricePerUnit, Qty, Date, CustId`
+
+* **Target Data Details:**
+	+ Output Name: Customer Delta Table
+	+ Location: `gen_ai_poc_databrickscoe.sdlc_wizard.customer`
+	+ Format: Delta
+	+ Description: Cleaned customer data
+	+ Output Name: Order Delta Table
+	+ Location: `gen_ai_poc_databrickscoe.sdlc_wizard.order`
+	+ Format: Delta
+	+ Description: Cleaned order data
+	+ Output Name: Order Summary Table
+	+ Location: `gen_ai_poc_databrickscoe.sdlc_wizard.ordersummary`
+	+ Format: Delta
+	+ Description: Summary table with SCD type 2
+
+* **Job Flow / Pipeline Stages:**
+	+ Read customer and order data from CSV files
+	+ Clean and transform data
+	+ Create delta tables for customer and order data
+	+ Join customer and order data and load into summary table using SCD type 2
+
+* **Data Transformations / Business Logic:**
+	+ Step: Remove null and duplicate records from customer and order data
+	+ Description: Clean customer and order data
+	+ Transformation Logic: Use PySpark to remove null and duplicate records
+	+ Step: Join customer and order data using CustId
+	+ Description: Create summary table
+	+ Transformation Logic: Use PySpark to join customer and order data and apply SCD type 2 logic
+
+* **Error Handling and Logging:**
+	+ Log errors and exceptions to a log file
+	+ Use try-except blocks to handle errors during data processing
+	+ Use Databricks logging mechanisms to log job execution details
