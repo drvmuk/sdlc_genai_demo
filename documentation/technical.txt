@@ -1,0 +1,117 @@
+Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **TR-ETL-001: Ingest Raw CSV Data**
+	+ Related Functional Requirement(s): FR-ETL-001
+	+ Objective: Implement a data ingestion job to read raw customer and order data from CSV files.
+	+ Target Cluster Configuration:
+		- Cluster Name: Data Ingestion Cluster
+		- Databricks Runtime Version: 12.2 LTS
+		- Node Type: Standard_DS3_v2
+		- Driver Node: 1 x Standard_DS3_v2
+		- Worker Nodes: 2 x Standard_DS3_v2
+		- Autoscaling: Enabled (min: 2, max: 5)
+		- Auto Termination: Enabled (30 minutes)
+		- Libraries Installed: spark-csv, spark-utils
+	+ Source Data Details:
+		- Customer data CSV file: /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata, CSV, Customer data
+		- Order data CSV file: /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata, CSV, Order data
+	+ Target Data Details: None
+	+ Job Flow / Pipeline Stages:
+		1. Read customer data CSV file
+		2. Read order data CSV file
+		3. Check file format and structure consistency
+	+ Data Transformations / Business Logic:
+		- Step 1: Read CSV files using spark-csv library
+		- Step 2: Validate file format and structure consistency using schema validation
+	+ Error Handling and Logging:
+		- Log errors using Databricks logging API
+		- Handle file not found and schema validation errors
+
+* **TR-ETL-002: Cleanse Customer and Order Data**
+	+ Related Functional Requirement(s): FR-ETL-002
+	+ Objective: Implement data cleansing logic to remove null and duplicate records from customer and order data.
+	+ Target Cluster Configuration: Same as TR-ETL-001
+	+ Source Data Details:
+		- Customer data: Ingested customer data, Parquet, Customer data
+		- Order data: Ingested order data, Parquet, Order data
+	+ Target Data Details:
+		- Cleansed customer data: /tmp/cleansed_customer_data, Parquet, Cleansed customer data
+		- Cleansed order data: /tmp/cleansed_order_data, Parquet, Cleansed order data
+	+ Job Flow / Pipeline Stages:
+		1. Identify and remove records with null values
+		2. Identify and remove duplicate records
+	+ Data Transformations / Business Logic:
+		- Step 1: Use `dropna()` function to remove null records
+		- Step 2: Use `dropDuplicates()` function to remove duplicate records
+	+ Error Handling and Logging:
+		- Log errors using Databricks logging API
+		- Handle data quality issues (e.g., null or duplicate records)
+
+* **TR-ETL-003: Create ordersummary Table**
+	+ Related Functional Requirement(s): FR-ETL-003
+	+ Objective: Create ordersummary table in Databricks Lakehouse if it does not exist.
+	+ Target Cluster Configuration: Same as TR-ETL-001
+	+ Source Data Details: None
+	+ Target Data Details:
+		- ordersummary table: gen_ai_poc_databrickscoe.sdlc_wizard.ordersummary, Delta Lake, ordersummary data
+	+ Job Flow / Pipeline Stages:
+		1. Check if ordersummary table exists
+		2. Create ordersummary table if it does not exist
+	+ Data Transformations / Business Logic:
+		- Step 1: Use `spark.sql()` function to check if table exists
+		- Step 2: Use `spark.sql()` function to create table with required schema
+	+ Error Handling and Logging:
+		- Log errors using Databricks logging API
+		- Handle table creation errors
+
+* **TR-ETL-004: Join Customer and Order Data**
+	+ Related Functional Requirement(s): FR-ETL-004
+	+ Objective: Join customer and order data on CustId.
+	+ Target Cluster Configuration: Same as TR-ETL-001
+	+ Source Data Details:
+		- Cleansed customer data: /tmp/cleansed_customer_data, Parquet, Cleansed customer data
+		- Cleansed order data: /tmp/cleansed_order_data, Parquet, Cleansed order data
+	+ Target Data Details:
+		- Joined data: /tmp/joined_data, Parquet, Joined customer and order data
+	+ Job Flow / Pipeline Stages:
+		1. Join customer and order data on CustId
+	+ Data Transformations / Business Logic:
+		- Step 1: Use `join()` function to join data on CustId
+	+ Error Handling and Logging:
+		- Log errors using Databricks logging API
+		- Handle join errors
+
+* **TR-ETL-005: Load Joined Data into ordersummary Table using SCD Type 2 Logic**
+	+ Related Functional Requirement(s): FR-ETL-005
+	+ Objective: Load joined data into ordersummary table using SCD Type 2 logic.
+	+ Target Cluster Configuration: Same as TR-ETL-001
+	+ Source Data Details:
+		- Joined data: /tmp/joined_data, Parquet, Joined customer and order data
+	+ Target Data Details:
+		- ordersummary table: gen_ai_poc_databrickscoe.sdlc_wizard.ordersummary, Delta Lake, ordersummary data
+	+ Job Flow / Pipeline Stages:
+		1. Detect changes in customer data
+		2. Mark existing records as Inactive and set EndDate
+		3. Insert new records as Active with updated StartDate
+	+ Data Transformations / Business Logic:
+		- Step 1: Use `merge()` function to detect changes and apply SCD Type 2 logic
+	+ Error Handling and Logging:
+		- Log errors using Databricks logging API
+		- Handle SCD Type 2 logic errors
+
+* **TR-ETL-006: Automate Updates to ordersummary Table**
+	+ Related Functional Requirement(s): FR-ETL-006
+	+ Objective: Automate updates to ordersummary table based on changes in customer data.
+	+ Target Cluster Configuration: Same as TR-ETL-001
+	+ Source Data Details:
+		- Updated customer data: /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata, CSV, Updated customer data
+	+ Target Data Details:
+		- ordersummary table: gen_ai_poc_databrickscoe.sdlc_wizard.ordersummary, Delta Lake, ordersummary data
+	+ Job Flow / Pipeline Stages:
+		1. Detect changes in customer data
+		2. Update ordersummary table using SCD Type 2 logic
+	+ Data Transformations / Business Logic:
+		- Step 1: Use `merge()` function to detect changes and apply SCD Type 2 logic
+	+ Error Handling and Logging:
+		- Log errors using Databricks logging API
+		- Handle SCD Type 2 logic errors

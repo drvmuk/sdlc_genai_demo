@@ -1,0 +1,62 @@
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD):
+
+* **FR-ETL-001: Ingest Raw CSV Data**
+	+ Title: Ingest Raw Customer and Order Data from CSV Files
+	+ Description: The system must read raw CSV files containing customer and order data from specified volume paths.
+	+ Preconditions: 
+		- Customer data CSV file exists at /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata
+		- Order data CSV file exists at /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata
+	+ Main Flow / Functional Steps:
+		1. System reads customer data CSV file from specified path.
+		2. System reads order data CSV file from specified path.
+		3. System checks for file format and structure consistency.
+
+* **FR-ETL-002: Cleanse Customer and Order Data**
+	+ Title: Cleanse Customer and Order Data
+	+ Description: The system must remove null and duplicate records from customer and order data.
+	+ Preconditions: 
+		- Customer data is ingested.
+		- Order data is ingested.
+	+ Main Flow / Functional Steps:
+		1. System identifies and removes records with null values in any field.
+		2. System identifies and removes duplicate records based on all columns.
+
+* **FR-ETL-003: Create ordersummary Table**
+	+ Title: Create ordersummary Table in Databricks Lakehouse
+	+ Description: The system must create the ordersummary table if it does not exist in the specified catalog and schema.
+	+ Preconditions: 
+		- Catalog gen_ai_poc_databrickscoe exists.
+		- Schema sdlc_wizard exists.
+	+ Main Flow / Functional Steps:
+		1. System checks if ordersummary table exists in catalog gen_ai_poc_databrickscoe and schema sdlc_wizard.
+		2. If not, system creates ordersummary table with required schema.
+
+* **FR-ETL-004: Join Customer and Order Data**
+	+ Title: Join Customer and Order Data on CustId
+	+ Description: The system must join customer and order data on CustId.
+	+ Preconditions: 
+		- Customer data is cleansed.
+		- Order data is cleansed.
+	+ Main Flow / Functional Steps:
+		1. System joins customer and order data on CustId.
+
+* **FR-ETL-005: Load Joined Data into ordersummary Table using SCD Type 2 Logic**
+	+ Title: Load Joined Data into ordersummary Table with SCD Type 2 Logic
+	+ Description: The system must load joined data into ordersummary table using SCD Type 2 logic to maintain historical accuracy.
+	+ Preconditions: 
+		- Joined data is available.
+		- ordersummary table exists.
+	+ Main Flow / Functional Steps:
+		1. System detects changes in customer data.
+		2. For changed records, system marks existing records as Inactive and sets EndDate.
+		3. System inserts new records as Active with updated StartDate.
+		4. System maintains StartDate, EndDate, and IsActive fields in ordersummary table.
+
+* **FR-ETL-006: Automate Updates to ordersummary Table**
+	+ Title: Automate Updates to ordersummary Table based on Changes in Customer Data
+	+ Description: The system must automate updates to ordersummary table based on changes in customer data.
+	+ Preconditions: 
+		- Customer data is updated.
+	+ Main Flow / Functional Steps:
+		1. System detects changes in customer data.
+		2. System updates ordersummary table using SCD Type 2 logic.
