@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "customer_order_etl"
+version = "1.0.0"
+description = "ETL pipeline for customer and order data processing with SCD Type 2 logic"
+authors = [
+    {name = "Data Engineering Team", email = "dataengineering@example.com"}
+]
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.dependencies]
+pyspark = "^3.4.1"
+delta-spark = "^2.4.0"
+
+[project.dev-dependencies]
+pytest = "^7.3.1"

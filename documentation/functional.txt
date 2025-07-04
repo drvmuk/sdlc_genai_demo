@@ -1,0 +1,47 @@
+### Functional Requirement Document (FRD) for End-to-End ETL Pipeline for Product Data
+
+#### FR-ETL-001: Ingest and Cleanse Customer and Order Data
+* **Title**: Ingest and Cleanse Customer and Order Data
+* **Description**: The system must ingest raw customer and order data from specified CSV files, remove records with null values, and eliminate duplicate records based on all columns.
+* **Preconditions**: 
+  - Customer data CSV file exists at the specified path: `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata`
+  - Order data CSV file exists at the specified path: `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata`
+* **Main Flow / Functional Steps**:
+  1. System reads customer data from the specified CSV file path.
+  2. System reads order data from the specified CSV file path.
+  3. Remove records with null values in any field from both customer and order data.
+  4. Remove duplicate records based on all columns from both customer and order data.
+
+#### FR-ETL-002: Create ordersummary Table in Databricks Lakehouse
+* **Title**: Create ordersummary Table in Databricks Lakehouse
+* **Description**: The system must create the ordersummary table in the Databricks Lakehouse if it does not exist, within the specified catalog and schema.
+* **Preconditions**: 
+  - The catalog `gen_ai_poc_databrickscoe` exists in the Databricks Lakehouse.
+  - The schema `sdlc_wizard` exists within the `gen_ai_poc_databrickscoe` catalog.
+* **Main Flow / Functional Steps**:
+  1. System checks if the ordersummary table exists in the specified catalog and schema.
+  2. If the table does not exist, the system creates it with the required schema, including fields for SCD Type 2 logic (StartDate, EndDate, IsActive).
+
+#### FR-ETL-003: Join Customer and Order Data and Load into ordersummary Table
+* **Title**: Join Customer and Order Data and Load into ordersummary Table
+* **Description**: The system must join the cleansed customer and order data on CustId and load the joined data into the ordersummary table using SCD Type 2 logic.
+* **Preconditions**: 
+  - Cleansed customer and order data are available.
+  - The ordersummary table exists in the Databricks Lakehouse.
+* **Main Flow / Functional Steps**:
+  1. System joins the customer and order data on CustId.
+  2. System applies SCD Type 2 logic to detect changes in customer data.
+  3. For changed records, the system marks existing records as Inactive and sets EndDate.
+  4. For changed records, the system inserts new records as Active with updated StartDate.
+  5. System loads the transformed data into the ordersummary table.
+
+#### FR-ETL-004: Maintain SCD Type 2 Logic in ordersummary Table
+* **Title**: Maintain SCD Type 2 Logic in ordersummary Table
+* **Description**: The system must maintain historical accuracy in the ordersummary table by implementing SCD Type 2 logic for customer data changes.
+* **Preconditions**: 
+  - The ordersummary table is loaded with initial data.
+* **Main Flow / Functional Steps**:
+  1. System detects changes in customer data during subsequent runs.
+  2. For detected changes, the system updates existing records to reflect the change (mark as Inactive, set EndDate).
+  3. The system inserts new records with the updated information (mark as Active, set StartDate).
+  4. The system maintains the StartDate, EndDate, and IsActive fields accordingly.

@@ -1,0 +1,132 @@
+Here's a Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD).
+
+* **TR-ETL-001**
+	+ **Related Functional Requirement(s)**: FR-ETL-001
+	+ **Objective**: Ingest and cleanse customer and order data from CSV files using PySpark.
+	+ **Target Cluster Configuration**
+		- Cluster Name: ETL_Cluster
+		- Databricks Runtime Version: 13.3 LTS (includes Apache Spark 3.4.1, Scala 2.12)
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 2-5 (autoscaling)
+		- Autoscaling: Enabled
+		- Auto Termination: Enabled (after 30 minutes)
+		- Libraries Installed: spark-csv, delta-lake
+	+ **Source Data Details**
+		- Dataset Name: customerdata
+		- Location (Path/Table): `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata`
+		- Format: CSV
+		- Description: Raw customer data
+		- Dataset Name: orderdata
+		- Location (Path/Table): `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata`
+		- Format: CSV
+		- Description: Raw order data
+	+ **Target Data Details**
+		- Output Name: cleansed_customer_data
+		- Location: `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/cleansed_customer_data`
+		- Format: Delta Lake
+		- Description: Cleansed customer data
+		- Output Name: cleansed_order_data
+		- Location: `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/cleansed_order_data`
+		- Format: Delta Lake
+		- Description: Cleansed order data
+	+ **Job Flow / Pipeline Stages**
+		- Read customer and order data from CSV files
+		- Remove records with null values
+		- Remove duplicate records
+	+ **Data Transformations / Business Logic**
+		- Step: Remove null values
+		- Description: Remove records with null values in any field
+		- Transformation Logic: Use PySpark `dropna()` function
+		- Step: Remove duplicates
+		- Description: Remove duplicate records based on all columns
+		- Transformation Logic: Use PySpark `dropDuplicates()` function
+	+ **Error Handling and Logging**
+		- Log errors to a designated log file
+		- Send notifications on job failure
+
+* **TR-ETL-002**
+	+ **Related Functional Requirement(s)**: FR-ETL-002
+	+ **Objective**: Create the ordersummary table in Databricks Lakehouse if it does not exist.
+	+ **Target Cluster Configuration**
+		- Same as TR-ETL-001
+	+ **Source Data Details**: None
+	+ **Target Data Details**
+		- Output Name: ordersummary
+		- Location: `gen_ai_poc_databrickscoe.sdlc_wizard.ordersummary`
+		- Format: Delta Lake
+		- Description: ordersummary table in Databricks Lakehouse
+	+ **Job Flow / Pipeline Stages**
+		- Check if the ordersummary table exists
+		- Create the ordersummary table if it does not exist
+	+ **Data Transformations / Business Logic**
+		- Step: Create ordersummary table
+		- Description: Create the ordersummary table with the required schema
+		- Transformation Logic: Use PySpark `createOrReplaceTable()` function with the required schema
+	+ **Error Handling and Logging**
+		- Log errors to a designated log file
+		- Send notifications on job failure
+
+* **TR-ETL-003**
+	+ **Related Functional Requirement(s)**: FR-ETL-003
+	+ **Objective**: Join cleansed customer and order data and load into the ordersummary table using SCD Type 2 logic.
+	+ **Target Cluster Configuration**
+		- Same as TR-ETL-001
+	+ **Source Data Details**
+		- Dataset Name: cleansed_customer_data
+		- Location (Path/Table): `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/cleansed_customer_data`
+		- Format: Delta Lake
+		- Description: Cleansed customer data
+		- Dataset Name: cleansed_order_data
+		- Location (Path/Table): `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/cleansed_order_data`
+		- Format: Delta Lake
+		- Description: Cleansed order data
+	+ **Target Data Details**
+		- Output Name: ordersummary
+		- Location: `gen_ai_poc_databrickscoe.sdlc_wizard.ordersummary`
+		- Format: Delta Lake
+		- Description: ordersummary table with joined data
+	+ **Job Flow / Pipeline Stages**
+		- Join cleansed customer and order data on CustId
+		- Apply SCD Type 2 logic to detect changes
+		- Load transformed data into the ordersummary table
+	+ **Data Transformations / Business Logic**
+		- Step: Join data
+		- Description: Join customer and order data on CustId
+		- Transformation Logic: Use PySpark `join()` function
+		- Step: Apply SCD Type 2 logic
+		- Description: Detect changes in customer data and apply SCD Type 2 logic
+		- Transformation Logic: Use PySpark `when()` and `otherwise()` functions to implement SCD Type 2 logic
+	+ **Error Handling and Logging**
+		- Log errors to a designated log file
+		- Send notifications on job failure
+
+* **TR-ETL-004**
+	+ **Related Functional Requirement(s)**: FR-ETL-004
+	+ **Objective**: Maintain SCD Type 2 logic in the ordersummary table for subsequent runs.
+	+ **Target Cluster Configuration**
+		- Same as TR-ETL-001
+	+ **Source Data Details**
+		- Dataset Name: cleansed_customer_data
+		- Location (Path/Table): `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/cleansed_customer_data`
+		- Format: Delta Lake
+		- Description: Cleansed customer data
+	+ **Target Data Details**
+		- Output Name: ordersummary
+		- Location: `gen_ai_poc_databrickscoe.sdlc_wizard.ordersummary`
+		- Format: Delta Lake
+		- Description: ordersummary table with updated data
+	+ **Job Flow / Pipeline Stages**
+		- Detect changes in customer data
+		- Apply SCD Type 2 logic to update existing records
+		- Insert new records with updated information
+	+ **Data Transformations / Business Logic**
+		- Step: Detect changes
+		- Description: Detect changes in customer data
+		- Transformation Logic: Use PySpark `exceptAll()` function to detect changes
+		- Step: Update existing records
+		- Description: Update existing records to reflect changes
+		- Transformation Logic: Use PySpark `when()` and `otherwise()` functions to implement SCD Type 2 logic
+	+ **Error Handling and Logging**
+		- Log errors to a designated log file
+		- Send notifications on job failure
