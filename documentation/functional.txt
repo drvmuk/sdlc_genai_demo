@@ -1,0 +1,31 @@
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD):
+
+**FR-DW-001: Load Customer and Order Data into SCD Type 2 Table**
+
+* **Title:** Load Customer and Order Data into SCD Type 2 Table
+* **Description:** The system must load customer and order data from CSV files into delta tables, remove null and duplicate records, and then join the data to load into an SCD type 2 table called "ordersummary".
+
+* **Preconditions:**
+	+ CSV files for customer and order data exist in the specified locations (/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata and /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata).
+	+ The schema of the customer and order tables matches the specified schema (CustId, Name, EmailId, Region for customer and OrderId, ItemName, PricePerUnit, Qty, Date, CustId for order).
+
+* **Main Flow / Functional Steps:**
+	+ Read source CSV data from volume and load into delta tables "customer" and "order".
+	+ Remove "Null"/Null and duplicate records from both "customer" and "order" tables.
+	+ Create "ordersummary" table if it does not exist in catalog="gen_ai_poc_databrickscoe" and schema="sdlc_wizard".
+	+ Join "customer" and "order" data using "CustId" field and load the data into SCD type 2 table "ordersummary".
+	+ Implement logic to update the SCD type 2 table "ordersummary" whenever there is a change in the "customer" table, making old records Inactive and new records Active, and updating StartDate and EndDate accordingly.
+
+**FR-DW-002: Update SCD Type 2 Table on Customer Data Change**
+
+* **Title:** Update SCD Type 2 Table on Customer Data Change
+* **Description:** The system must update the SCD type 2 table "ordersummary" whenever there is a change in the "customer" table.
+
+* **Preconditions:**
+	+ The "ordersummary" table exists in catalog="gen_ai_poc_databrickscoe" and schema="sdlc_wizard".
+	+ The "customer" table has been updated.
+
+* **Main Flow / Functional Steps:**
+	+ Detect changes in the "customer" table.
+	+ Update the "ordersummary" table by making old records Inactive and new records Active.
+	+ Update StartDate and EndDate accordingly in the "ordersummary" table.
