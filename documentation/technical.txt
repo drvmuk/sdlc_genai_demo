@@ -1,0 +1,162 @@
+Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **TR-DTLD-001: Load Customer and Order Data into Delta Tables**
+	+ **Technical Requirement ID:** TR-DTLD-001
+	+ **Related Functional Requirement(s):** FR-DTLD-001
+	+ **Objective:** Implement a PySpark job to read customer and order CSV data and load it into Delta tables.
+	+ **Target Cluster Configuration:**
+		- Cluster Name: Databricks Cluster for Data Loading
+		- Databricks Runtime Version: 10.4.x-scala2.12
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 2-4 Standard_DS3_v2
+		- Autoscaling: Enabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: delta-lake, spark-csv
+	+ **Source Data Details:**
+		- Dataset Name: customerdata
+		- Location: /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata
+		- Format: CSV
+		- Description: Customer data in CSV format
+		- Dataset Name: orderdata
+		- Location: /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata
+		- Format: CSV
+		- Description: Order data in CSV format
+	+ **Target Data Details:**
+		- Output Name: customer
+		- Location: Delta table in catalog="gen_ai_poc_databrickscoe" and schema="sdlc_wizard"
+		- Format: Delta
+		- Description: Customer data in Delta format
+		- Output Name: order
+		- Location: Delta table in catalog="gen_ai_poc_databrickscoe" and schema="sdlc_wizard"
+		- Format: Delta
+		- Description: Order data in Delta format
+	+ **Job Flow / Pipeline Stages:**
+		- Read customer CSV data and load into Delta table "customer"
+		- Read order CSV data and load into Delta table "order"
+		- Remove "Null"/Null and duplicate records from both "customer" and "order" tables
+	+ **Data Transformations / Business Logic:**
+		- Step: Read CSV data
+		- Description: Read customer and order CSV data
+		- Transformation Logic: Use spark.read.csv() to read CSV data
+		- Step: Remove "Null"/Null and duplicate records
+		- Description: Remove "Null"/Null and duplicate records from "customer" and "order" tables
+		- Transformation Logic: Use dropna() and dropDuplicates() to remove "Null"/Null and duplicate records
+	+ **Error Handling and Logging:**
+		- Log errors during data loading and transformation
+		- Use try-except blocks to catch and log exceptions
+
+* **TR-DTLD-002: Create and Load ordersummary Table**
+	+ **Technical Requirement ID:** TR-DTLD-002
+	+ **Related Functional Requirement(s):** FR-DTLD-002
+	+ **Objective:** Implement a PySpark job to create "ordersummary" table and load it with joined data from "customer" and "order" tables using SCD type 2 logic.
+	+ **Target Cluster Configuration:**
+		- Cluster Name: Databricks Cluster for Data Transformation
+		- Databricks Runtime Version: 10.4.x-scala2.12
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 2-4 Standard_DS3_v2
+		- Autoscaling: Enabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: delta-lake
+	+ **Source Data Details:**
+		- Dataset Name: customer
+		- Location: Delta table in catalog="gen_ai_poc_databrickscoe" and schema="sdlc_wizard"
+		- Format: Delta
+		- Description: Customer data in Delta format
+		- Dataset Name: order
+		- Location: Delta table in catalog="gen_ai_poc_databrickscoe" and schema="sdlc_wizard"
+		- Format: Delta
+		- Description: Order data in Delta format
+	+ **Target Data Details:**
+		- Output Name: ordersummary
+		- Location: Delta table in catalog="gen_ai_poc_databrickscoe" and schema="sdlc_wizard"
+		- Format: Delta
+		- Description: Joined customer and order data in Delta format
+	+ **Job Flow / Pipeline Stages:**
+		- Create "ordersummary" table if it does not exist
+		- Join "customer" and "order" data using "CustId" field
+		- Load joined data into "ordersummary" table using SCD type 2 logic
+	+ **Data Transformations / Business Logic:**
+		- Step: Join customer and order data
+		- Description: Join "customer" and "order" data using "CustId" field
+		- Transformation Logic: Use join() to join customer and order data
+		- Step: Apply SCD type 2 logic
+		- Description: Load joined data into "ordersummary" table using SCD type 2 logic
+		- Transformation Logic: Use merge() and update() to apply SCD type 2 logic
+	+ **Error Handling and Logging:**
+		- Log errors during data transformation and loading
+		- Use try-except blocks to catch and log exceptions
+
+* **TR-DTLD-003: Update ordersummary Table on Customer Data Change**
+	+ **Technical Requirement ID:** TR-DTLD-003
+	+ **Related Functional Requirement(s):** FR-DTLD-003
+	+ **Objective:** Implement a PySpark job to update "ordersummary" table whenever there is a change in "customer" table.
+	+ **Target Cluster Configuration:**
+		- Cluster Name: Databricks Cluster for Data Transformation
+		- Databricks Runtime Version: 10.4.x-scala2.12
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 2-4 Standard_DS3_v2
+		- Autoscaling: Enabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: delta-lake
+	+ **Source Data Details:**
+		- Dataset Name: customer
+		- Location: Delta table in catalog="gen_ai_poc_databrickscoe" and schema="sdlc_wizard"
+		- Format: Delta
+		- Description: Customer data in Delta format
+	+ **Target Data Details:**
+		- Output Name: ordersummary
+		- Location: Delta table in catalog="gen_ai_poc_databrickscoe" and schema="sdlc_wizard"
+		- Format: Delta
+		- Description: Updated ordersummary data in Delta format
+	+ **Job Flow / Pipeline Stages:**
+		- Detect changes in "customer" table
+		- Update "ordersummary" table by making old records Inactive and new records Active
+		- Update StartDate and EndDate in "ordersummary" table accordingly
+	+ **Data Transformations / Business Logic:**
+		- Step: Detect changes in customer data
+		- Description: Detect changes in "customer" table
+		- Transformation Logic: Use exceptAll() to detect changes in customer data
+		- Step: Update ordersummary table
+		- Description: Update "ordersummary" table by making old records Inactive and new records Active
+		- Transformation Logic: Use merge() and update() to update ordersummary table
+	+ **Error Handling and Logging:**
+		- Log errors during data transformation and loading
+		- Use try-except blocks to catch and log exceptions
+
+* **TR-DTLD-004: Create and Load customeraggregatespend Table**
+	+ **Technical Requirement ID:** TR-DTLD-004
+	+ **Related Functional Requirement(s):** FR-DTLD-004
+	+ **Objective:** Implement a PySpark job to create "customeraggregatespend" table and load it with aggregated data from "ordersummary" table.
+	+ **Target Cluster Configuration:**
+		- Cluster Name: Databricks Cluster for Data Transformation
+		- Databricks Runtime Version: 10.4.x-scala2.12
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 2-4 Standard_DS3_v2
+		- Autoscaling: Enabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: delta-lake
+	+ **Source Data Details:**
+		- Dataset Name: ordersummary
+		- Location: Delta table in catalog="gen_ai_poc_databrickscoe" and schema="sdlc_wizard"
+		- Format: Delta
+		- Description: ordersummary data in Delta format
+	+ **Target Data Details:**
+		- Output Name: customeraggregatespend
+		- Location: Delta table in catalog="gen_ai_poc_databrickscoe" and schema="sdlc_wizard"
+		- Format: Delta
+		- Description: Aggregated customer spend data in Delta format
+	+ **Job Flow / Pipeline Stages:**
+		- Create "customeraggregatespend" table if it does not exist
+		- Aggregate "TotalAmount" column from "ordersummary" table and group by "Name" and "Date" columns
+		- Load aggregated data into "customeraggregatespend" table
+	+ **Data Transformations / Business Logic:**
+		- Step: Aggregate data
+		- Description: Aggregate "TotalAmount" column from "ordersummary" table and group by "Name" and "Date" columns
+		- Transformation Logic: Use groupBy() and sum() to aggregate data
+	+ **Error Handling and Logging:**
+		- Log errors during data transformation and loading
+		- Use try-except blocks to catch and log exceptions
