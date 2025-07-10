@@ -79,6 +79,7 @@ def load_order_data(spark, source_path, catalog, schema):
         
         # Add metadata columns
         order_df = order_df \
+            .withColumn("TotalAmount",lit(col("PricePerUnit") * col("Qty"))) \
             .withColumn("LoadTimestamp", current_timestamp())
         
         # Write to Delta table
