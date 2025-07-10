@@ -43,12 +43,14 @@ def create_order_summary(spark, catalog, schema):
         ).select(
             customer_df["CustId"],
             customer_df["Name"],
-            customer_df["Address"],
-            customer_df["Phone"],
+            customer_df["EmailId"],
+            customer_df["Region"],
             order_df["OrderId"],
-            order_df["Date"],
+            order_df["ItemName"],
+            order_df["PricePerUnit"],
+            order_df["Qty"],
             order_df["TotalAmount"],
-            order_df["Status"]
+            order_df["Date"]
         )
         
         # Add SCD Type 2 columns
@@ -84,19 +86,16 @@ def create_order_summary(spark, catalog, schema):
             ON target.CustId = source.CustId AND target.OrderId = source.OrderId AND target.IsActive = true
             WHEN MATCHED AND (
                 target.Name != source.Name OR
-                target.Address != source.Address OR
-                target.Phone != source.Phone OR
                 target.Date != source.Date OR
-                target.TotalAmount != source.TotalAmount OR
-                target.Status != source.Status
+                target.EmailId != source.EmailId
             ) THEN
                 UPDATE SET 
                     EndDate = current_date(),
                     IsActive = false,
                     UpdatedDate = current_timestamp()
             WHEN NOT MATCHED THEN
-                INSERT (CustId, Name, Address, Phone, OrderId, Date, TotalAmount, Status, StartDate, EndDate, IsActive, InsertedDate, UpdatedDate)
-                VALUES (source.CustId, source.Name, source.Address, source.Phone, source.OrderId, source.Date, source.TotalAmount, source.Status, 
+                INSERT (CustId, Name, EmailId, Region, OrderId, ItemName, PricePerUnit, Qty, TotalAmount, Date, StartDate, EndDate, IsActive, InsertedDate, UpdatedDate)
+                VALUES (source.CustId, source.Name, source.EmailId, source.Region, source.OrderId, source.ItemName, source.PricePerUnit, source.Qty, source.TotalAmount, source.Date,
                         source.StartDate, source.EndDate, source.IsActive, source.InsertedDate, source.UpdatedDate)
             """
             
@@ -104,7 +103,7 @@ def create_order_summary(spark, catalog, schema):
             
             # Insert new versions of updated records
             updated_records = spark.sql(f"""
-                SELECT t.CustId, s.Name, s.Address, s.Phone, t.OrderId, s.Date, s.TotalAmount, s.Status,
+                SELECT t.CustId, s.Name, s.EmailId, s.Region, t.OrderId, s.Date, s.ItemName, s.PricePerUnit, s.Qty, s.TotalAmount,
                        current_date() as StartDate, to_date('9999-12-31') as EndDate, true as IsActive,
                        current_timestamp() as InsertedDate, current_timestamp() as UpdatedDate
                 FROM {target_table} t
@@ -154,9 +153,7 @@ def update_order_summary_on_customer_change(spark, catalog, schema):
             FROM order_summary os
             JOIN customer c ON os.CustId = c.CustId
             WHERE os.IsActive = true AND (
-                os.Name != c.Name OR
-                os.Address != c.Address OR
-                os.Phone != c.Phone
+                os.Name != c.Name
             )
         """)
         
@@ -177,12 +174,13 @@ def update_order_summary_on_customer_change(spark, catalog, schema):
                 SELECT 
                     c.CustId,
                     c.Name,
-                    c.Address,
-                    c.Phone,
+                    c.EmailId,
+                    c.Region,
                     os.OrderId,
+                    os.ItemName,
+                    os.PricePerUnit,
+                    os.Qty,
                     os.Date,
-                    os.TotalAmount,
-                    os.Status,
                     current_date() as StartDate,
                     to_date('9999-12-31') as EndDate,
                     true as IsActive,
