@@ -29,6 +29,8 @@ def create_customer_aggregate_spend(spark, catalog, schema):
         
         # Only use active records for aggregation
         order_summary_df = spark.table(order_summary_table).filter(col("IsActive") == True)
+
+        # order_summary_df = order_summary_df.withColumn("TotalAmount",lit(col("PricePerUnit") * col("Qty")))
         
         # Aggregate data
         aggregated_df = order_summary_df.groupBy("Name", "Date") \
