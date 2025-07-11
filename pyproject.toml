@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "databricks_dlt_pipeline"
+version = "0.1.0"
+description = "Databricks Delta Live Tables Pipeline for Customer and Order Data"
+authors = [
+    {name = "Data Engineering Team", email = "dataeng@example.com"}
+]
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/example/databricks_dlt_pipeline"
+"Bug Tracker" = "https://github.com/example/databricks_dlt_pipeline/issues"
