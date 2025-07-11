@@ -1,0 +1,77 @@
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD) "Coding Requirements" section.
+
+**FR-DLT-001: Load Customer and Order Data to Delta Tables**
+
+* Title: Load Customer and Order Data to Delta Tables
+* Description: The system must read source CSV data from a specified volume and load it into Delta tables for customer and order data.
+* Preconditions:
+	+ CSV files are available at the specified locations: `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata` and `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata`
+	+ Delta tables for customer and order data do not exist or are empty
+* Main Flow / Functional Steps:
+	+ Read customer CSV data from `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata` and load it into a Delta table named "customer".
+	+ Read order CSV data from `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata` and load it into a Delta table named "order".
+
+**FR-DLT-002: Transform Order Data by Adding TotalAmount Column**
+
+* Title: Transform Order Data by Adding TotalAmount Column
+* Description: The system must add a new column "TotalAmount" to the order Delta table, which is the product of "PricePerUnit" and "Qty" columns.
+* Preconditions:
+	+ Order Delta table exists and is loaded with data
+* Main Flow / Functional Steps:
+	+ Add a new column "TotalAmount" to the order Delta table.
+	+ Calculate the value of "TotalAmount" as the product of "PricePerUnit" and "Qty" columns.
+
+**FR-DLT-003: Cleanse Customer and Order Data**
+
+* Title: Cleanse Customer and Order Data
+* Description: The system must remove null and duplicate records from both customer and order Delta tables.
+* Preconditions:
+	+ Customer and order Delta tables exist and are loaded with data
+* Main Flow / Functional Steps:
+	+ Remove null records from customer and order Delta tables.
+	+ Remove duplicate records from customer and order Delta tables.
+
+**FR-DLT-004: Create ordersummary Table and Load Joined Data**
+
+* Title: Create ordersummary Table and Load Joined Data
+* Description: The system must create an "ordersummary" table if it does not exist and load joined data from customer and order Delta tables using "CustId" as the join key.
+* Preconditions:
+	+ Customer and order Delta tables exist and are cleansed
+	+ "ordersummary" table does not exist or is empty
+* Main Flow / Functional Steps:
+	+ Create "ordersummary" table in catalog "gen_ai_poc_databrickscoe" and schema "sdlc_wizard" if it does not exist.
+	+ Join customer and order Delta tables using "CustId" as the join key.
+	+ Load joined data into "ordersummary" table as an SCD type 2 table.
+
+**FR-DLT-005: Update ordersummary Table on Customer Data Change**
+
+* Title: Update ordersummary Table on Customer Data Change
+* Description: The system must update the "ordersummary" table whenever there is a change in the customer table.
+* Preconditions:
+	+ "ordersummary" table exists and is loaded with data
+	+ Customer table is updated
+* Main Flow / Functional Steps:
+	+ Detect changes in the customer table.
+	+ Update "ordersummary" table by making old records inactive and new records active.
+	+ Update StartDate and EndDate accordingly to maintain history.
+
+**FR-DLT-006: Create customeraggregatespend Table and Load Aggregated Data**
+
+* Title: Create customeraggregatespend Table and Load Aggregated Data
+* Description: The system must create a "customeraggregatespend" table if it does not exist and load aggregated data from "ordersummary" table.
+* Preconditions:
+	+ "ordersummary" table exists and is loaded with data
+	+ "customeraggregatespend" table does not exist or is empty
+* Main Flow / Functional Steps:
+	+ Create "customeraggregatespend" table in catalog "gen_ai_poc_databrickscoe" and schema "sdlc_wizard" if it does not exist.
+	+ Aggregate "TotalAmount" column from "ordersummary" table by "Name" and "Date" columns.
+	+ Load aggregated data into "customeraggregatespend" table.
+
+**FR-DLT-007: Implement Data Processing using Delta Live Tables**
+
+* Title: Implement Data Processing using Delta Live Tables
+* Description: The system must implement data processing using Delta Live Tables.
+* Preconditions:
+	+ All previous functional requirements are implemented
+* Main Flow / Functional Steps:
+	+ Implement data processing using Delta Live Tables in simple code.

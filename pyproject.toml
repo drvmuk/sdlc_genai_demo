@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "databricks_dlt_pipeline"
+version = "0.1.0"
+description = "Databricks Delta Live Tables Pipeline for Customer and Order Data Processing"
+authors = [
+    {name = "Data Engineering Team", email = "data-engineering@example.com"}
+]
+readme = "README.md"
+requires-python = ">=3.8"
+
+[project.optional-dependencies]
+test = ["pytest>=6.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
