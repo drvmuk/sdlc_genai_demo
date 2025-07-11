@@ -1,0 +1,9 @@
+OrderId,CustId,Product,PricePerUnit,Qty,Date
+101,1,Product A,10.0,2,2023-01-15
+102,2,Product B,15.0,1,2023-01-16
+103,3,Product C,20.0,3,2023-01-17
+104,1,Product D,25.0,1,2023-01-18
+105,4,Product E,30.0,2,2023-01-19
+106,5,Product F,35.0,1,2023-01-20
+107,2,Product G,40.0,3,2023-01-21
+108,3,Product H,45.0,2,2023-01-22

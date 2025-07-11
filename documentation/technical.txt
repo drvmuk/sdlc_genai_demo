@@ -1,0 +1,132 @@
+Here's the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **TR-DLT-001: Load Customer and Order Data into Delta Tables**
+	+ **Related Functional Requirement(s):** FR-DLT-001
+	+ **Objective:** Implement a Delta Live Table pipeline to load customer and order data from CSV files into Delta tables.
+	+ **Target Cluster Configuration:**
+		- Cluster Name: Databricks Cluster for DLT
+		- Databricks Runtime Version: 11.3.x-scala2.12
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 2-5 (autoscaling)
+		- Autoscaling: Enabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: Delta Lake, PySpark
+	+ **Source Data Details:**
+		- Dataset Name: customerdata
+		- Location: /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata
+		- Format: CSV
+		- Description: Customer data in CSV format
+		- Dataset Name: orderdata
+		- Location: /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata
+		- Format: CSV
+		- Description: Order data in CSV format
+	+ **Target Data Details:**
+		- Output Name: customer
+		- Location: catalog="gen_ai_poc_databrickscoe", schema="sdlc_wizard"
+		- Format: Delta
+		- Description: Customer data in Delta format
+		- Output Name: order
+		- Location: catalog="gen_ai_poc_databrickscoe", schema="sdlc_wizard"
+		- Format: Delta
+		- Description: Order data in Delta format
+	+ **Job Flow / Pipeline Stages:**
+		- Read customer CSV data and load into "customer" Delta table
+		- Read order CSV data and load into "order" Delta table
+		- Add "TotalAmount" column to "order" table
+		- Remove null and duplicate records from both tables
+	+ **Data Transformations / Business Logic:**
+		- Step: Calculate TotalAmount
+		- Description: Multiply "PricePerUnit" and "Qty" columns
+		- Transformation Logic: `TotalAmount = PricePerUnit * Qty`
+	+ **Error Handling and Logging:**
+		- Log errors and exceptions to a designated log file
+		- Implement retry mechanism for failed tasks
+
+* **TR-DLT-002: Create and Load ordersummary Table**
+	+ **Related Functional Requirement(s):** FR-DLT-002
+	+ **Objective:** Implement a Delta Live Table pipeline to create and load "ordersummary" table with joined data from "customer" and "order" tables.
+	+ **Target Cluster Configuration:** Same as TR-DLT-001
+	+ **Source Data Details:**
+		- Dataset Name: customer
+		- Location: catalog="gen_ai_poc_databrickscoe", schema="sdlc_wizard"
+		- Format: Delta
+		- Description: Customer data in Delta format
+		- Dataset Name: order
+		- Location: catalog="gen_ai_poc_databrickscoe", schema="sdlc_wizard"
+		- Format: Delta
+		- Description: Order data in Delta format
+	+ **Target Data Details:**
+		- Output Name: ordersummary
+		- Location: catalog="gen_ai_poc_databrickscoe", schema="sdlc_wizard"
+		- Format: Delta
+		- Description: Joined customer and order data in Delta format
+	+ **Job Flow / Pipeline Stages:**
+		- Create "ordersummary" table if it does not exist
+		- Join "customer" and "order" tables on "CustId" column
+		- Load joined data into "ordersummary" table using SCD type 2
+	+ **Data Transformations / Business Logic:**
+		- Step: Join customer and order tables
+		- Description: Join on "CustId" column
+		- Transformation Logic: `ordersummary = customer.join(order, "CustId")`
+	+ **Error Handling and Logging:** Same as TR-DLT-001
+
+* **TR-DLT-003: Update ordersummary Table on Customer Changes**
+	+ **Related Functional Requirement(s):** FR-DLT-003
+	+ **Objective:** Implement a Delta Live Table pipeline to update "ordersummary" table on customer changes.
+	+ **Target Cluster Configuration:** Same as TR-DLT-001
+	+ **Source Data Details:**
+		- Dataset Name: customer
+		- Location: catalog="gen_ai_poc_databrickscoe", schema="sdlc_wizard"
+		- Format: Delta
+		- Description: Updated customer data in Delta format
+	+ **Target Data Details:**
+		- Output Name: ordersummary
+		- Location: catalog="gen_ai_poc_databrickscoe", schema="sdlc_wizard"
+		- Format: Delta
+		- Description: Updated ordersummary data in Delta format
+	+ **Job Flow / Pipeline Stages:**
+		- Identify changes in "customer" table
+		- Update "ordersummary" table by making old records inactive and new records active
+		- Update "StartDate" and "EndDate" columns accordingly
+	+ **Data Transformations / Business Logic:**
+		- Step: Update ordersummary table
+		- Description: Make old records inactive and new records active
+		- Transformation Logic: `ordersummary = ordersummary.when(customer changes)`
+	+ **Error Handling and Logging:** Same as TR-DLT-001
+
+* **TR-DLT-004: Create and Load customeraggregatespend Table**
+	+ **Related Functional Requirement(s):** FR-DLT-004
+	+ **Objective:** Implement a Delta Live Table pipeline to create and load "customeraggregatespend" table with aggregated data from "ordersummary" table.
+	+ **Target Cluster Configuration:** Same as TR-DLT-001
+	+ **Source Data Details:**
+		- Dataset Name: ordersummary
+		- Location: catalog="gen_ai_poc_databrickscoe", schema="sdlc_wizard"
+		- Format: Delta
+		- Description: Ordersummary data in Delta format
+	+ **Target Data Details:**
+		- Output Name: customeraggregatespend
+		- Location: catalog="gen_ai_poc_databrickscoe", schema="sdlc_wizard"
+		- Format: Delta
+		- Description: Aggregated customer spend data in Delta format
+	+ **Job Flow / Pipeline Stages:**
+		- Create "customeraggregatespend" table if it does not exist
+		- Aggregate "TotalAmount" column from "ordersummary" table by "Name" and "Date" columns
+		- Load aggregated data into "customeraggregatespend" table
+	+ **Data Transformations / Business Logic:**
+		- Step: Aggregate TotalAmount
+		- Description: Group by "Name" and "Date" columns
+		- Transformation Logic: `customeraggregatespend = ordersummary.groupBy("Name", "Date").sum("TotalAmount")`
+	+ **Error Handling and Logging:** Same as TR-DLT-001
+
+* **TR-DLT-005: Implement using Delta Live Tables**
+	+ **Related Functional Requirement(s):** FR-DLT-005
+	+ **Objective:** Implement all the above requirements using Delta Live Tables.
+	+ **Target Cluster Configuration:** Same as TR-DLT-001
+	+ **Job Flow / Pipeline Stages:**
+		- Use Delta Live Tables to implement the data pipelines for loading "customer" and "order" tables
+		- Use Delta Live Tables to implement the data pipeline for creating and loading "ordersummary" table
+		- Use Delta Live Tables to implement the data pipeline for updating "ordersummary" table on customer changes
+		- Use Delta Live Tables to implement the data pipeline for creating and loading "customeraggregatespend" table
+	+ **Data Transformations / Business Logic:** Same as above technical requirements
+	+ **Error Handling and Logging:** Same as TR-DLT-001
