@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "databricks_delta_etl"
+version = "1.0.0"
+description = "Databricks Delta Lake ETL Pipeline for Customer and Order Data"
+authors = [
+    {name = "Data Engineering Team", email = "data.engineering@example.com"}
+]
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/example/databricks_delta_etl"
+"Bug Tracker" = "https://github.com/example/databricks_delta_etl/issues"
