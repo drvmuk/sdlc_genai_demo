@@ -1,0 +1,143 @@
+Here's a detailed Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD).
+
+### TR-DLT-001: Load Customer and Order Data into Delta Tables
+
+* **Related Functional Requirement(s):** FR-DLT-001
+* **Objective:** Implement a PySpark job to load customer and order data from CSV files into Delta tables after cleaning and transforming the data.
+* **Target Cluster Configuration:**
+  * Cluster Name: Data Processing Cluster
+  * Databricks Runtime Version: 14.2.x-scala2.12
+  * Node Type: Standard_DS3_v2
+  * Driver Node: 1 x Standard_DS3_v2
+  * Worker Nodes: 2-5 x Standard_DS3_v2 (autoscaling)
+  * Autoscaling: Enabled
+  * Auto Termination: 30 minutes
+  * Libraries Installed: Delta Lake, PySpark
+
+* **Source Data Details:**
+  * Dataset Name: Customer Data
+    * Location: `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata`
+    * Format: CSV
+    * Description: Customer information with CustId, Name, EmailId, and Region.
+  * Dataset Name: Order Data
+    * Location: `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata`
+    * Format: CSV
+    * Description: Order details with OrderId, ItemName, PricePerUnit, Qty, Date, and CustId.
+
+* **Target Data Details:**
+  * Output Name: Customer Delta Table
+    * Location: `gen_ai_poc_databrickscoe.sdlc_wizard.customer`
+    * Format: Delta
+    * Description: Cleaned and transformed customer data.
+  * Output Name: Order Delta Table
+    * Location: `gen_ai_poc_databrickscoe.sdlc_wizard.order`
+    * Format: Delta
+    * Description: Cleaned and transformed order data with an additional TotalAmount column.
+
+* **Job Flow / Pipeline Stages:**
+  * Read CSV data into DataFrames.
+  * Clean and transform data.
+  * Load data into Delta tables.
+
+* **Data Transformations / Business Logic:**
+  * Step: Remove null records.
+    * Description: Remove records with nulls in mandatory columns.
+    * Transformation Logic: Filter out rows with null values in `CustId, Name, EmailId, Region` for Customer and `OrderId, ItemName, PricePerUnit, Qty, Date, CustId` for Order.
+  * Step: Remove duplicates.
+    * Description: Remove duplicate records based on `CustId` for Customer and `OrderId` for Order.
+    * Transformation Logic: Drop duplicates based on the specified columns.
+  * Step: Add TotalAmount column.
+    * Description: Calculate `TotalAmount` as `PricePerUnit * Qty`.
+    * Transformation Logic: Add a new column `TotalAmount` with the calculated value.
+
+* **Error Handling and Logging:**
+  * Log errors during data loading and transformation.
+  * Handle null and duplicate records by removing them.
+
+### TR-DLT-002: Create and Populate ordersummary Table
+
+* **Related Functional Requirement(s):** FR-DLT-002
+* **Objective:** Implement SCD Type 2 logic to track changes in customer attributes in the `ordersummary` table.
+* **Target Cluster Configuration:**
+  * Same as TR-DLT-001
+
+* **Source Data Details:**
+  * Dataset Name: Customer Delta Table
+    * Location: `gen_ai_poc_databrickscoe.sdlc_wizard.customer`
+    * Format: Delta
+  * Dataset Name: Order Delta Table
+    * Location: `gen_ai_poc_databrickscoe.sdlc_wizard.order`
+    * Format: Delta
+
+* **Target Data Details:**
+  * Output Name: ordersummary Table
+    * Location: `gen_ai_poc_databrickscoe.sdlc_wizard.ordersummary`
+    * Format: Delta
+    * Description: Joined customer and order data with SCD Type 2 logic applied.
+
+* **Job Flow / Pipeline Stages:**
+  * Join Customer and Order data.
+  * Check if `ordersummary` table exists; create it if not.
+  * Implement SCD Type 2 logic.
+
+* **Data Transformations / Business Logic:**
+  * Step: Join data.
+    * Description: Join Customer and Order data on `CustId`.
+    * Transformation Logic: Inner join on `CustId`.
+  * Step: Implement SCD Type 2.
+    * Description: Detect changes, update existing records, and insert new records.
+    * Transformation Logic: Compare incoming data with existing data in `ordersummary`, update `IsActive`, `StartDate`, and `EndDate` accordingly.
+
+* **Error Handling and Logging:**
+  * Log errors during data joining and SCD Type 2 logic implementation.
+  * Handle data inconsistencies by logging and potentially halting the pipeline.
+
+### TR-DLT-003: Create and Populate customeraggregatespend Table
+
+* **Related Functional Requirement(s):** FR-DLT-003
+* **Objective:** Aggregate spend data by customer and date from the `ordersummary` table.
+* **Target Cluster Configuration:**
+  * Same as TR-DLT-001
+
+* **Source Data Details:**
+  * Dataset Name: ordersummary Table
+    * Location: `gen_ai_poc_databrickscoe.sdlc_wizard.ordersummary`
+    * Format: Delta
+
+* **Target Data Details:**
+  * Output Name: customeraggregatespend Table
+    * Location: `gen_ai_poc_databrickscoe.sdlc_wizard.customeraggregatespend`
+    * Format: Delta
+    * Description: Aggregated spend data by customer and date.
+
+* **Job Flow / Pipeline Stages:**
+  * Check if `customeraggregatespend` table exists; create it if not.
+  * Aggregate data from `ordersummary`.
+
+* **Data Transformations / Business Logic:**
+  * Step: Aggregate data.
+    * Description: Group by `Name` and `Date`, sum `TotalAmount`.
+    * Transformation Logic: GroupBy `Name` and `Date`, aggregate `TotalAmount`.
+
+* **Error Handling and Logging:**
+  * Log errors during data aggregation.
+  * Handle potential data inconsistencies.
+
+### TR-DLT-004: Implement Data Processing Using Delta Live Tables (DLT)
+
+* **Related Functional Requirement(s):** FR-DLT-004
+* **Objective:** Implement the data processing pipeline using Delta Live Tables to manage data quality and pipeline dependencies.
+* **Target Cluster Configuration:**
+  * Same as TR-DLT-001
+
+* **Job Flow / Pipeline Stages:**
+  * Define DLT pipelines for loading data into Delta tables.
+  * Implement DLT for creating and populating `ordersummary` and `customeraggregatespend`.
+
+* **Data Transformations / Business Logic:**
+  * Same as previous TRs, encapsulated within DLT pipelines.
+
+* **Error Handling and Logging:**
+  * Utilize DLT's built-in data quality checks and logging mechanisms.
+
+This TRD outlines the technical requirements for implementing the specified data processing pipeline using Delta Live Tables, ensuring data quality and managing pipeline dependencies.
