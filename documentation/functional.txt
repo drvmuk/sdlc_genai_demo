@@ -1,0 +1,68 @@
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD) "Coding Requirements" section:
+
+**FR-DLT-001: Load Source CSV Data to Delta Tables**
+
+* **Title:** Load Source CSV Data to Delta Tables
+* **Description:** The system must read source CSV data from a specified volume and load it into Delta tables `customer_dlt` and `order_dlt`.
+* **Preconditions:** 
+	+ Source CSV files are available at the specified locations (`/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata` and `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata`).
+	+ Delta tables `customer_dlt` and `order_dlt` are not present or can be overwritten.
+* **Main Flow / Functional Steps:**
+	1. Read CSV data from `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata` and load it into `customer_dlt` Delta table with schema: `CustId, Name, EmailId, Region`.
+	2. Read CSV data from `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata` and load it into `order_dlt` Delta table with schema: `OrderId, ItemName, PricePerUnit, Qty, Date, CustId`.
+
+**FR-DLT-002: Transform and Cleanse Delta Tables**
+
+* **Title:** Transform and Cleanse Delta Tables
+* **Description:** The system must add a new column `TotalAmount` to `order_dlt`, remove null and duplicate records from both `customer_dlt` and `order_dlt` tables.
+* **Preconditions:** 
+	+ `customer_dlt` and `order_dlt` tables are loaded with data.
+* **Main Flow / Functional Steps:**
+	1. Add a new column `TotalAmount` to `order_dlt` by multiplying `PricePerUnit` and `Qty` columns.
+	2. Remove null records from both `customer_dlt` and `order_dlt` tables.
+	3. Remove duplicate records from both `customer_dlt` and `order_dlt` tables.
+
+**FR-DLT-003: Create and Load ordersummary_dlt Table**
+
+* **Title:** Create and Load ordersummary_dlt Table
+* **Description:** The system must create `ordersummary_dlt` table if not exists and load it with joined data from `customer_dlt` and `order_dlt` tables using `CustId` field.
+* **Preconditions:** 
+	+ `customer_dlt` and `order_dlt` tables are transformed and cleansed.
+	+ `ordersummary_dlt` table does not exist or can be overwritten.
+* **Main Flow / Functional Steps:**
+	1. Create `ordersummary_dlt` table if not exists in `gen_ai_poc_databrickscoe` catalog and `sdlc_wizard` schema.
+	2. Join `customer_dlt` and `order_dlt` tables using `CustId` field.
+	3. Load the joined data into `ordersummary_dlt` table with schema: `CustId, Name, EmailId, Region, OrderId, ItemName, PricePerUnit, Qty, Date`.
+
+**FR-DLT-004: Implement SCD Type 2 Logic**
+
+* **Title:** Implement SCD Type 2 Logic
+* **Description:** The system must implement SCD Type 2 logic to update `ordersummary_dlt` table whenever there is a change in `customer_dlt` table.
+* **Preconditions:** 
+	+ `ordersummary_dlt` table is loaded with initial data.
+* **Main Flow / Functional Steps:**
+	1. Monitor changes to `customer_dlt` table.
+	2. When a change is detected, update `ordersummary_dlt` table by making old records inactive and new records active.
+	3. Update `StartDate` and `EndDate` columns accordingly.
+
+**FR-DLT-005: Create customeraggregatespend_dlt Table**
+
+* **Title:** Create customeraggregatespend_dlt Table
+* **Description:** The system must create `customeraggregatespend_dlt` table if not exists and load it with aggregated data from `ordersummary_dlt` table.
+* **Preconditions:** 
+	+ `ordersummary_dlt` table is loaded with data.
+	+ `customeraggregatespend_dlt` table does not exist or can be overwritten.
+* **Main Flow / Functional Steps:**
+	1. Create `customeraggregatespend_dlt` table if not exists in `gen_ai_poc_databrickscoe` catalog and `sdlc_wizard` schema with columns: `Name, TotalAmount, Date`.
+	2. Aggregate `TotalAmount` column from `ordersummary_dlt` table and group by `Name` and `Date` columns.
+	3. Load the aggregated data into `customeraggregatespend_dlt` table.
+
+**FR-DLT-006: Implement Delta Live Tables**
+
+* **Title:** Implement Delta Live Tables
+* **Description:** The system must implement Delta Live Tables to materialize `ordersummary_dlt` and `customeraggregatespend_dlt` tables.
+* **Preconditions:** 
+	+ All previous functional requirements are implemented.
+* **Main Flow / Functional Steps:**
+	1. Implement Delta Live Tables to materialize `ordersummary_dlt` table with SCD Type 2 logic.
+	2. Implement Delta Live Tables to materialize `customeraggregatespend_dlt` table with aggregated data.

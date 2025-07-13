@@ -1,0 +1,170 @@
+Here's a detailed Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **TR-DLT-001: Load Source CSV Data to Delta Tables**
+	+ **Related Functional Requirement(s):** FR-DLT-001
+	+ **Objective:** Implement a PySpark job to read source CSV data and load it into Delta tables `customer_dlt` and `order_dlt`.
+	+ **Target Cluster Configuration:**
+		- Cluster Name: Data Engineering Cluster
+		- Databricks Runtime Version: 10.4.x-scala2.12
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 2-4 Standard_DS3_v2
+		- Autoscaling: Enabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: delta-lake, spark-csv
+	+ **Source Data Details:**
+		- Dataset Name: customerdata
+		- Location: `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata`
+		- Format: CSV
+		- Description: Customer data
+		- Dataset Name: orderdata
+		- Location: `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata`
+		- Format: CSV
+		- Description: Order data
+	+ **Target Data Details:**
+		- Output Name: customer_dlt
+		- Location: `gen_ai_poc_databrickscoe.sdlc_wizard.customer_dlt`
+		- Format: Delta
+		- Description: Customer Delta table
+		- Output Name: order_dlt
+		- Location: `gen_ai_poc_databrickscoe.sdlc_wizard.order_dlt`
+		- Format: Delta
+		- Description: Order Delta table
+	+ **Job Flow / Pipeline Stages:**
+		- Read CSV data from source locations
+		- Load data into Delta tables
+	+ **Data Transformations / Business Logic:**
+		- Step: Read CSV data
+		- Description: Read CSV data from source locations
+		- Transformation Logic: Use `spark.read.csv()` to read CSV data
+		- Step: Load data into Delta tables
+		- Description: Load data into `customer_dlt` and `order_dlt` Delta tables
+		- Transformation Logic: Use `deltaTableWriter` to write data to Delta tables
+	+ **Error Handling and Logging:**
+		- Log errors to a designated log location
+		- Implement retry mechanism for transient errors
+
+* **TR-DLT-002: Transform and Cleanse Delta Tables**
+	+ **Related Functional Requirement(s):** FR-DLT-002
+	+ **Objective:** Implement data transformations to add a new column `TotalAmount` to `order_dlt`, remove null and duplicate records from both `customer_dlt` and `order_dlt` tables.
+	+ **Target Cluster Configuration:** Same as TR-DLT-001
+	+ **Source Data Details:** Same as TR-DLT-001
+	+ **Target Data Details:**
+		- Output Name: customer_dlt
+		- Location: `gen_ai_poc_databrickscoe.sdlc_wizard.customer_dlt`
+		- Format: Delta
+		- Description: Transformed Customer Delta table
+		- Output Name: order_dlt
+		- Location: `gen_ai_poc_databrickscoe.sdlc_wizard.order_dlt`
+		- Format: Delta
+		- Description: Transformed Order Delta table
+	+ **Job Flow / Pipeline Stages:**
+		- Add new column `TotalAmount` to `order_dlt`
+		- Remove null records from both tables
+		- Remove duplicate records from both tables
+	+ **Data Transformations / Business Logic:**
+		- Step: Add new column `TotalAmount`
+		- Description: Add a new column `TotalAmount` to `order_dlt` by multiplying `PricePerUnit` and `Qty` columns
+		- Transformation Logic: Use `withColumn()` to add new column
+		- Step: Remove null records
+		- Description: Remove null records from both `customer_dlt` and `order_dlt` tables
+		- Transformation Logic: Use `filter()` to remove null records
+		- Step: Remove duplicate records
+		- Description: Remove duplicate records from both `customer_dlt` and `order_dlt` tables
+		- Transformation Logic: Use `dropDuplicates()` to remove duplicate records
+	+ **Error Handling and Logging:** Same as TR-DLT-001
+
+* **TR-DLT-003: Create and Load ordersummary_dlt Table**
+	+ **Related Functional Requirement(s):** FR-DLT-003
+	+ **Objective:** Implement a PySpark job to create `ordersummary_dlt` table and load it with joined data from `customer_dlt` and `order_dlt` tables.
+	+ **Target Cluster Configuration:** Same as TR-DLT-001
+	+ **Source Data Details:**
+		- Dataset Name: customer_dlt
+		- Location: `gen_ai_poc_databrickscoe.sdlc_wizard.customer_dlt`
+		- Format: Delta
+		- Description: Customer Delta table
+		- Dataset Name: order_dlt
+		- Location: `gen_ai_poc_databrickscoe.sdlc_wizard.order_dlt`
+		- Format: Delta
+		- Description: Order Delta table
+	+ **Target Data Details:**
+		- Output Name: ordersummary_dlt
+		- Location: `gen_ai_poc_databrickscoe.sdlc_wizard.ordersummary_dlt`
+		- Format: Delta
+		- Description: Order summary Delta table
+	+ **Job Flow / Pipeline Stages:**
+		- Create `ordersummary_dlt` table if not exists
+		- Join `customer_dlt` and `order_dlt` tables using `CustId` field
+		- Load joined data into `ordersummary_dlt` table
+	+ **Data Transformations / Business Logic:**
+		- Step: Join tables
+		- Description: Join `customer_dlt` and `order_dlt` tables using `CustId` field
+		- Transformation Logic: Use `join()` to join tables
+		- Step: Load data into `ordersummary_dlt` table
+		- Description: Load joined data into `ordersummary_dlt` table
+		- Transformation Logic: Use `deltaTableWriter` to write data to Delta table
+	+ **Error Handling and Logging:** Same as TR-DLT-001
+
+* **TR-DLT-004: Implement SCD Type 2 Logic**
+	+ **Related Functional Requirement(s):** FR-DLT-004
+	+ **Objective:** Implement SCD Type 2 logic to update `ordersummary_dlt` table whenever there is a change in `customer_dlt` table.
+	+ **Target Cluster Configuration:** Same as TR-DLT-001
+	+ **Source Data Details:** Same as TR-DLT-003
+	+ **Target Data Details:** Same as TR-DLT-003
+	+ **Job Flow / Pipeline Stages:**
+		- Monitor changes to `customer_dlt` table
+		- Update `ordersummary_dlt` table by making old records inactive and new records active
+		- Update `StartDate` and `EndDate` columns accordingly
+	+ **Data Transformations / Business Logic:**
+		- Step: Monitor changes to `customer_dlt` table
+		- Description: Monitor changes to `customer_dlt` table
+		- Transformation Logic: Use `deltaTable.forPath()` to monitor changes
+		- Step: Update `ordersummary_dlt` table
+		- Description: Update `ordersummary_dlt` table by making old records inactive and new records active
+		- Transformation Logic: Use `deltaTable.update()` to update records
+	+ **Error Handling and Logging:** Same as TR-DLT-001
+
+* **TR-DLT-005: Create customeraggregatespend_dlt Table**
+	+ **Related Functional Requirement(s):** FR-DLT-005
+	+ **Objective:** Implement a PySpark job to create `customeraggregatespend_dlt` table and load it with aggregated data from `ordersummary_dlt` table.
+	+ **Target Cluster Configuration:** Same as TR-DLT-001
+	+ **Source Data Details:**
+		- Dataset Name: ordersummary_dlt
+		- Location: `gen_ai_poc_databrickscoe.sdlc_wizard.ordersummary_dlt`
+		- Format: Delta
+		- Description: Order summary Delta table
+	+ **Target Data Details:**
+		- Output Name: customeraggregatespend_dlt
+		- Location: `gen_ai_poc_databrickscoe.sdlc_wizard.customeraggregatespend_dlt`
+		- Format: Delta
+		- Description: Customer aggregate spend Delta table
+	+ **Job Flow / Pipeline Stages:**
+		- Create `customeraggregatespend_dlt` table if not exists
+		- Aggregate `TotalAmount` column from `ordersummary_dlt` table and group by `Name` and `Date` columns
+		- Load aggregated data into `customeraggregatespend_dlt` table
+	+ **Data Transformations / Business Logic:**
+		- Step: Aggregate data
+		- Description: Aggregate `TotalAmount` column from `ordersummary_dlt` table and group by `Name` and `Date` columns
+		- Transformation Logic: Use `groupBy()` and `sum()` to aggregate data
+		- Step: Load data into `customeraggregatespend_dlt` table
+		- Description: Load aggregated data into `customeraggregatespend_dlt` table
+		- Transformation Logic: Use `deltaTableWriter` to write data to Delta table
+	+ **Error Handling and Logging:** Same as TR-DLT-001
+
+* **TR-DLT-006: Implement Delta Live Tables**
+	+ **Related Functional Requirement(s):** FR-DLT-006
+	+ **Objective:** Implement Delta Live Tables to materialize `ordersummary_dlt` and `customeraggregatespend_dlt` tables.
+	+ **Target Cluster Configuration:** Same as TR-DLT-001
+	+ **Source Data Details:** Same as TR-DLT-003 and TR-DLT-005
+	+ **Target Data Details:** Same as TR-DLT-003 and TR-DLT-005
+	+ **Job Flow / Pipeline Stages:**
+		- Implement Delta Live Tables to materialize `ordersummary_dlt` table with SCD Type 2 logic
+		- Implement Delta Live Tables to materialize `customeraggregatespend_dlt` table with aggregated data
+	+ **Data Transformations / Business Logic:**
+		- Step: Materialize `ordersummary_dlt` table
+		- Description: Materialize `ordersummary_dlt` table with SCD Type 2 logic using Delta Live Tables
+		- Transformation Logic: Use `dlt` library to materialize table
+		- Step: Materialize `customeraggregatespend_dlt` table
+		- Description: Materialize `customeraggregatespend_dlt` table with aggregated data using Delta Live Tables
+		- Transformation Logic: Use `dlt` library to materialize table
+	+ **Error Handling and Logging:** Same as TR-DLT-001
