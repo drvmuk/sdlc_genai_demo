@@ -1,0 +1,5 @@
+pyspark>=3.3.0
+delta-spark>=2.1.0
+pandas>=1.5.0
+pytest>=7.0.0
+pytest-spark>=0.6.0
