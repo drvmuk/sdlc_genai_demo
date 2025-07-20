@@ -1,0 +1,54 @@
+Based on the provided Business Requirement Document (BRD), I have constructed a detailed Functional Requirement Document (FRD) adhering to the "Coding Requirements" section. Here are the functional requirements in bullet points:
+
+**FR-DP-001: Data Ingestion and Processing**
+
+* **Title:** Ingest and Process Customer and Order Data
+* **Description:** The system must ingest customer and order data from specified sources, apply data cleansing rules, and process the data for further analysis.
+* **Preconditions:**
+	+ Customer data is available at the specified path: /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata
+	+ Order data is available at the specified path: /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata
+* **Main Flow / Functional Steps:**
+	1. Read customer data from the specified path.
+	2. Read order data from the specified path.
+	3. Apply data cleansing rules to remove records with nulls in mandatory columns.
+	4. Remove duplicate records based on CustId in customer data and OrderId in order data.
+
+**FR-DP-002: Data Transformation and Enrichment**
+
+* **Title:** Apply SCD Type 2 Logic and Aggregation
+* **Description:** The system must apply SCD Type 2 logic to customer data and perform aggregation on order data to generate summary tables.
+* **Preconditions:**
+	+ Customer and order data are ingested and cleansed.
+	+ Data is joined on CustId.
+* **Main Flow / Functional Steps:**
+	1. Join customer and order data on CustId.
+	2. Apply SCD Type 2 logic to track changes in customer data (Name, EmailId, Region).
+	3. Mark existing active records as inactive and insert new active records with updated values.
+	4. Calculate TotalAmount by multiplying PricePerUnit and Qty.
+	5. Aggregate data by Name and Date to generate customeraggregatespend table.
+
+**FR-DP-003: Target Table Creation and Data Loading**
+
+* **Title:** Create and Load Target Tables
+* **Description:** The system must create target tables (ordersummary and customeraggregatespend) if they do not exist and load the processed data into them.
+* **Preconditions:**
+	+ Data is transformed and aggregated.
+	+ Target tables are defined with the required schema.
+* **Main Flow / Functional Steps:**
+	1. Create ordersummary table if it does not exist with the required schema (including SCD Type 2 metadata).
+	2. Create customeraggregatespend table if it does not exist with the required schema.
+	3. Load processed data into ordersummary table.
+	4. Load aggregated data into customeraggregatespend table.
+
+**FR-DP-004: Incremental Load and Change Detection**
+
+* **Title:** Support Incremental Load and Change Detection
+* **Description:** The system must support incremental load and change detection for customer and order data.
+* **Preconditions:**
+	+ Initial data load is complete.
+	+ Subsequent data loads are incremental.
+* **Main Flow / Functional Steps:**
+	1. Detect changes in customer data (Name, EmailId, Region).
+	2. Apply SCD Type 2 logic to track changes.
+	3. Update existing records and insert new records as necessary.
+	4. Update target tables with the latest data.

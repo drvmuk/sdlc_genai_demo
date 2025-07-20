@@ -1,0 +1,126 @@
+Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **TR-DP-001: Data Ingestion and Processing**
+	+ **Related Functional Requirement(s)**: FR-DP-001
+	+ **Objective**: Implement a data ingestion job to read customer and order data, apply data cleansing rules, and process the data for further analysis.
+	+ **Target Cluster Configuration**:
+		- Cluster Name: Data Processing Cluster
+		- Databricks Runtime Version: 10.4 LTS
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 2-4 nodes (autoscaling)
+		- Autoscaling: Enabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: PySpark, Pandas
+	+ **Source Data Details**:
+		- Customer Data: /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata, CSV, Customer information
+		- Order Data: /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata, CSV, Order information
+	+ **Target Data Details**: Not applicable for this requirement
+	+ **Job Flow / Pipeline Stages**:
+		1. Read customer data
+		2. Read order data
+		3. Apply data cleansing rules
+		4. Remove duplicate records
+	+ **Data Transformations / Business Logic**:
+		- Step 1: Read customer data, No transformation
+		- Step 2: Read order data, No transformation
+		- Step 3: Remove records with nulls in mandatory columns, Data cleansing
+		- Step 4: Remove duplicate records based on CustId and OrderId, Data deduplication
+	+ **Error Handling and Logging**:
+		- Log errors during data ingestion and processing
+		- Handle null values and duplicate records
+
+* **TR-DP-002: Data Transformation and Enrichment**
+	+ **Related Functional Requirement(s)**: FR-DP-002
+	+ **Objective**: Implement a data transformation job to apply SCD Type 2 logic to customer data and perform aggregation on order data.
+	+ **Target Cluster Configuration**:
+		- Cluster Name: Data Processing Cluster
+		- Databricks Runtime Version: 10.4 LTS
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 2-4 nodes (autoscaling)
+		- Autoscaling: Enabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: PySpark, Pandas
+	+ **Source Data Details**:
+		- Cleansed Customer Data: Output of TR-DP-001, Parquet, Cleansed customer information
+		- Cleansed Order Data: Output of TR-DP-001, Parquet, Cleansed order information
+	+ **Target Data Details**:
+		- ordersummary: /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/ordersummary, Parquet, Summary of orders
+		- customeraggregatespend: /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customeraggregatespend, Parquet, Aggregated customer spend
+	+ **Job Flow / Pipeline Stages**:
+		1. Join customer and order data
+		2. Apply SCD Type 2 logic
+		3. Calculate TotalAmount
+		4. Aggregate data by Name and Date
+	+ **Data Transformations / Business Logic**:
+		- Step 1: Join customer and order data on CustId, Inner join
+		- Step 2: Apply SCD Type 2 logic to track changes in customer data, SCD Type 2 logic
+		- Step 3: Calculate TotalAmount by multiplying PricePerUnit and Qty, Simple arithmetic
+		- Step 4: Aggregate data by Name and Date, GroupBy and sum
+	+ **Error Handling and Logging**:
+		- Log errors during data transformation and enrichment
+		- Handle null values and data inconsistencies
+
+* **TR-DP-003: Target Table Creation and Data Loading**
+	+ **Related Functional Requirement(s)**: FR-DP-003
+	+ **Objective**: Implement a job to create target tables (ordersummary and customeraggregatespend) if they do not exist and load the processed data into them.
+	+ **Target Cluster Configuration**:
+		- Cluster Name: Data Processing Cluster
+		- Databricks Runtime Version: 10.4 LTS
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 2-4 nodes (autoscaling)
+		- Autoscaling: Enabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: PySpark, Pandas
+	+ **Source Data Details**:
+		- Processed Data: Output of TR-DP-002, Parquet, Processed data
+	+ **Target Data Details**:
+		- ordersummary: /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/ordersummary, Parquet, Summary of orders
+		- customeraggregatespend: /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customeraggregatespend, Parquet, Aggregated customer spend
+	+ **Job Flow / Pipeline Stages**:
+		1. Create ordersummary table if it does not exist
+		2. Create customeraggregatespend table if it does not exist
+		3. Load processed data into ordersummary table
+		4. Load aggregated data into customeraggregatespend table
+	+ **Data Transformations / Business Logic**:
+		- Step 1: Create ordersummary table with required schema, Table creation
+		- Step 2: Create customeraggregatespend table with required schema, Table creation
+		- Step 3: Load processed data into ordersummary table, Data loading
+		- Step 4: Load aggregated data into customeraggregatespend table, Data loading
+	+ **Error Handling and Logging**:
+		- Log errors during target table creation and data loading
+		- Handle null values and data inconsistencies
+
+* **TR-DP-004: Incremental Load and Change Detection**
+	+ **Related Functional Requirement(s)**: FR-DP-004
+	+ **Objective**: Implement a job to support incremental load and change detection for customer and order data.
+	+ **Target Cluster Configuration**:
+		- Cluster Name: Data Processing Cluster
+		- Databricks Runtime Version: 10.4 LTS
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 2-4 nodes (autoscaling)
+		- Autoscaling: Enabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: PySpark, Pandas
+	+ **Source Data Details**:
+		- Incremental Customer Data: /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata, CSV, Incremental customer information
+		- Incremental Order Data: /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata, CSV, Incremental order information
+	+ **Target Data Details**:
+		- ordersummary: /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/ordersummary, Parquet, Summary of orders
+		- customeraggregatespend: /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customeraggregatespend, Parquet, Aggregated customer spend
+	+ **Job Flow / Pipeline Stages**:
+		1. Detect changes in customer data
+		2. Apply SCD Type 2 logic
+		3. Update existing records and insert new records
+		4. Update target tables with the latest data
+	+ **Data Transformations / Business Logic**:
+		- Step 1: Detect changes in customer data, Change detection
+		- Step 2: Apply SCD Type 2 logic to track changes, SCD Type 2 logic
+		- Step 3: Update existing records and insert new records, Data update and insertion
+		- Step 4: Update target tables with the latest data, Data loading
+	+ **Error Handling and Logging**:
+		- Log errors during incremental load and change detection
+		- Handle null values and data inconsistencies
