@@ -96,33 +96,5 @@ def load_order_data(spark, source_path, catalog, schema):
         logger.error(f"Error loading order data: {str(e)}")
         raise
 
-def main():
-    """Main function to execute data loading process"""
-    try:
-        spark = SparkSession.builder \
-            .appName("Customer and Order Data Loading") \
-            .getOrCreate()
-        
-        # Configuration
-        catalog = "gen_ai_poc_databrickscoe"
-        schema = "sdlc_wizard"
-        customer_source_path = "/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata"
-        order_source_path = "/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata"
-        
-        # Ensure schema exists
-        spark.sql(f"CREATE SCHEMA IF NOT EXISTS {catalog}.{schema}")
-        
-        # Load data
-        load_customer_data(spark, customer_source_path, catalog, schema)
-        load_order_data(spark, order_source_path, catalog, schema)
-        
-        logger.info("Data loading process completed successfully")
-    
-    except Exception as e:
-        logger.error(f"Error in data loading process: {str(e)}")
-        raise
-    finally:
-        spark.stop()
-
 if __name__ == "__main__":
     main()
