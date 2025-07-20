@@ -24,17 +24,18 @@ def create_order_summary(spark, catalog, schema):
         catalog: Target catalog name
         schema: Target schema name
     """
+
     try:
         logger.info("Creating order summary table")
-        
+
         # Read source tables
         customer_table = f"{catalog}.{schema}.customer"
         order_table = f"{catalog}.{schema}.order"
         target_table = f"{catalog}.{schema}.ordersummary"
-        
+
         customer_df = spark.table(customer_table)
         order_df = spark.table(order_table)
-        
+
         # Join customer and order data
         joined_df = order_df.join(
             customer_df,
@@ -52,7 +53,7 @@ def create_order_summary(spark, catalog, schema):
             order_df["TotalAmount"],
             order_df["Date"]
         )
-        
+
         # Add SCD Type 2 columns
         current_date_val = datetime.now().strftime("%Y-%m-%d")
         joined_df = joined_df \
@@ -61,33 +62,33 @@ def create_order_summary(spark, catalog, schema):
             .withColumn("IsActive", lit(True)) \
             .withColumn("InsertedDate", current_timestamp()) \
             .withColumn("UpdatedDate", current_timestamp())
-        
+
         # Check if target table exists
         tables = spark.sql(f"SHOW TABLES IN {catalog}.{schema}").filter(col("tableName") == "ordersummary")
-        
+
         if tables.count() == 0:
             # Create new table
             joined_df.write \
                 .format("delta") \
                 .mode("overwrite") \
                 .saveAsTable(target_table)
-            logger.info(f"Created new order summary table: {target_table}")
         else:
+            print('Table exists')
             # Merge into existing table
             target_df = spark.table(target_table)
             
             # Identify records to update (where IsActive = true)
-            target_df.createOrReplaceTempView("target")
-            joined_df.createOrReplaceTempView("source")
+            target_df.createOrReplaceTempView("target_vw")
+            joined_df.createOrReplaceTempView("source_vw")
             
             merge_sql = f"""
             MERGE INTO {target_table} AS target
-            USING source AS source
-            ON target.CustId = source.CustId AND target.OrderId = source.OrderId AND target.IsActive = true
+            USING source_vw AS source_vw
+            ON target.CustId = source_vw.CustId AND target.OrderId = source_vw.OrderId AND target.IsActive = true
             WHEN MATCHED AND (
-                target.Name != source.Name OR
-                target.Date != source.Date OR
-                target.EmailId != source.EmailId
+                target.Name != source_vw.Name OR
+                target.Region != source_vw.Region OR
+                target.EmailId != source_vw.EmailId
             ) THEN
                 UPDATE SET 
                     EndDate = current_date(),
@@ -95,21 +96,12 @@ def create_order_summary(spark, catalog, schema):
                     UpdatedDate = current_timestamp()
             WHEN NOT MATCHED THEN
                 INSERT (CustId, Name, EmailId, Region, OrderId, ItemName, PricePerUnit, Qty, TotalAmount, Date, StartDate, EndDate, IsActive, InsertedDate, UpdatedDate)
-                VALUES (source.CustId, source.Name, source.EmailId, source.Region, source.OrderId, source.ItemName, source.PricePerUnit, source.Qty, source.TotalAmount, source.Date,
-                        source.StartDate, source.EndDate, source.IsActive, source.InsertedDate, source.UpdatedDate)
-            """
-            
+                VALUES (source_vw.CustId, source_vw.Name, source_vw.EmailId, source_vw.Region, source_vw.OrderId, source_vw.ItemName, source_vw.PricePerUnit, source_vw.Qty, source_vw.TotalAmount, source_vw.Date,
+                        source_vw.StartDate, source_vw.EndDate, source_vw.IsActive, source_vw.InsertedDate, source_vw.UpdatedDate)
+            """    
             spark.sql(merge_sql)
-            
-            # Insert new versions of updated records
-            updated_records = spark.sql(f"""
-                SELECT t.CustId, s.Name, s.EmailId, s.Region, t.OrderId, s.Date, s.ItemName, s.PricePerUnit, s.Qty, s.TotalAmount,
-                       current_date() as StartDate, to_date('9999-12-31') as EndDate, true as IsActive,
-                       current_timestamp() as InsertedDate, current_timestamp() as UpdatedDate
-                FROM {target_table} t
-                JOIN source s ON t.CustId = s.CustId AND t.OrderId = s.OrderId
-                WHERE t.EndDate = current_date() AND t.IsActive = false
-            """)
+
+            updated_records = joined_df.join(target_df, ["CustId", "Name", "EmailId", "Region", "OrderId"], "left_anti")
             
             if updated_records.count() > 0:
                 updated_records.write \
@@ -124,109 +116,6 @@ def create_order_summary(spark, catalog, schema):
     except Exception as e:
         logger.error(f"Error creating order summary: {str(e)}")
         raise
-
-def update_order_summary_on_customer_change(spark, catalog, schema):
-    """
-    Update ordersummary table when there are changes in the customer table.
-    
-    Args:
-        spark: SparkSession
-        catalog: Target catalog name
-        schema: Target schema name
-    """
-    try:
-        logger.info("Updating order summary based on customer changes")
-        
-        customer_table = f"{catalog}.{schema}.customer"
-        order_summary_table = f"{catalog}.{schema}.ordersummary"
-        
-        # Get current active records from order summary
-        order_summary_df = spark.table(order_summary_table).filter(col("IsActive") == True)
-        customer_df = spark.table(customer_table)
-        
-        # Find changed customer records
-        order_summary_df.createOrReplaceTempView("order_summary")
-        customer_df.createOrReplaceTempView("customer")
-        
-        changed_customers = spark.sql(f"""
-            SELECT DISTINCT os.CustId
-            FROM order_summary os
-            JOIN customer c ON os.CustId = c.CustId
-            WHERE os.IsActive = true AND (
-                os.Name != c.Name
-            )
-        """)
-        
-        if changed_customers.count() > 0:
-            # Update existing records (set EndDate and IsActive)
-            spark.sql(f"""
-                UPDATE {order_summary_table}
-                SET EndDate = current_date(),
-                    IsActive = false,
-                    UpdatedDate = current_timestamp()
-                WHERE CustId IN (SELECT CustId FROM changed_customers)
-                  AND IsActive = true
-            """)
-            
-            # Insert new records with updated customer information
-            spark.sql(f"""
-                INSERT INTO {order_summary_table}
-                SELECT 
-                    c.CustId,
-                    c.Name,
-                    c.EmailId,
-                    c.Region,
-                    os.OrderId,
-                    os.ItemName,
-                    os.PricePerUnit,
-                    os.Qty,
-                    os.Date,
-                    current_date() as StartDate,
-                    to_date('9999-12-31') as EndDate,
-                    true as IsActive,
-                    current_timestamp() as InsertedDate,
-                    current_timestamp() as UpdatedDate
-                FROM {order_summary_table} os
-                JOIN {customer_table} c ON os.CustId = c.CustId
-                WHERE os.CustId IN (SELECT CustId FROM changed_customers)
-                  AND os.EndDate = current_date()
-                  AND os.IsActive = false
-            """)
-            
-            logger.info(f"Updated {changed_customers.count()} customers in order summary table")
-        else:
-            logger.info("No customer changes detected")
-        
-        return True
-    
-    except Exception as e:
-        logger.error(f"Error updating order summary on customer change: {str(e)}")
-        raise
-
-def main():
-    """Main function to execute order summary creation and update"""
-    try:
-        spark = SparkSession.builder \
-            .appName("Order Summary Processing") \
-            .getOrCreate()
-        
-        # Configuration
-        catalog = "gen_ai_poc_databrickscoe"
-        schema = "sdlc_wizard"
-        
-        # Create or update order summary
-        create_order_summary(spark, catalog, schema)
-        
-        # Update order summary based on customer changes
-        update_order_summary_on_customer_change(spark, catalog, schema)
-        
-        logger.info("Order summary processing completed successfully")
-    
-    except Exception as e:
-        logger.error(f"Error in order summary processing: {str(e)}")
-        raise
-    finally:
-        spark.stop()
 
 if __name__ == "__main__":
     main()
