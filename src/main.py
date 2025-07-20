@@ -5,7 +5,8 @@ Main module to orchestrate the entire ETL process.
 from pyspark.sql import SparkSession
 import logging
 from data_loading import load_customer_data, load_order_data
-from order_summary import create_order_summary, update_order_summary_on_customer_change
+# from order_summary import create_order_summary, update_order_summary_on_customer_change
+from order_summary import create_order_summary
 from customer_aggregate_spend import create_customer_aggregate_spend
 
 # Configure logging
@@ -39,12 +40,8 @@ def run_etl_pipeline():
         logger.info("Step 2: Creating order summary")
         create_order_summary(spark, catalog, schema)
         
-        # Step 3: Update order summary based on customer changes
-        logger.info("Step 3: Updating order summary based on customer changes")
-        update_order_summary_on_customer_change(spark, catalog, schema)
-        
-        # Step 4: Create customer aggregate spend
-        logger.info("Step 4: Creating customer aggregate spend")
+        # Step 3: Create customer aggregate spend
+        logger.info("Step 3: Creating customer aggregate spend")
         create_customer_aggregate_spend(spark, catalog, schema)
         
         logger.info("ETL pipeline completed successfully")
