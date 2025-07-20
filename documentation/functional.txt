@@ -1,0 +1,79 @@
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD):
+
+**FR-ORD-001: Load Customer and Order Data to Delta Tables**
+
+* **Title**: Load Customer and Order Data to Delta Tables
+* **Description**: The system must read source CSV data from a specified volume and load it into delta tables for customer and order data.
+* **Preconditions**:
+	+ CSV files are available at the specified locations (/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata and /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata)
+	+ Delta tables for customer and order data exist or can be created
+* **Main Flow / Functional Steps**:
+	1. Read customer CSV data from /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata and load it into a delta table named "customer".
+	2. Read order CSV data from /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata and load it into a delta table named "order".
+
+**FR-ORD-002: Cleanse Customer and Order Data**
+
+* **Title**: Cleanse Customer and Order Data
+* **Description**: The system must remove null and duplicate records from the customer and order delta tables.
+* **Preconditions**:
+	+ Customer and order delta tables exist and contain data
+* **Main Flow / Functional Steps**:
+	1. Identify and remove null records from the customer delta table.
+	2. Identify and remove duplicate records from the customer delta table.
+	3. Identify and remove null records from the order delta table.
+	4. Identify and remove duplicate records from the order delta table.
+
+**FR-ORD-003: Create Order Summary Table**
+
+* **Title**: Create Order Summary Table
+* **Description**: The system must create an "ordersummary" table if it does not exist in the specified catalog and schema.
+* **Preconditions**:
+	+ Catalog "gen_ai_poc_databrickscoe" and schema "sdlc_wizard" exist
+* **Main Flow / Functional Steps**:
+	1. Check if the "ordersummary" table exists in the catalog "gen_ai_poc_databrickscoe" and schema "sdlc_wizard".
+	2. If the table does not exist, create it with the specified schema (CustId, Name, EmailId, Region, OrderId, ItemName, PricePerUnit, Qty, Date).
+
+**FR-ORD-004: Load Order Summary Data**
+
+* **Title**: Load Order Summary Data
+* **Description**: The system must join customer and order data using the "CustId" field and load the resulting data into the "ordersummary" table as an SCD type 2 table.
+* **Preconditions**:
+	+ Customer and order delta tables exist and contain cleansed data
+	+ "ordersummary" table exists
+* **Main Flow / Functional Steps**:
+	1. Join customer and order data using the "CustId" field.
+	2. Load the joined data into the "ordersummary" table as an SCD type 2 table.
+
+**FR-ORD-005: Update Order Summary Table on Customer Changes**
+
+* **Title**: Update Order Summary Table on Customer Changes
+* **Description**: The system must update the "ordersummary" table whenever there is a change in the customer table, making old records inactive and new records active, and updating StartDate and EndDate accordingly.
+* **Preconditions**:
+	+ "ordersummary" table exists and is an SCD type 2 table
+	+ Customer table exists and is monitored for changes
+* **Main Flow / Functional Steps**:
+	1. Detect changes to the customer table.
+	2. Identify related records in the "ordersummary" table.
+	3. Update the "ordersummary" table by making old records inactive and new records active.
+	4. Update StartDate and EndDate for the affected records.
+
+**FR-ORD-006: Create Customer Aggregate Spend Table**
+
+* **Title**: Create Customer Aggregate Spend Table
+* **Description**: The system must create a "customeraggregatespend" table if it does not exist in the specified catalog and schema.
+* **Preconditions**:
+	+ Catalog "gen_ai_poc_databrickscoe" and schema "sdlc_wizard" exist
+* **Main Flow / Functional Steps**:
+	1. Check if the "customeraggregatespend" table exists in the catalog "gen_ai_poc_databrickscoe" and schema "sdlc_wizard".
+	2. If the table does not exist, create it with the specified schema (Name, TotalAmount, Date).
+
+**FR-ORD-007: Load Customer Aggregate Spend Data**
+
+* **Title**: Load Customer Aggregate Spend Data
+* **Description**: The system must aggregate the "TotalAmount" column from the "ordersummary" table, grouping by "Name" and "Date", and load the resulting data into the "customeraggregatespend" table.
+* **Preconditions**:
+	+ "ordersummary" table exists and contains data
+	+ "customeraggregatespend" table exists
+* **Main Flow / Functional Steps**:
+	1. Aggregate the "TotalAmount" column from the "ordersummary" table, grouping by "Name" and "Date".
+	2. Load the aggregated data into the "customeraggregatespend" table.

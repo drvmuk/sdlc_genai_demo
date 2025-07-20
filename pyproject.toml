@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "order_processing_system"
+version = "0.1.0"
+description = "Databricks PySpark Order Processing System"
+authors = [
+    {name = "Data Engineering Team", email = "data-engineering@example.com"}
+]
+readme = "README.md"
+requires-python = ">=3.8"
+
+[project.dependencies]
+pyspark = ">=3.3.0"
+delta-spark = ">=2.0.0"
+pandas = ">=1.0.0"
+pytest = ">=7.0.0"
+
+[tool.pytest]
+testpaths = ["tests"]
