@@ -50,27 +50,5 @@ def create_customer_aggregate_spend(spark, catalog, schema):
         logger.error(f"Error creating customer aggregate spend: {str(e)}")
         raise
 
-def main():
-    """Main function to execute customer aggregate spend creation"""
-    try:
-        spark = SparkSession.builder \
-            .appName("Customer Aggregate Spend Processing") \
-            .getOrCreate()
-        
-        # Configuration
-        catalog = "gen_ai_poc_databrickscoe"
-        schema = "sdlc_wizard"
-        
-        # Create customer aggregate spend
-        create_customer_aggregate_spend(spark, catalog, schema)
-        
-        logger.info("Customer aggregate spend processing completed successfully")
-    
-    except Exception as e:
-        logger.error(f"Error in customer aggregate spend processing: {str(e)}")
-        raise
-    finally:
-        spark.stop()
-
 if __name__ == "__main__":
     main()
