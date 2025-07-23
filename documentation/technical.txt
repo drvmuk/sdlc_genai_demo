@@ -1,0 +1,60 @@
+# Technical Requirement Document: R4B Acquisition Contract Data Processing
+
+## 1. Technical Requirement ID
+- TR-R4B-001
+
+## 2. Related Functional Requirement(s)
+- FR-R4B-001
+
+## 3. Objective
+- Implement a PySpark job to process and store R4B acquisition contract data by extracting from source tables, performing transformations, and implementing watermarking logic.
+
+## 4. Target Cluster Configuration
+
+- Cluster Name: r4b-data-processing-cluster
+- Databricks Runtime Version: 10.4 LTS (includes Apache Spark 3.2.1)
+- Node Type: Standard_DS4_v2
+- Driver Node: Standard_DS4_v2
+- Worker Nodes: Standard_DS4_v2
+- Autoscaling: Enabled (2-8 nodes)
+- Auto Termination: 30 minutes
+- Libraries Installed: PySpark, Delta Lake, PyArrow
+
+## 5. Source Data Details
+- Dataset Name: R4B_SUB_ACQUISITION_FACT_STG | Location: /mnt/data/r4b/staging | Format: Delta | Description: R4B subscriber acquisition fact staging data
+- Dataset Name: CONTRACT | Location: /mnt/data/contracts | Format: Delta | Description: Contract information including commitment details
+- Dataset Name: margin_control | Location: /mnt/data/control | Format: Delta | Description: Control table with processing parameters
+
+## 6. Target Data Details
+- Output Name: r4b_acq_contract | Location: drvd__app_r4b schema | Format: Delta | Description: Processed R4B acquisition contract data with metadata
+
+## 7. Job Flow / Pipeline Stages
+- Stage 1: Schema and table creation/validation
+- Stage 2: Extract data from source tables
+- Stage 3: Process Flow 1 (END_DATE based join and transformation)
+- Stage 4: Process Flow 2 (INIT_ACTIVATION_DATE based join and transformation)
+- Stage 5: Join Flow 1 and Flow 2 results
+- Stage 6: Apply watermarking logic
+- Stage 7: Delete existing records based on watermark
+- Stage 8: Write final data to target table
+
+## 8. Data Transformations / Business Logic
+- Step 1: Schema Creation | Description: Create schema if not exists | Transformation Logic: SQL CREATE SCHEMA IF NOT EXISTS
+- Step 2: Table Creation | Description: Create target table with required columns | Transformation Logic: SQL CREATE TABLE IF NOT EXISTS with specified columns
+- Step 3: Flow 1 Processing | Description: Join acquisition and contract data based on END_DATE | Transformation Logic: Inner join with filters on EFFECTIVE_DATE ≤ END_DATE, COMMIT_END_DATE > END_DATE or NULL, PRODUCT_TYPE IN ('C', 'A'), GG_OP_TYPE != 'D'
+- Step 4: Flow 2 Processing | Description: Join acquisition and contract data based on INIT_ACTIVATION_DATE | Transformation Logic: Inner join with filters on EFFECTIVE_DATE ≤ INIT_ACTIVATION_DATE, COMMIT_END_DATE > INIT_ACTIVATION_DATE or NULL, PRODUCT_TYPE IN ('C', 'A'), GG_OP_TYPE != 'D'
+- Step 5: Join and Transform | Description: Combine Flow 1 and Flow 2 results | Transformation Logic: Full outer join on LINE_KEY and INIT_ACTIVATION_DATE with conditional selection of fields
+- Step 6: Watermark Calculation | Description: Calculate date ranges for deletion | Transformation Logic: Use margin_control parameters to calculate INIT_DATE and END_DATE
+- Step 7: Record Deletion | Description: Delete records based on watermark | Transformation Logic: Delete where INIT_ACTIVATION_DATE between INIT_DATE and END_DATE
+- Step 8: Add Metadata | Description: Append metadata columns | Transformation Logic: Add checksum, timestamps, and execution ID to final dataset
+
+## 9. Error Handling and Logging
+- Implement comprehensive logging at each pipeline stage with INFO, WARNING, and ERROR levels
+- Log record counts before and after each major transformation
+- Capture and log any data quality issues during transformation
+- Implement exception handling for source data availability
+- Log details of deleted records during watermarking
+- Track execution time for performance monitoring
+- Implement retry logic for transient failures
+- Generate execution summary with success/failure status and record counts
+- Validate target table schema after creation

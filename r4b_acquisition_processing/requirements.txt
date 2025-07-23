@@ -1,0 +1,4 @@
+pyspark==3.2.1
+delta-spark==1.2.1
+pyarrow==8.0.0
+pytest==7.0.0

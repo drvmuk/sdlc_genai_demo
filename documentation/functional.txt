@@ -1,0 +1,88 @@
+# Functional Requirement Document: R4B Acquisition Contract Data Processing
+
+## 1. Requirement ID
+FR-R4B-001
+
+## 2. Title
+R4B Acquisition Contract Data Processing and Storage
+
+## 3. Description
+The system must process and store contract acquisition data for R4B subscribers by creating and maintaining the r4b_acq_contract table within the drvd__app_r4b schema. This functionality involves extracting data from source tables, performing joins and transformations, and implementing watermarking logic for data management.
+
+## 4. Preconditions
+- Source tables R4B_SUB_ACQUISITION_FACT_STG and CONTRACT must contain valid data
+- The margin_control table must be available with PERIOD_IN_DAYS and PROCESSING_DAY parameters
+- Execution parameters (params_execution_id) must be provided
+- User must have appropriate permissions to create schemas and tables in the database
+
+## 5. Main Flow / Functional Steps
+
+### Schema and Table Setup
+- The system must create the drvd__app_r4b schema if it doesn't already exist
+- The system must create the r4b_acq_contract table with the following columns:
+  - LINE_KEY (DOUBLE)
+  - INIT_ACTIVATION_DATE (DATE)
+  - END_DATE (TIMESTAMP)
+  - BAN (DECIMAL(9,0))
+  - SUBSCRIBER_NO (STRING)
+  - INIT_COMMIT_START_DATE (TIMESTAMP)
+  - INIT_COMMIT_END_DATE (TIMESTAMP)
+  - INIT_COMMIT_ORIG_NO_MONTH (DECIMAL(3,0))
+  - COMMIT_START_DATE (TIMESTAMP)
+  - COMMIT_END_DATE (TIMESTAMP)
+  - COMMIT_ORIG_NO_MONTH (DECIMAL(3,0))
+  - checksum (STRING)
+  - az_insert_ts (TIMESTAMP)
+  - az_update_ts (TIMESTAMP)
+  - exec_run_id (STRING)
+
+### Flow 1 Processing
+- The system must select LINE_KEY, INIT_ACTIVATION_DATE, END_DATE, BAN, and SUBSCRIBER_NO from R4B_SUB_ACQUISITION_FACT_STG
+- The system must select CNT_SEQ_NO, COMMIT_START_DATE, COMMIT_END_DATE, COMMIT_ORIG_NO_MONTH, PRODUCT_TYPE, GG_OP_TYPE, and EFFECTIVE_DATE from CONTRACT
+- The system must perform an inner join between these datasets on BAN and SUBSCRIBER_NO with the following filters:
+  - EFFECTIVE_DATE ≤ END_DATE
+  - COMMIT_END_DATE > END_DATE or COMMIT_END_DATE IS NULL
+  - PRODUCT_TYPE IN ('C', 'A')
+  - GG_OP_TYPE != 'D'
+- The system must order the results by LINE_KEY, INIT_ACTIVATION_DATE, END_DATE, BAN, and SUBSCRIBER_NO (case-insensitive)
+- The system must group the results by LINE_KEY, INIT_ACTIVATION_DATE, INIT_BAN, and INIT_SUBSCRIBER_NO
+- For each group, the system must select the last value of END_DATE, CNT_SEQ_NO, COMMIT_START_DATE, COMMIT_END_DATE, and COMMIT_ORIG_NO_MONTH
+- The system must add a sys_row_id column with sequential numbers starting from 0
+
+### Flow 2 Processing
+- The system must select LINE_KEY, INIT_ACTIVATION_DATE, END_DATE, BAN, and SUBSCRIBER_NO from R4B_SUB_ACQUISITION_FACT_STG
+- The system must select CNT_SEQ_NO, COMMIT_START_DATE, COMMIT_END_DATE, COMMIT_ORIG_NO_MONTH, PRODUCT_TYPE, GG_OP_TYPE, and EFFECTIVE_DATE from CONTRACT
+- The system must perform an inner join between these datasets on BAN and SUBSCRIBER_NO with the following filters:
+  - EFFECTIVE_DATE ≤ INIT_ACTIVATION_DATE
+  - COMMIT_END_DATE > INIT_ACTIVATION_DATE or COMMIT_END_DATE IS NULL
+  - PRODUCT_TYPE IN ('C', 'A')
+  - GG_OP_TYPE != 'D'
+- The system must order the results by LINE_KEY, INIT_ACTIVATION_DATE, END_DATE, BAN, and SUBSCRIBER_NO (case-insensitive)
+- The system must group the results by LINE_KEY, INIT_ACTIVATION_DATE, INIT_BAN, and INIT_SUBSCRIBER_NO
+- For each group, the system must select the last value of END_DATE, CNT_SEQ_NO, COMMIT_START_DATE, COMMIT_END_DATE, and COMMIT_ORIG_NO_MONTH
+- The system must add a sys_row_id column with sequential values
+
+### Join and Transformation
+- The system must perform a full outer join between Flow 1 and Flow 2 on LINE_KEY and INIT_ACTIVATION_DATE
+- The system must select transformed columns:
+  - From Flow 1: LINE_KEY as INIT_LINE_KEY, INIT_ACTIVATION_DATE as init_INIT_ACTIVATION_DATE, etc.
+  - From Flow 2: LINE_KEY, INIT_ACTIVATION_DATE, etc.
+- The system must create final output with the following rules:
+  - Use INIT_ prefixed values if LINE_KEY or INIT_ACTIVATION_DATE is NULL, otherwise use Flow 2 values
+  - Retain all other fields as-is
+
+### Watermarking and Deletion Logic
+- The system must calculate INIT_DATE by subtracting (PERIOD_IN_DAYS - PROCESSING_DAY) from the current date using the margin_control table
+- The system must calculate END_DATE by adding PROCESSING_DAY to the current date using the same control table
+- The system must use INIT_DATE and END_DATE to identify records to delete in the target table
+- The system must count records in r4b_acq_contract where INIT_ACTIVATION_DATE is between INIT_DATE and END_DATE and print this as delete count
+- The system must print the total records in target before deletion
+- The system must delete records in r4b_acq_contract where INIT_ACTIVATION_DATE is between INIT_DATE and END_DATE
+
+### Final Write
+- The system must add metadata columns to the final dataset:
+  - _checksum as NULL
+  - _az_insert_ts and _az_update_ts as current_timestamp
+  - _exec_run_id from params_execution_id
+- The system must insert the final data into r4b_acq_contract in append mode
+- The system must print the row count of inserted records
