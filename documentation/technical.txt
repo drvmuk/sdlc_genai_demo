@@ -1,0 +1,53 @@
+Here's the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **Technical Requirement ID**: TR-DQX-001
+* **Related Functional Requirement(s)**: FR-DQX-001
+* **Objective**: Implement custom data quality rules using the DQX library to validate input DataFrames.
+
+* **Target Cluster Configuration**
+  * Cluster Name: Data Quality Cluster
+  * Databricks Runtime Version:  latest compatible version with DQX library 0.7.0
+  * Node Type: Standard_DS3_v2
+  * Driver Node: 1 node with 14 GB memory, 4 cores
+  * Worker Nodes: 2-5 nodes with 14 GB memory, 4 cores each (configurable)
+  * Autoscaling: Enabled with min 2 and max 5 workers
+  * Auto Termination: Enabled with 30 minutes timeout
+  * Libraries Installed: 
+    * databricks-labs-dqx==0.7.0
+    * PyYAML
+
+* **Source Data Details**
+  * Dataset Name: Input DataFrame
+  * Location: Registered DataFrame (in-memory)
+  * Format: DataFrame (structured data)
+  * Description: Input data to be validated using custom DQX rules.
+
+* **Target Data Details**
+  * Output Name: Validated DataFrame
+  * Location: Output path (configurable)
+  * Format: DataFrame (structured data) with validation results
+  * Description: Output DataFrame with validation results applied.
+
+* **Job Flow / Pipeline Stages**
+  * Install DQX library version 0.7.0.
+  * Register input DataFrame.
+  * Define custom DQX rule functions (dqx_null_check and dqx_primary_check).
+  * Create YAML metadata for checks.
+  * Instantiate DQ Engine.
+  * Apply DQ checks to input DataFrame.
+
+* **Data Transformations / Business Logic**
+  * Step: Define custom DQX rule functions.
+    * Description: Implement dqx_null_check and dqx_primary_check rules.
+    * Transformation Logic: Use `make_condition` utility to return a tuple containing the condition, message, and function name.
+  * Step: Create YAML metadata for checks.
+    * Description: Specify columns to be checked and custom rule functions.
+    * Transformation Logic: Use PyYAML to parse YAML metadata.
+  * Step: Apply DQ checks to input DataFrame.
+    * Description: Use `dq_engine.apply_checks_by_metadata` to apply custom rules.
+    * Transformation Logic: Pass `globals()` to access custom rules.
+
+* **Error Handling and Logging**
+  * Log errors and exceptions during DQX rule application.
+  * Handle missing or invalid input data.
+  * Provide meaningful error messages for invalid YAML metadata or custom rule functions.

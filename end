@@ -1,0 +1,19 @@
+This implementation provides a complete solution for applying custom data quality rules using the DQX library in Databricks. The key components include:
+
+1. **Custom DQX Rules** (`dq_rules.py`):
+   - `dqx_null_check`: Validates that specified columns don't contain null values
+   - `dqx_primary_check`: Validates that specified columns form a unique key
+
+2. **DQ Engine** (`dq_engine.py`):
+   - `DQEngine` class to handle DQX integration
+   - `validate_dataframe` function for easy application of checks
+
+3. **Tests**:
+   - Comprehensive unit tests for both the rules and engine
+   - Uses pytest for test framework
+
+4. **Sample Data and Examples**:
+   - Sample data generation for testing
+   - Example usage script demonstrating the workflow
+
+The implementation follows all the technical requirements specified in the TRD, including error handling, logging, and proper integration with the DQX library. The code is designed to be scalable and production-ready for use in Databricks environments.

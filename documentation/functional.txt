@@ -1,0 +1,40 @@
+Based on the provided Business Requirement Document (BRD) and adhering to the "Coding Requirements" section, I will create a detailed Functional Requirement Document (FRD) in bullet points.
+
+### FR-DQX-001: Implement Custom DQX Rule (dqx_null_check and dqx_primary_check)
+
+* **Title**: Implement Custom Data Quality Rules using DQX Library
+* **Description**: The system must implement custom data quality rules (dqx_null_check and dqx_primary_check) using the DQX library to validate input DataFrames.
+
+### Preconditions
+* DQX library version 0.7.0 is installed.
+* Input DataFrame is registered.
+* YAML metadata for checks is defined.
+
+### Main Flow / Functional Steps
+
+#### Implementing dqx_null_check Rule
+* The system installs the required version of the DQX library.
+* The system registers the input DataFrame using the `@register_rule("row")` decorator.
+* The system defines a custom DQX rule function `dqx_null_check` that returns a condition column based on the input column being null.
+* The system creates YAML metadata for checks, specifying the `dqx_null_check` function and columns to be checked.
+* The system instantiates the DQ Engine using `DQEngine(WorkspaceClient())`.
+* The system applies DQ checks to the input DataFrame using `dq_engine.apply_checks_by_metadata`, passing `globals()` to access the custom rule.
+
+#### Implementing dqx_primary_check Rule (same steps as dqx_null_check)
+* The system follows the same steps as above to implement the `dqx_primary_check` rule.
+
+### Detailed Functional Steps
+* Install DQX library version 0.7.0 using `pip install databricks-labs-dqx==0.7.0`.
+* Register input DataFrame using `@register_rule("row")` decorator.
+* Define custom DQX rule functions:
+	+ `dqx_null_check`: returns a condition column that is True if the value in the specified column is null.
+	+ `dqx_primary_check`: ( implementation details not provided, assumed to be similar to `dqx_null_check`)
+* Create YAML metadata for checks:
+	+ For multiple columns: specify `for_each_column` with a list of column names.
+	+ For a single column: specify `column` with the column name.
+* Instantiate DQ Engine using `DQEngine(WorkspaceClient())`.
+* Apply DQ checks to input DataFrame using `dq_engine.apply_checks_by_metadata`, passing `globals()` to access custom rules.
+
+### Additional Requirements
+* The system must pass `globals()` to `dq_engine.apply_checks_by_metadata` to enable access to custom rules.
+* The system must use the `make_condition` utility to return a tuple containing the condition, message, and function name for custom rules.

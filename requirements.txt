@@ -1,0 +1,4 @@
+databricks-labs-dqx==0.7.0
+PyYAML
+pytest
+pyspark>=3.3.0
