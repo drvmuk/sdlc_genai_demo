@@ -1,0 +1,17 @@
+# Sample DQX configuration file
+
+rules:
+  null_check:
+    for_each_column:
+      - id
+      - name
+      - email
+      - address
+    args:
+      column_name: "${column}"
+  
+  primary_key_check:
+    args:
+      key_columns:
+        - id
+      table_name: "customers"

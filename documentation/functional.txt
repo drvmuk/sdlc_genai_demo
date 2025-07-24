@@ -1,0 +1,49 @@
+# Functional Requirement Document: Custom DQX Rule Implementation
+
+## FR-DQX-001
+### Title
+Implementation of Custom DQX Null Check Rule
+
+### Description
+The system must implement a custom Data Quality Experience (DQX) rule called "dqx_null_check" to validate null values in specified columns of input DataFrames.
+
+### Preconditions
+- Databricks environment must be available
+- Python 3.x must be installed
+- User must have appropriate permissions to install Python packages
+
+### Main Flow / Functional Steps
+- Install the required DQX library version 0.7.0 using pip
+- Register a custom rule function using the @register_rule("row") decorator
+- Implement the dqx_null_check function that:
+  - Takes a column name as input parameter
+  - Returns a condition that evaluates to True when the specified column contains null values
+  - Uses make_condition utility to return appropriate tuple with condition, message, and function name
+- Define YAML metadata for applying checks to:
+  - Multiple columns using for_each_column configuration
+  - Single column using direct column specification
+- Instantiate the DQ Engine with appropriate workspace client
+- Apply DQ checks to input DataFrame by passing the custom rule through globals()
+
+## FR-DQX-002
+### Title
+Implementation of Custom DQX Primary Check Rule
+
+### Description
+The system must implement a custom Data Quality Experience (DQX) rule called "dqx_primary_check" following the same implementation pattern as the null check rule.
+
+### Preconditions
+- Databricks environment must be available
+- Python 3.x must be installed
+- User must have appropriate permissions to install Python packages
+- DQX library version 0.7.0 must be installed
+
+### Main Flow / Functional Steps
+- Register a custom rule function for dqx_primary_check using the @register_rule("row") decorator
+- Implement the dqx_primary_check function that:
+  - Takes appropriate input parameters
+  - Returns a condition based on primary key validation logic
+  - Uses make_condition utility to return appropriate tuple with condition, message, and function name
+- Define YAML metadata for applying the primary check to required columns
+- Instantiate the DQ Engine with appropriate workspace client
+- Apply primary check to input DataFrame by passing the custom rule through globals()

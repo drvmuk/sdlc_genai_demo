@@ -1,0 +1,71 @@
+# Technical Requirement Document (TRD): Custom DQX Rule Implementation
+
+## 1. Technical Requirement ID
+- TR-DQX-001
+- TR-DQX-002
+
+## 2. Related Functional Requirement(s)
+- FR-DQX-001
+- FR-DQX-002
+
+## 3. Objective
+- Implement custom DQX rules for null value validation and primary key validation in Databricks environment.
+
+## 4. Target Cluster Configuration
+
+- **Cluster Name**: DQX-Processing-Cluster
+- **Databricks Runtime Version**: 11.3 LTS (includes Apache Spark 3.3.0, Scala 2.12)
+- **Node Type**: Standard_DS3_v2 (or equivalent based on data volume)
+- **Driver Node**: Same as worker nodes
+- **Worker Nodes**: 2-4 nodes
+- **Autoscaling**: Enabled (min 2, max 4 nodes)
+- **Auto Termination**: 30 minutes
+- **Libraries Installed**: 
+  - DQX library v0.7.0
+  - PySpark
+  - PyYAML
+
+## 5. Source Data Details
+- **Dataset Name**: Input DataFrame
+- **Location**: Passed as parameter to DQ Engine
+- **Format**: Spark DataFrame
+- **Description**: Any DataFrame requiring data quality validation
+
+## 6. Target Data Details
+- **Output Name**: Validated DataFrame
+- **Location**: Same as input with validation results
+- **Format**: Spark DataFrame with DQ check results
+- **Description**: Original DataFrame with attached DQ validation results
+
+## 7. Job Flow / Pipeline Stages
+- Import required DQX libraries and dependencies
+- Define and register custom DQX rules
+- Configure YAML metadata for rule application
+- Instantiate DQ Engine with workspace client
+- Apply DQ checks to input DataFrame
+- Return validation results
+
+## 8. Data Transformations / Business Logic
+- **Step 1**: Install DQX library v0.7.0 using pip
+- **Step 2**: Import necessary modules and register custom rule decorators
+- **Step 3**: Implement dqx_null_check function:
+  - Accept column name as input parameter
+  - Return condition evaluating to True for null values
+  - Use make_condition utility to format return values
+- **Step 4**: Implement dqx_primary_check function:
+  - Accept necessary parameters for primary key validation
+  - Return condition based on primary key validation logic
+  - Use make_condition utility to format return values
+- **Step 5**: Define YAML metadata for applying checks:
+  - Configure for_each_column for multi-column checks
+  - Configure direct column specification for single column checks
+- **Step 6**: Instantiate DQ Engine with workspace client
+- **Step 7**: Apply DQ checks by passing custom rules through globals()
+
+## 9. Error Handling and Logging
+- Implement try/except blocks around rule registration and execution
+- Log rule execution status and validation results
+- Capture and log any exceptions during rule application
+- Provide detailed error messages for failed validations
+- Implement logging at appropriate levels (INFO, WARNING, ERROR)
+- Store validation results for audit and reporting purposes
