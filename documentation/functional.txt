@@ -1,0 +1,52 @@
+Here is the Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD) "Coding Requirements" section:
+
+**1. Requirement ID**
+FR-DRVD-001
+
+**2. Title**
+Create and Populate R4B Acquisition Contract Table
+
+**3. Description**
+The system must create a schema and table as per the specified requirements, perform data transformations and joins on data from two sources, apply watermarking and deletion logic, and finally write the processed data to the target table.
+
+**4. Preconditions**
+* The schema `drvd__app_r4b` does not exist or is allowed to be created.
+* The tables `R4B_SUB_ACQUISITION_FACT_STG` and `CONTRACT` exist and contain the required data.
+* The `margin_control` table exists and contains the required data.
+* The `params_execution_id` is available.
+
+**5. Main Flow / Functional Steps**
+
+* **Schema and Table Creation**
+	+ Create schema `drvd__app_r4b` if it does not exist.
+	+ Create table `r4b_acq_contract` with the specified columns.
+* **Flow 1: exp_FIRST_VALUE_PASS_THROUGH**
+	+ Select required columns from `R4B_SUB_ACQUISITION_FACT_STG`.
+	+ Select required columns from `CONTRACT`.
+	+ Perform inner join between the two datasets on `BAN` and `SUBSCRIBER_NO`.
+	+ Apply filters as specified.
+	+ Order and group the data as specified.
+	+ Select the last value of required columns for each group.
+	+ Add `sys_row_id` column with sequential numbers.
+* **Flow 2: exp_PROCESSING_DAY_PASS_THROUGH**
+	+ Select required columns from `R4B_SUB_ACQUISITION_FACT_STG`.
+	+ Select required columns from `CONTRACT`.
+	+ Perform inner join between the two datasets on `BAN` and `SUBSCRIBER_NO`.
+	+ Apply filters as specified.
+	+ Order and group the data as specified.
+	+ Select the last value of required columns for each group.
+	+ Add `sys_row_id` column with sequential numbers.
+* **Join & Transformation**
+	+ Perform full outer join between Flow 1 and Flow 2 on `LINE_KEY` and `INIT_ACTIVATION_DATE`.
+	+ Select transformed columns as specified.
+	+ Apply rules to create final output.
+* **Watermarking & Deletion Logic**
+	+ Calculate `INIT_DATE` and `END_DATE` using `margin_control` table.
+	+ Identify records to delete in the target table based on `INIT_DATE` and `END_DATE`.
+	+ Count records to be deleted and print as delete count.
+	+ Print total records in target before deletion.
+	+ Delete records in `r4b_acq_contract` where `INIT_ACTIVATION_DATE` is between `INIT_DATE` and `END_DATE`.
+* **Final Write**
+	+ Add metadata columns to final dataset.
+	+ Insert final data into `r4b_acq_contract` in append mode.
+	+ Print row count of inserted records.

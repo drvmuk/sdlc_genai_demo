@@ -1,0 +1,61 @@
+Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **1. Technical Requirement ID**
+TR-DRVD-001
+
+* **2. Related Functional Requirement(s)**
+FR-DRVD-001
+
+* **3. Objective**
+Implement a PySpark job to create and populate the R4B Acquisition Contract Table by performing data transformations, joins, and applying watermarking and deletion logic.
+
+* **4. Target Cluster Configuration**
+* Cluster Name: DRVD Cluster
+* Databricks Runtime Version: 7.3 LTS (or latest compatible version)
+* Node Type: Standard_DS3_v2
+* Driver Node: Standard_DS3_v2
+* Worker Nodes: 2-5 nodes (autoscaling enabled)
+* Autoscaling: Enabled (min: 2, max: 5)
+* Auto Termination: Enabled (30 minutes)
+* Libraries Installed: 
+  * PySpark
+  * Spark SQL
+
+* **5. Source Data Details**
+* R4B_SUB_ACQUISITION_FACT_STG: Existing table in the database
+* CONTRACT: Existing table in the database
+* margin_control: Existing table in the database
+
+* **6. Target Data Details**
+* r4b_acq_contract: drvd__app_r4b schema, Parquet format, append mode
+
+* **7. Job Flow / Pipeline Stages**
+* Schema and Table Creation
+* Flow 1: exp_FIRST_VALUE_PASS_THROUGH
+* Flow 2: exp_PROCESSING_DAY_PASS_THROUGH
+* Join & Transformation
+* Watermarking & Deletion Logic
+* Final Write
+
+* **8. Data Transformations / Business Logic**
+* Step: Schema and Table Creation
+  * Description: Create schema `drvd__app_r4b` if it does not exist and create table `r4b_acq_contract` with specified columns
+  * Transformation Logic: Use Spark SQL to create schema and table
+* Step: Flow 1 and Flow 2
+  * Description: Perform inner join between `R4B_SUB_ACQUISITION_FACT_STG` and `CONTRACT` on `BAN` and `SUBSCRIBER_NO`, apply filters, and select required columns
+  * Transformation Logic: Use PySpark to perform join and apply filters
+* Step: Join & Transformation
+  * Description: Perform full outer join between Flow 1 and Flow 2 on `LINE_KEY` and `INIT_ACTIVATION_DATE`, and select transformed columns
+  * Transformation Logic: Use PySpark to perform join and select transformed columns
+* Step: Watermarking & Deletion Logic
+  * Description: Calculate `INIT_DATE` and `END_DATE` using `margin_control` table, identify records to delete, and delete records in `r4b_acq_contract`
+  * Transformation Logic: Use PySpark to calculate dates and delete records
+* Step: Final Write
+  * Description: Add metadata columns to final dataset and insert into `r4b_acq_contract` in append mode
+  * Transformation Logic: Use PySpark to add metadata columns and insert data
+
+* **9. Error Handling and Logging**
+* Use try-except blocks to catch and log exceptions
+* Log job execution metrics (e.g., row counts, execution time)
+* Log error messages and exceptions for debugging purposes
+* Use Databricks logging mechanisms (e.g., `dbutils`) to log job execution details
