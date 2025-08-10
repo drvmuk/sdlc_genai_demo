@@ -1,0 +1,54 @@
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD) "Coding Requirements" section.
+
+* **FR-DTL-001: Load Customer and Order Data into Delta Tables**
+	+ **Title:** Load Customer and Order Data into Delta Tables
+	+ **Description:** The system must read source CSV data from volume and load it into delta tables for customer and order data.
+	+ **Preconditions:**
+		- CSV files for customer and order data exist at the specified locations.
+		- The delta tables for customer and order data are not locked or in an inconsistent state.
+	+ **Main Flow / Functional Steps:**
+		- Read customer CSV data from `Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata`.
+		- Read order CSV data from `Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata`.
+		- Load the data into delta tables for customer and order with the respective schema (Custld, Name, Emailld, Region) and (Orderld, ItemName, PricePerUnit, Qty, Date, CustId).
+
+* **FR-DTL-002: Cleanse Customer and Order Data**
+	+ **Title:** Remove Null and Duplicate Records from Customer and Order Tables
+	+ **Description:** The system must remove "Null"/Null and duplicate records from both customer and order tables.
+	+ **Preconditions:**
+		- Customer and order data are loaded into delta tables.
+	+ **Main Flow / Functional Steps:**
+		- Identify and remove "Null"/Null records from the customer table.
+		- Identify and remove duplicate records from the customer table.
+		- Identify and remove "Null"/Null records from the order table.
+		- Identify and remove duplicate records from the order table.
+
+* **FR-DTL-003: Create Ordersummary Table**
+	+ **Title:** Create Ordersummary Table if Not Exists
+	+ **Description:** The system must create an "ordersummary" table if it does not exist in the specified catalog and schema.
+	+ **Preconditions:**
+		- The catalog "gen_ai_poc_databrickscoe" and schema "sdlc_wizard" exist.
+	+ **Main Flow / Functional Steps:**
+		- Check if the "ordersummary" table exists in the catalog "gen_ai_poc_databrickscoe" and schema "sdlc_wizard".
+		- If the table does not exist, create it with the appropriate schema for SCD type 2.
+
+* **FR-DTL-004: Load Ordersummary Table**
+	+ **Title:** Join Customer and Order Data and Load into Ordersummary Table
+	+ **Description:** The system must join customer and order data using "Custld" and load the data into the "ordersummary" table as an SCD type 2 table.
+	+ **Preconditions:**
+		- Customer and order tables are cleansed.
+		- "ordersummary" table exists.
+	+ **Main Flow / Functional Steps:**
+		- Join customer and order data on "Custld".
+		- Load the joined data into the "ordersummary" table, implementing SCD type 2 logic.
+
+* **FR-DTL-005: Update Ordersummary Table on Customer Change**
+	+ **Title:** Update Ordersummary Table on Customer Data Change
+	+ **Description:** The system must update the "ordersummary" table whenever there is a change in the customer table, making old records inactive and new records active, and updating StartDate and EndDate accordingly.
+	+ **Preconditions:**
+		- Customer data change is detected.
+		- "ordersummary" table is in a consistent state.
+	+ **Main Flow / Functional Steps:**
+		- Detect changes in the customer table.
+		- For each changed customer record, update the corresponding records in the "ordersummary" table.
+		- Make old records inactive and update their EndDate.
+		- Insert new records as active with appropriate StartDate and EndDate.

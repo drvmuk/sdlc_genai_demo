@@ -1,0 +1,140 @@
+Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **TR-DTLD-001**
+	+ Related Functional Requirement(s): FR-DTL-001
+	+ Objective: Implement a data ingestion job to load customer and order data from CSV files into Delta tables.
+	+ Target Cluster Configuration:
+		- Cluster Name: Data Ingestion Cluster
+		- Databricks Runtime Version: 10.4 LTS
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 2-4 Standard_DS3_v2
+		- Autoscaling: Enabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: Delta Lake, Spark CSV
+	+ Source Data Details:
+		- Customer Data: `Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata`, CSV, Customer data
+		- Order Data: `Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata`, CSV, Order data
+	+ Target Data Details:
+		- Customer Delta Table: `gen_ai_poc_databrickscoe.sdlc_wizard.customer`, Delta, Cleansed customer data
+		- Order Delta Table: `gen_ai_poc_databrickscoe.sdlc_wizard.order`, Delta, Cleansed order data
+	+ Job Flow / Pipeline Stages:
+		- Read customer CSV data
+		- Read order CSV data
+		- Load data into Delta tables
+	+ Data Transformations / Business Logic:
+		- Step 1: Read CSV data
+		- Step 2: Apply schema (Custld, Name, Emailld, Region) and (Orderld, ItemName, PricePerUnit, Qty, Date, CustId)
+	+ Error Handling and Logging:
+		- Log errors during data ingestion
+		- Handle CSV file not found or malformed errors
+
+* **TR-DTLD-002**
+	+ Related Functional Requirement(s): FR-DTL-002
+	+ Objective: Implement data cleansing job to remove null and duplicate records from customer and order tables.
+	+ Target Cluster Configuration:
+		- Cluster Name: Data Cleansing Cluster
+		- Databricks Runtime Version: 10.4 LTS
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 2-4 Standard_DS3_v2
+		- Autoscaling: Enabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: Delta Lake, Spark SQL
+	+ Source Data Details:
+		- Customer Delta Table: `gen_ai_poc_databrickscoe.sdlc_wizard.customer`, Delta, Customer data
+		- Order Delta Table: `gen_ai_poc_databrickscoe.sdlc_wizard.order`, Delta, Order data
+	+ Target Data Details:
+		- Cleansed Customer Delta Table: `gen_ai_poc_databrickscoe.sdlc_wizard.customer`, Delta, Cleansed customer data
+		- Cleansed Order Delta Table: `gen_ai_poc_databrickscoe.sdlc_wizard.order`, Delta, Cleansed order data
+	+ Job Flow / Pipeline Stages:
+		- Identify and remove null records from customer table
+		- Identify and remove duplicate records from customer table
+		- Identify and remove null records from order table
+		- Identify and remove duplicate records from order table
+	+ Data Transformations / Business Logic:
+		- Step 1: Remove null records
+		- Step 2: Remove duplicate records
+	+ Error Handling and Logging:
+		- Log errors during data cleansing
+		- Handle data quality issues (e.g., null or duplicate records)
+
+* **TR-DTLD-003**
+	+ Related Functional Requirement(s): FR-DTL-003
+	+ Objective: Implement a job to create the "ordersummary" table if it does not exist.
+	+ Target Cluster Configuration:
+		- Cluster Name: Data Transformation Cluster
+		- Databricks Runtime Version: 10.4 LTS
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 2-4 Standard_DS3_v2
+		- Autoscaling: Enabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: Delta Lake, Spark SQL
+	+ Source Data Details: None
+	+ Target Data Details:
+		- Ordersummary Table: `gen_ai_poc_databrickscoe.sdlc_wizard.ordersummary`, Delta, Ordersummary data
+	+ Job Flow / Pipeline Stages:
+		- Check if "ordersummary" table exists
+		- Create "ordersummary" table if it does not exist
+	+ Data Transformations / Business Logic:
+		- Step 1: Check table existence
+		- Step 2: Create table with SCD type 2 schema
+	+ Error Handling and Logging:
+		- Log errors during table creation
+		- Handle table already exists error
+
+* **TR-DTLD-004**
+	+ Related Functional Requirement(s): FR-DTL-004
+	+ Objective: Implement a job to join customer and order data and load it into the "ordersummary" table as an SCD type 2 table.
+	+ Target Cluster Configuration:
+		- Cluster Name: Data Transformation Cluster
+		- Databricks Runtime Version: 10.4 LTS
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 2-4 Standard_DS3_v2
+		- Autoscaling: Enabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: Delta Lake, Spark SQL
+	+ Source Data Details:
+		- Customer Delta Table: `gen_ai_poc_databrickscoe.sdlc_wizard.customer`, Delta, Customer data
+		- Order Delta Table: `gen_ai_poc_databrickscoe.sdlc_wizard.order`, Delta, Order data
+	+ Target Data Details:
+		- Ordersummary Table: `gen_ai_poc_databrickscoe.sdlc_wizard.ordersummary`, Delta, Ordersummary data
+	+ Job Flow / Pipeline Stages:
+		- Join customer and order data on "Custld"
+		- Load joined data into "ordersummary" table with SCD type 2 logic
+	+ Data Transformations / Business Logic:
+		- Step 1: Join customer and order data
+		- Step 2: Apply SCD type 2 logic
+	+ Error Handling and Logging:
+		- Log errors during data loading
+		- Handle data quality issues (e.g., null or duplicate records)
+
+* **TR-DTLD-005**
+	+ Related Functional Requirement(s): FR-DTL-005
+	+ Objective: Implement a job to update the "ordersummary" table when customer data changes.
+	+ Target Cluster Configuration:
+		- Cluster Name: Data Transformation Cluster
+		- Databricks Runtime Version: 10.4 LTS
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 2-4 Standard_DS3_v2
+		- Autoscaling: Enabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: Delta Lake, Spark SQL
+	+ Source Data Details:
+		- Customer Delta Table: `gen_ai_poc_databrickscoe.sdlc_wizard.customer`, Delta, Customer data
+	+ Target Data Details:
+		- Ordersummary Table: `gen_ai_poc_databrickscoe.sdlc_wizard.ordersummary`, Delta, Ordersummary data
+	+ Job Flow / Pipeline Stages:
+		- Detect changes in customer data
+		- Update corresponding records in "ordersummary" table
+		- Make old records inactive and update EndDate
+		- Insert new records as active with appropriate StartDate and EndDate
+	+ Data Transformations / Business Logic:
+		- Step 1: Detect customer data changes
+		- Step 2: Update "ordersummary" table accordingly
+	+ Error Handling and Logging:
+		- Log errors during data update
+		- Handle data quality issues (e.g., null or duplicate records)
