@@ -1,0 +1,85 @@
+Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **TR-DLP-001: Load Customer and Order Data into Delta Tables**
+* **Related Functional Requirement(s)**
+	+ FR-DLP-001: Load Customer and Order Data into Delta Tables and Generate Order Summary
+* **Objective**
+	Implement a PySpark job to read customer and order data from CSV files, load it into delta tables, remove null and duplicate records, and generate an order summary by joining the customer and order data.
+* **Target Cluster Configuration**
+	+ Cluster Name: Databricks Cluster for Data Loading
+	+ Databricks Runtime Version: 10.4 LTS or higher
+	+ Node Type: Standard_DS3_v2
+	+ Driver Node: Standard_DS3_v2
+	+ Worker Nodes: 2-5 nodes, depending on data volume
+	+ Autoscaling: Enabled
+	+ Auto Termination: 30 minutes
+	+ Libraries Installed: delta-lake, pyspark
+* **Source Data Details**
+	+ Dataset Name: Customer Data
+		- Location: `Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata`
+		- Format: CSV
+		- Description: Customer information
+	+ Dataset Name: Order Data
+		- Location: `Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata`
+		- Format: CSV
+		- Description: Order information
+* **Target Data Details**
+	+ Output Name: Customer Delta Table
+		- Location: `gen_ai_poc_databrickscoe.sdlc_wizard.customer`
+		- Format: Delta
+		- Description: Customer data in delta format
+	+ Output Name: Order Delta Table
+		- Location: `gen_ai_poc_databrickscoe.sdlc_wizard.order`
+		- Format: Delta
+		- Description: Order data in delta format
+	+ Output Name: Order Summary Table
+		- Location: `gen_ai_poc_databrickscoe.sdlc_wizard.ordersummary`
+		- Format: Delta
+		- Description: Joined customer and order data in delta format
+* **Job Flow / Pipeline Stages**
+	+ Read customer and order data from CSV files
+	+ Load data into delta tables
+	+ Remove null and duplicate records
+	+ Join customer and order data
+	+ Load joined data into order summary table
+	+ Implement SCD type 2 logic to update order summary table
+* **Data Transformations / Business Logic**
+	+ Step: Remove null and duplicate records
+		- Transformation Logic: Use `dropna()` and `dropDuplicates()` functions in PySpark
+	+ Step: Join customer and order data
+		- Transformation Logic: Use `join()` function in PySpark with `Custld` as the join key
+	+ Step: Implement SCD type 2 logic
+		- Transformation Logic: Use `merge()` function in Delta Lake to update order summary table
+* **Error Handling and Logging**
+	+ Log errors and exceptions to a log file or Databricks logging mechanism
+	+ Handle null and duplicate records by removing them
+	+ Handle SCD type 2 logic errors by logging and alerting on failures
+
+* **TR-DLP-002: Update Order Summary for Customer Changes**
+* **Related Functional Requirement(s)**
+	+ FR-DLP-002: Update Order Summary for Customer Changes
+* **Objective**
+	Implement a PySpark job to update the order summary table whenever there are changes in the customer table.
+* **Target Cluster Configuration**
+	+ (same as TR-DLP-001)
+* **Source Data Details**
+	+ Dataset Name: Customer Data
+		- Location: `gen_ai_poc_databrickscoe.sdlc_wizard.customer`
+		- Format: Delta
+		- Description: Customer information
+* **Target Data Details**
+	+ Output Name: Order Summary Table
+		- Location: `gen_ai_poc_databrickscoe.sdlc_wizard.ordersummary`
+		- Format: Delta
+		- Description: Updated order summary data in delta format
+* **Job Flow / Pipeline Stages**
+	+ Detect changes in customer table
+	+ Update order summary table according to SCD type 2 logic
+* **Data Transformations / Business Logic**
+	+ Step: Detect changes in customer table
+		- Transformation Logic: Use `exceptAll()` function in PySpark to detect changes
+	+ Step: Update order summary table
+		- Transformation Logic: Use `merge()` function in Delta Lake to update order summary table according to SCD type 2 logic
+* **Error Handling and Logging**
+	+ Log errors and exceptions to a log file or Databricks logging mechanism
+	+ Handle SCD type 2 logic errors by logging and alerting on failures
