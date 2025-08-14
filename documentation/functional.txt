@@ -1,0 +1,44 @@
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD) "Coding Requirements" section.
+
+**FR-FIN-001: Generate Finance Data using Spark SQL**
+
+**Title:** Generate Finance Data using Spark SQL
+
+**Description:** The system must generate finance data by executing a Spark SQL query that joins and transforms data from the FAGLFLEXA and BSEG tables in the Everest ECC source schema.
+
+**Preconditions:**
+
+* The FAGLFLEXA and BSEG tables exist in the Everest ECC source schema.
+* The s_shared.v_revenue_entity_bpc, s_shared.v_actual_exchange_rate_bpc, and other required golden views exist.
+* The FY and Posting Period parameters are provided.
+
+**Main Flow / Functional Steps:**
+
+* **Step 1: Filter FAGLFLEXA data**
+	+ Filter FAGLFLEXA records where RLDNR = '0L'.
+	+ Filter FAGLFLEXA records where RYEAR = FY parameter.
+	+ Filter FAGLFLEXA records where POPER = Posting Period parameter.
+	+ Exclude FAGLFLEXA records where RBUKRS starts with '8%'.
+* **Step 2: Join FAGLFLEXA with BSEG**
+	+ Join FAGLFLEXA with BSEG on DOCNR = BELNR, RBUKRS = BUKRS, and RYEAR = GJAHR.
+	+ Filter joined records where XBILK = 'X'.
+* **Step 3: Derive additional fields**
+	+ Derive LegalEntity by reading Entity golden view and converting Company Code to Golden Entity.
+	+ Filter out archived Golden Entity values.
+	+ Derive GLAccount by selecting distinct FAGLFLEXA.DOCNR where FAGLFLEXA.RACCT belongs to golden acct realized and unrealized.
+	+ Derive GoldenGLAcct by converting FAGLFLEXA.RACCT to golden GL account.
+	+ Derive TradingPartner and GoldenTradingPartner.
+* **Step 4: Calculate GainLossGC and other fields**
+	+ Calculate GainLossGC using BPC exchange rates.
+	+ Derive GainLossLC, LocalCurrency, GainLossTC, and TransactionCurrency.
+* **Step 5: Determine OffsetAccount**
+	+ For Realized accounts, determine OffsetAccount using BSEG.HKONT and specific logic.
+	+ For Unrealized accounts, determine OffsetAccount using BSEG.HKONT and specific logic.
+	+ Derive GoldenOffsetAccount by converting OffsetAccount to golden GL account.
+* **Step 6: Generate output**
+	+ Generate output with required fields, including FiscalYear, FY parameter, PostingPeriod, DocumentNumber, CompCode, and others.
+
+**Additional Requirements:**
+
+* The system must use Spark SQL to execute the query.
+* The system must handle multiple offset accounts and pick the correct one based on specific logic.
