@@ -1,46 +1,48 @@
-Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD) "Coding Requirements" section.
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD):
 
-**FR-FIN-001: Generate Spark SQL Code for Finance Data Transformation**
+**FR-FIN-001**
 
-**Description:** 
-The system must generate Spark SQL code to transform finance data from the source tables FAGLFLEXA and BSEG in the Everest ECC schema into the target Finance table.
+**Title:** Generate Finance Data for ECC Everest Source System
+
+**Description:** The system must generate finance data by transforming and processing data from the ECC Everest source system, specifically from the FAGLFLEXA and BSEG tables, and loading it into the target Finance table.
 
 **Preconditions:**
 
-* The source tables FAGLFLEXA and BSEG exist in the Everest ECC schema.
-* The required parameters (FY, Posting Period) are available.
-* The golden views (Entity, GL, Trading Partner) are available.
+* FAGLFLEXA and BSEG tables are available in the ECC Everest source system.
+* FY (Fiscal Year) and Posting Period parameters are provided.
+* Golden views (Entity, GL, Trading Partner) are available and up-to-date.
+* s_shared.v_actual_exchange_rate_bpc and s_shared.v_revenue_entity_bpc tables are available.
 
 **Main Flow / Functional Steps:**
 
-* Step 1: Filter FAGLFLEXA records based on RLDNR = '0L'.
-* Step 2: Join FAGLFLEXA with BSEG on DOCNR = BELNR, RBUKRS = BUKRS, RYEAR = GJAHR, and XBILK = 'X'.
-* Step 3: Apply the following transformations:
-	+ FiscalYear: FY parameter.
-	+ PostingPeriod: Posting Period parameter.
-	+ SourceFiscalYear: FAGLFLEXA.RYEAR = FY Parameter.
-	+ SourcePeriod: FAGLFLEXA.POPER = Posting Period parameter.
-	+ DocumentNumber: FAGLFLEXA.DOCNR.
-	+ CompCode: FAGLFLEXA.RBUKRS (exclude RBUKRS like '8%').
-	+ LegalEntity: Convert Company Code to Golden Entity using Entity golden view and filter out archived Golden Entity values.
-	+ GLAccount: FAGLFLEXA.RACCT (select distinct FAGLFLEXA.DOCNR where FAGLFLEXA.RACCT belongs to golden acct realized and unrealized).
-	+ GoldenGLAcct: Convert FAGLFLEXA.RACCT to golden GL account using golden GL view.
-	+ TradingPartner: FAGLFLEXA.RASSC.
-	+ GoldenTradingPartner: Convert FAGLFLEXA.RASSC to golden trading partner using golden trading partner view.
-	+ GainLossGC: Calculate GC values from LC values using BPC exchange rates (s_shared.v_actual_exchange_rate_bpc).
-	+ GainLossLC: FAGLFLEXA.HSL (apply special logic for certain LocalCurrency values).
-	+ LocalCurrency: Derive Local Currency from Entity view (GFA Revenue).
-	+ GainLossTC: FAGLFLEXA.TSL (apply special logic for certain TransactionalCurrency values).
-	+ TransactionCurrency: FAGLFLEXA.RWCUR.
-	+ OffsetAccount: Determine offset account for Realized/Unrealized accounts using BSEG.HKONT and specific logic.
-	+ GoldenOffsetAccount: Convert OffsetAccount to golden GL account using golden GL view.
-	+ Offset Account LC Amount: BSEG.DMBTR.
-	+ Offset Account TC Amount: BSEG.WRBTR.
-	+ Offset Clearing Document Number: BSEG.AUGBL.
-	+ SourceSystem: 'ECC Everest'.
-* Step 4: Generate Spark SQL code to perform the above transformations and load the data into the target Finance table.
-
-**Additional Requirements:**
-
-* The system must handle the logic for determining the offset account for Realized and Unrealized accounts as specified.
-* The system must apply the special logic for certain LocalCurrency and TransactionalCurrency values when calculating GainLossLC and GainLossTC.
+1. **Retrieve Data from Source Tables:**
+	* Retrieve data from FAGLFLEXA and BSEG tables from the ECC Everest source system.
+	* Apply filter RLDNR = '0L' on FAGLFLEXA table.
+2. **Join FAGLFLEXA and BSEG Tables:**
+	* Join FAGLFLEXA with BSEG on DOCNR = BELNR, RBUKRS = BUKRS, and RYEAR = GJAHR.
+	* Filter joined data to include only records with XBILK = 'X'.
+3. **Apply Transformation Logic:**
+	* For each field in the target Finance table, apply the transformation logic as specified:
+		+ FiscalYear: Use FY parameter.
+		+ PostingPeriod: Use Posting Period parameter.
+		+ DocumentNumber: Use FAGLFLEXA.DOCNR.
+		+ CompCode: Use FAGLFLEXA.RBUKRS, excluding values starting with '8'.
+		+ LegalEntity: Read Entity golden view to convert Company Code to Golden Entity; exclude archived Golden Entity values.
+		+ GLAccount: Use FAGLFLEXA.RACCT, selecting distinct values where FAGLFLEXA.RACCT belongs to golden acct realized and unrealized.
+		+ GoldenGLAcct: Convert FAGLFLEXA.RACCT to golden GL account by reading golden GL view.
+		+ TradingPartner: Use FAGLFLEXA.RASSC.
+		+ GoldenTradingPartner: Convert FAGLFLEXA.RASSC to golden trading partner by reading golden trading partner view.
+		+ GainLossGC: Calculate GC values from LC values using BPC exchange rates.
+		+ GainLossLC: Use HSL; if LocalCurrency is in specified list, multiply PeriodLC by 100.
+		+ LocalCurrency: Read Entity view (GFA Revenue) to derive Local Currency.
+		+ GainLossTC: Use TSL; if TransactionalCurrency is in specified list, multiply PeriodTC by 100.
+		+ TransactionCurrency: Use FAGLFLEXA.RWCUR.
+		+ OffsetAccount: Apply logic to find offset account for Realized and Unrealized accounts.
+		+ GoldenOffsetAccount: Convert OffsetAccount to golden GL account by reading golden GL view.
+		+ Offset Account LC Amount: Use BSEG.DMBTR.
+		+ Offset Account TC Amount: Use BSEG.WRBTR.
+		+ Offset Clearing Document Number: Use BSEG.AUGBL.
+4. **Load Transformed Data into Target Finance Table:**
+	* Load the transformed data into the target Finance table.
+5. **Set SourceSystem Field:**
+	* Set SourceSystem field to 'ECC Everest'.

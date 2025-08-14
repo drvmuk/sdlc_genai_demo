@@ -3,20 +3,14 @@ requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "finance_data_transformation"
+name = "finance_data_processor"
 version = "1.0.0"
-description = "Transforms finance data from FAGLFLEXA and BSEG tables into a target Finance table"
+description = "Finance data processing job for transforming and loading ECC Everest data"
 authors = [
-    {name = "Finance Data Engineering Team", email = "finance-data@company.com"}
+    {name = "Finance Data Engineering Team", email = "finance-data@example.com"}
 ]
 readme = "README.md"
 requires-python = ">=3.7"
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-]
 
-[project.urls]
-"Homepage" = "https://github.com/company/finance-data-transformation"
-"Bug Tracker" = "https://github.com/company/finance-data-transformation/issues"
+[project.optional-dependencies]
+dev = ["pytest", "pytest-spark"]

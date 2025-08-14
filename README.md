@@ -1,43 +1,37 @@
-# Finance Data Transformation
+# Finance Data Processor
 
-This project transforms finance data from FAGLFLEXA and BSEG tables into a target Finance table according to TR-FIN-001 requirements.
+This project implements a data processing job to transform and load finance data from the ECC Everest source system into the target Finance table.
 
 ## Overview
 
-The transformation process includes:
-- Filtering FAGLFLEXA records based on RLDNR = '0L'
-- Joining FAGLFLEXA with BSEG on specific conditions
-- Applying business transformations including currency conversions, GL account mappings, and entity mappings
-- Loading the transformed data into the target Finance table
+The pipeline retrieves data from FAGLFLEXA and BSEG tables, joins them, applies transformation logic, and loads the transformed data into the target Finance table.
 
 ## Setup
 
-1. Create a Databricks cluster with the following configuration:
-   - Databricks Runtime Version: 7.3 LTS or later
-   - Node Type: Standard_DS3_v2
-   - Worker Nodes: 2-5 (autoscaling)
-   - Auto Termination: 30 minutes
-
-2. Install required libraries:
-   ```
-   pip install -r requirements.txt
-   ```
+1. Clone this repository to your Databricks workspace
+2. Install required dependencies: `pip install -r requirements.txt`
+3. Configure the cluster according to specifications in the Technical Requirements Document
 
 ## Usage
 
-Run the main transformation script:
+Run the main processing job with parameters:
 
 ```python
-%run ./src/finance_transformation.py
+dbutils.notebook.run("src/finance_processor.py", 
+                     timeout_seconds=3600, 
+                     arguments={"fiscal_year": "2023", "posting_period": "12"})
 ```
 
-## Parameters
+## Configuration
 
-The transformation requires two parameters:
-- `fiscal_year`: The fiscal year for data processing
-- `posting_period`: The posting period for data processing
+The job is configured to run on a Finance Data Processing Cluster with the following specifications:
+- Databricks Runtime Version: 7.3 LTS
+- Node Type: Standard_DS3_v2
+- Worker Nodes: 2-5 (autoscaling)
+- Auto Termination: 30 minutes
 
-Example:
-```python
-fiscal_year = "2023"
-posting_period = "12"
+## Testing
+
+Run tests using pytest:
+```
+pytest tests/

@@ -1,84 +1,62 @@
-Here's the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
 
 * **Technical Requirement ID**: TR-FIN-001
 * **Related Functional Requirement(s)**: FR-FIN-001
-* **Objective**: Generate Spark SQL code to transform finance data from FAGLFLEXA and BSEG tables into the target Finance table.
+* **Objective**: Implement a data processing job to transform and load finance data from ECC Everest source system into the target Finance table.
 
 * **Target Cluster Configuration**:
-	+ Cluster Name: Finance Data Transformation Cluster
-	+ Databricks Runtime Version: 7.3 LTS (or latest compatible version)
-	+ Node Type: Standard_DS3_v2 (or equivalent)
+	+ Cluster Name: Finance Data Processing Cluster
+	+ Databricks Runtime Version: 7.3 LTS
+	+ Node Type: Standard_DS3_v2
 	+ Driver Node: 1 x Standard_DS3_v2
 	+ Worker Nodes: 2-5 x Standard_DS3_v2 (autoscaling)
 	+ Autoscaling: Enabled
 	+ Auto Termination: Enabled (30 minutes)
-	+ Libraries Installed: spark-sql, pyspark, pandas, numpy
+	+ Libraries Installed: PySpark, pandas, numpy
 
 * **Source Data Details**:
-	+ Dataset Name: FAGLFLEXA
-	+ Location: Everest ECC schema
-	+ Format: Table
-	+ Description: Finance data from FAGLFLEXA table
-	+ Dataset Name: BSEG
-	+ Location: Everest ECC schema
-	+ Format: Table
-	+ Description: Finance data from BSEG table
-	+ Dataset Name: Entity Golden View
-	+ Location: Golden Views schema
-	+ Format: View
-	+ Description: Golden Entity values
-	+ Dataset Name: GL Golden View
-	+ Location: Golden Views schema
-	+ Format: View
-	+ Description: Golden GL account values
-	+ Dataset Name: Trading Partner Golden View
-	+ Location: Golden Views schema
-	+ Format: View
-	+ Description: Golden Trading Partner values
+	+ FAGLFLEXA table: ECC Everest source system, SAP BW/4HANA format, contains financial data
+	+ BSEG table: ECC Everest source system, SAP BW/4HANA format, contains financial data
+	+ Golden views (Entity, GL, Trading Partner): available and up-to-date, used for data transformation
+	+ s_shared.v_actual_exchange_rate_bpc table: available, used for currency conversion
+	+ s_shared.v_revenue_entity_bpc table: available, used for entity information
 
 * **Target Data Details**:
-	+ Output Name: Finance Table
-	+ Location: Target schema
-	+ Format: Table
-	+ Description: Transformed finance data
+	+ Target Finance table: Finance data mart, Parquet format, contains transformed finance data
 
 * **Job Flow / Pipeline Stages**:
-	+ Stage 1: Filter FAGLFLEXA records based on RLDNR = '0L'
-	+ Stage 2: Join FAGLFLEXA with BSEG on DOCNR = BELNR, RBUKRS = BUKRS, RYEAR = GJAHR, and XBILK = 'X'
-	+ Stage 3: Apply transformations and load data into target Finance table
+	+ Retrieve data from FAGLFLEXA and BSEG tables
+	+ Join FAGLFLEXA and BSEG tables on specified fields
+	+ Apply transformation logic to joined data
+	+ Load transformed data into target Finance table
+	+ Set SourceSystem field to 'ECC Everest'
 
 * **Data Transformations / Business Logic**:
-	+ Step 1: Filter FAGLFLEXA records
-		- Transformation Logic: FAGLFLEXA.RLDNR = '0L'
-	+ Step 2: Join FAGLFLEXA with BSEG
-		- Transformation Logic: FAGLFLEXA.DOCNR = BSEG.BELNR, FAGLFLEXA.RBUKRS = BSEG.BUKRS, FAGLFLEXA.RYEAR = BSEG.GJAHR, FAGLFLEXA.XBILK = 'X'
-	+ Step 3: Apply transformations
-		- Transformation Logic:
-			- FiscalYear: FY parameter
-			- PostingPeriod: Posting Period parameter
-			- SourceFiscalYear: FAGLFLEXA.RYEAR = FY Parameter
-			- SourcePeriod: FAGLFLEXA.POPER = Posting Period parameter
-			- DocumentNumber: FAGLFLEXA.DOCNR
-			- CompCode: FAGLFLEXA.RBUKRS (exclude RBUKRS like '8%')
-			- LegalEntity: Convert Company Code to Golden Entity using Entity golden view
-			- GLAccount: FAGLFLEXA.RACCT (select distinct FAGLFLEXA.DOCNR where FAGLFLEXA.RACCT belongs to golden acct realized and unrealized)
-			- GoldenGLAcct: Convert FAGLFLEXA.RACCT to golden GL account using golden GL view
-			- TradingPartner: FAGLFLEXA.RASSC
-			- GoldenTradingPartner: Convert FAGLFLEXA.RASSC to golden trading partner using golden trading partner view
-			- GainLossGC: Calculate GC values from LC values using BPC exchange rates
-			- GainLossLC: FAGLFLEXA.HSL (apply special logic for certain LocalCurrency values)
-			- LocalCurrency: Derive Local Currency from Entity view (GFA Revenue)
-			- GainLossTC: FAGLFLEXA.TSL (apply special logic for certain TransactionalCurrency values)
-			- TransactionCurrency: FAGLFLEXA.RWCUR
-			- OffsetAccount: Determine offset account for Realized/Unrealized accounts using BSEG.HKONT and specific logic
-			- GoldenOffsetAccount: Convert OffsetAccount to golden GL account using golden GL view
-			- Offset Account LC Amount: BSEG.DMBTR
-			- Offset Account TC Amount: BSEG.WRBTR
-			- Offset Clearing Document Number: BSEG.AUGBL
-			- SourceSystem: 'ECC Everest'
+	+ Step 1: Retrieve data from FAGLFLEXA and BSEG tables with filter RLDNR = '0L' on FAGLFLEXA table
+	+ Step 2: Join FAGLFLEXA and BSEG tables on DOCNR = BELNR, RBUKRS = BUKRS, and RYEAR = GJAHR with filter XBILK = 'X'
+	+ Step 3: Apply transformation logic to fields in target Finance table, including:
+		- FiscalYear: use FY parameter
+		- PostingPeriod: use Posting Period parameter
+		- DocumentNumber: use FAGLFLEXA.DOCNR
+		- CompCode: use FAGLFLEXA.RBUKRS excluding values starting with '8'
+		- LegalEntity: read Entity golden view to convert Company Code to Golden Entity
+		- GLAccount: use FAGLFLEXA.RACCT with distinct values belonging to golden acct realized and unrealized
+		- GoldenGLAcct: convert FAGLFLEXA.RACCT to golden GL account using golden GL view
+		- TradingPartner: use FAGLFLEXA.RASSC
+		- GoldenTradingPartner: convert FAGLFLEXA.RASSC to golden trading partner using golden trading partner view
+		- GainLossGC: calculate GC values from LC values using BPC exchange rates
+		- GainLossLC: use HSL with LocalCurrency in specified list multiplied by 100
+		- LocalCurrency: read Entity view (GFA Revenue) to derive Local Currency
+		- GainLossTC: use TSL with TransactionalCurrency in specified list multiplied by 100
+		- TransactionCurrency: use FAGLFLEXA.RWCUR
+		- OffsetAccount: apply logic to find offset account for Realized and Unrealized accounts
+		- GoldenOffsetAccount: convert OffsetAccount to golden GL account using golden GL view
+		- Offset Account LC Amount: use BSEG.DMBTR
+		- Offset Account TC Amount: use BSEG.WRBTR
+		- Offset Clearing Document Number: use BSEG.AUGBL
 
 * **Error Handling and Logging**:
-	+ Log errors and exceptions to a designated log file or database
-	+ Handle null or missing values in source data
-	+ Implement data validation and data quality checks
-	+ Send notifications to designated stakeholders in case of job failure or data quality issues
+	+ Log errors and exceptions during data processing and transformation
+	+ Log data quality issues and inconsistencies during data processing
+	+ Implement retry mechanism for failed data processing tasks
+	+ Notify administrators of errors and exceptions via email or alerting system
