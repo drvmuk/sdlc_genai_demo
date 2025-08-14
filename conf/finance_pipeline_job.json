@@ -1,0 +1,33 @@
+{
+  "name": "Finance_Data_Processing_Job",
+  "email_notifications": {
+    "on_start": ["finance_data_team@company.com"],
+    "on_success": [],
+    "on_failure": ["finance_data_team@company.com", "data_engineering@company.com"]
+  },
+  "timeout_seconds": 7200,
+  "max_concurrent_runs": 1,
+  "tasks": [
+    {
+      "task_key": "finance_data_pipeline",
+      "description": "Processes financial data from FAGLFLEXA and BSEG tables to populate Finance table",
+      "depends_on": [],
+      "existing_cluster_id": "finance-data-processing-cluster",
+      "notebook_task": {
+        "notebook_path": "/notebooks/finance_data_pipeline",
+        "base_parameters": {
+          "environment": "production"
+        }
+      },
+      "timeout_seconds": 3600,
+      "max_retries": 2,
+      "min_retry_interval_millis": 300000,
+      "retry_on_timeout": true
+    }
+  ],
+  "schedule": {
+    "quartz_cron_expression": "0 0 3 * * ?", 
+    "timezone_id": "UTC",
+    "pause_status": "UNPAUSED"
+  }
+}
