@@ -1,1 +1,1 @@
-# Finance Data Processor tests package
+# Tests for Finance Data Transformation

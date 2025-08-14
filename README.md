@@ -1,37 +1,36 @@
-# Finance Data Processor
+# Finance Data Transformation
 
-This project implements a data processing job to transform and load finance data from the ECC Everest source system into the target Finance table.
+This project implements a Spark SQL job to generate finance data by transforming and processing data from Everest ECC source tables FAGLFLEXA and BSEG.
 
 ## Overview
 
-The pipeline retrieves data from FAGLFLEXA and BSEG tables, joins them, applies transformation logic, and loads the transformed data into the target Finance table.
+The finance data transformation process retrieves data from FAGLFLEXA and BSEG tables, applies transformation logic, calculates GainLossGC, determines OffsetAccount, and stores the transformed data in the target Finance table.
 
 ## Setup
 
-1. Clone this repository to your Databricks workspace
-2. Install required dependencies: `pip install -r requirements.txt`
-3. Configure the cluster according to specifications in the Technical Requirements Document
+1. Upload the project to your Databricks workspace
+2. Install the required dependencies
+3. Configure the cluster as specified in the requirements
 
 ## Usage
 
-Run the main processing job with parameters:
+To run the finance data transformation job:
 
-```python
-dbutils.notebook.run("src/finance_processor.py", 
-                     timeout_seconds=3600, 
-                     arguments={"fiscal_year": "2023", "posting_period": "12"})
+```bash
+# Run the main transformation job
+python -m src.finance_transformation
+
+# Run tests
+pytest
 ```
 
-## Configuration
+## Cluster Configuration
 
-The job is configured to run on a Finance Data Processing Cluster with the following specifications:
-- Databricks Runtime Version: 7.3 LTS
-- Node Type: Standard_DS3_v2
-- Worker Nodes: 2-5 (autoscaling)
-- Auto Termination: 30 minutes
-
-## Testing
-
-Run tests using pytest:
-```
-pytest tests/
+- **Cluster Name**: Finance Processing Cluster
+- **Databricks Runtime Version**: 7.3 LTS
+- **Node Type**: Standard_DS3_v2
+- **Driver Node**: 1 x Standard_DS3_v2
+- **Worker Nodes**: 2-5 x Standard_DS3_v2 (autoscaling)
+- **Autoscaling**: Enabled
+- **Auto Termination**: Enabled (30 minutes)
+- **Libraries Installed**: Spark SQL, Scala 2.12

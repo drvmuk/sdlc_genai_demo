@@ -1,1 +1,1 @@
-# Finance Data Processor package
+# Finance Data Transformation package

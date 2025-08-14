@@ -3,14 +3,17 @@ requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "finance_data_processor"
+name = "finance_data_transformation"
 version = "1.0.0"
-description = "Finance data processing job for transforming and loading ECC Everest data"
+description = "Finance data transformation using Databricks and PySpark"
 authors = [
-    {name = "Finance Data Engineering Team", email = "finance-data@example.com"}
+    {name = "Finance Data Engineering Team", email = "data.engineering@company.com"}
 ]
 readme = "README.md"
 requires-python = ">=3.7"
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-spark"]
+test = ["pytest>=6.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

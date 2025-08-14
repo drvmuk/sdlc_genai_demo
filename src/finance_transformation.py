@@ -1,360 +1,307 @@
 """
 Finance Data Transformation Module
 
-This module contains the main logic for transforming finance data from FAGLFLEXA and BSEG tables
-into the target Finance table according to TR-FIN-001 requirements.
+This module implements the finance data transformation logic as per TR-FIN-001.
+It processes data from FAGLFLEXA and BSEG tables, applies transformations,
+and stores the results in the target Finance table.
 """
 
 from pyspark.sql import SparkSession
-from pyspark.sql import functions as F
-from pyspark.sql.types import StringType, DecimalType
+from pyspark.sql.functions import col, lit, when, expr, coalesce
 import logging
-from datetime import datetime
-from src.utils import setup_logger, notify_stakeholders
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
-# Set up logging
-logger = setup_logger("finance_transformation")
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("finance_transformation.log"),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
-def create_spark_session():
-    """
-    Create and configure the Spark session.
-    
-    Returns:
-        SparkSession: Configured Spark session
-    """
-    try:
-        spark = SparkSession.builder \
-            .appName("Finance Data Transformation") \
-            .config("spark.sql.legacy.timeParserPolicy", "LEGACY") \
-            .config("spark.sql.sources.partitionOverwriteMode", "dynamic") \
-            .getOrCreate()
-        
-        logger.info("Spark session created successfully")
-        return spark
-    except Exception as e:
-        error_msg = f"Failed to create Spark session: {str(e)}"
-        logger.error(error_msg)
-        notify_stakeholders("Finance Data Transformation", error_msg)
-        raise
+# Configuration
+CONFIG = {
+    "source_schema": "everest_ecc",
+    "golden_views_schema": "golden_views",
+    "target_schema": "finance",
+    "target_table": "finance_data",
+    "admin_email": "data.admin@company.com",
+    "max_retries": 3
+}
 
-def load_source_data(spark, fiscal_year, posting_period):
+def get_spark_session():
     """
-    Load source data from FAGLFLEXA, BSEG, and Golden Views.
-    
-    Args:
-        spark (SparkSession): Spark session
-        fiscal_year (str): Fiscal year parameter
-        posting_period (str): Posting period parameter
-        
-    Returns:
-        tuple: Tuple containing DataFrames for FAGLFLEXA, BSEG, and Golden Views
+    Initialize and return a Spark session.
     """
-    try:
-        logger.info(f"Loading source data for fiscal year {fiscal_year} and posting period {posting_period}")
-        
-        # Load FAGLFLEXA data
-        faglflexa_df = spark.table("Everest_ECC.FAGLFLEXA")
-        logger.info(f"FAGLFLEXA record count: {faglflexa_df.count()}")
-        
-        # Load BSEG data
-        bseg_df = spark.table("Everest_ECC.BSEG")
-        logger.info(f"BSEG record count: {bseg_df.count()}")
-        
-        # Load Golden Views
-        entity_golden_view = spark.table("Golden_Views.Entity")
-        gl_golden_view = spark.table("Golden_Views.GL")
-        trading_partner_golden_view = spark.table("Golden_Views.TradingPartner")
-        
-        # Load BPC exchange rates
-        bpc_exchange_rates = spark.table("Golden_Views.BPC_ExchangeRates")
-        
-        return faglflexa_df, bseg_df, entity_golden_view, gl_golden_view, trading_partner_golden_view, bpc_exchange_rates
-    
-    except Exception as e:
-        error_msg = f"Error loading source data: {str(e)}"
-        logger.error(error_msg)
-        notify_stakeholders("Finance Data Transformation", error_msg)
-        raise
+    return (SparkSession.builder
+            .appName("Finance Data Transformation")
+            .config("spark.sql.legacy.allowCreatingManagedTableUsingNonemptyLocation", "true")
+            .config("spark.databricks.delta.autoCompact.enabled", "true")
+            .config("spark.sql.shuffle.partitions", "200")
+            .config("spark.default.parallelism", "200")
+            .getOrCreate())
 
-def transform_finance_data(spark, fiscal_year, posting_period):
+def send_notification(subject, message):
     """
-    Main transformation function to process finance data.
+    Send email notification for job status.
     
     Args:
-        spark (SparkSession): Spark session
-        fiscal_year (str): Fiscal year parameter
-        posting_period (str): Posting period parameter
+        subject (str): Email subject
+        message (str): Email message
+    """
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = 'finance.data.pipeline@company.com'
+        msg['To'] = CONFIG["admin_email"]
+        msg['Subject'] = subject
         
+        msg.attach(MIMEText(message, 'plain'))
+        
+        # This would be replaced with actual SMTP server details in production
+        logger.info(f"Would send email: {subject} - {message}")
+        
+        # Simulated email sending
+        # with smtplib.SMTP('smtp.company.com', 587) as server:
+        #     server.starttls()
+        #     server.login('username', 'password')
+        #     server.send_message(msg)
+    except Exception as e:
+        logger.error(f"Failed to send notification: {e}")
+
+def execute_with_retry(func, max_retries=None):
+    """
+    Execute a function with retry logic.
+    
+    Args:
+        func: Function to execute
+        max_retries (int): Maximum number of retries
+    
+    Returns:
+        Result of the function
+    """
+    if max_retries is None:
+        max_retries = CONFIG["max_retries"]
+    
+    retries = 0
+    while retries <= max_retries:
+        try:
+            return func()
+        except Exception as e:
+            retries += 1
+            if retries > max_retries:
+                logger.error(f"Failed after {max_retries} retries: {e}")
+                raise
+            logger.warning(f"Retry {retries}/{max_retries} after error: {e}")
+
+def transform_finance_data(spark):
+    """
+    Main function to transform finance data.
+    
+    Args:
+        spark: SparkSession object
+    
     Returns:
         DataFrame: Transformed finance data
     """
+    logger.info("Starting finance data transformation")
+    
     try:
-        logger.info(f"Starting finance data transformation for FY {fiscal_year}, Period {posting_period}")
+        # Step 1: Retrieve data from FAGLFLEXA and BSEG tables
+        logger.info("Retrieving data from FAGLFLEXA and BSEG tables")
         
-        # Load source data
-        faglflexa_df, bseg_df, entity_golden_view, gl_golden_view, trading_partner_golden_view, bpc_exchange_rates = \
-            load_source_data(spark, fiscal_year, posting_period)
+        faglflexa_df = spark.table(f"{CONFIG['source_schema']}.FAGLFLEXA")
+        bseg_df = spark.table(f"{CONFIG['source_schema']}.BSEG")
         
-        # Stage 1: Filter FAGLFLEXA records based on RLDNR = '0L'
-        filtered_faglflexa = faglflexa_df.filter(F.col("RLDNR") == "0L")
-        logger.info(f"Filtered FAGLFLEXA record count: {filtered_faglflexa.count()}")
+        # Step 2: Join FAGLFLEXA with BSEG and apply filters
+        logger.info("Joining FAGLFLEXA with BSEG and applying filters")
         
-        # Stage 2: Join FAGLFLEXA with BSEG
-        join_condition = (
-            (filtered_faglflexa.DOCNR == bseg_df.BELNR) & 
-            (filtered_faglflexa.RBUKRS == bseg_df.BUKRS) & 
-            (filtered_faglflexa.RYEAR == bseg_df.GJAHR) & 
-            (filtered_faglflexa.XBILK == "X")
-        )
-        
-        joined_df = filtered_faglflexa.join(
-            bseg_df,
-            join_condition,
-            "left"
-        )
-        
-        logger.info(f"Joined data record count: {joined_df.count()}")
-        
-        # Stage 3: Apply transformations
-        
-        # Filter out company codes starting with '8'
-        filtered_df = joined_df.filter(~F.col("RBUKRS").like("8%"))
-        
-        # Join with Golden Views for mapping
-        df_with_entity = filtered_df.join(
-            entity_golden_view,
-            filtered_df.RBUKRS == entity_golden_view.CompanyCode,
-            "left"
-        )
-        
-        df_with_gl = df_with_entity.join(
-            gl_golden_view,
-            df_with_entity.RACCT == gl_golden_view.SourceGLAccount,
-            "left"
-        )
-        
-        df_with_tp = df_with_gl.join(
-            trading_partner_golden_view,
-            df_with_gl.RASSC == trading_partner_golden_view.SourceTradingPartner,
-            "left"
-        )
-        
-        # Filter for realized and unrealized accounts
-        realized_unrealized_accounts = gl_golden_view.filter(
-            (F.col("AccountType") == "Realized") | (F.col("AccountType") == "Unrealized")
-        ).select("SourceGLAccount").distinct()
-        
-        df_with_realized_unrealized = df_with_tp.join(
-            realized_unrealized_accounts,
-            df_with_tp.RACCT == realized_unrealized_accounts.SourceGLAccount,
+        joined_df = faglflexa_df.alias("f").join(
+            bseg_df.alias("b"),
+            (col("f.DOCNR") == col("b.BELNR")) & 
+            (col("f.RBUKRS") == col("b.BUKRS")) & 
+            (col("f.RYEAR") == col("b.GJAHR")),
             "inner"
+        ).filter(
+            (col("f.RLDNR") == "0L") & 
+            (col("f.XBILK") == "X")
         )
         
-        # Select distinct document numbers with realized/unrealized accounts
-        distinct_docs = df_with_realized_unrealized.select("DOCNR").distinct()
+        # Step 3: Get golden views for reference data
+        logger.info("Retrieving golden views for reference data")
         
-        # Filter original dataset to include only those document numbers
-        final_df = df_with_tp.join(
-            distinct_docs,
-            df_with_tp.DOCNR == distinct_docs.DOCNR,
-            "inner"
+        entity_view = spark.table(f"{CONFIG['golden_views_schema']}.v_entity")
+        gl_view = spark.table(f"{CONFIG['golden_views_schema']}.v_gl_account")
+        trading_partner_view = spark.table(f"{CONFIG['golden_views_schema']}.v_trading_partner")
+        realized_unrealized_view = spark.table(f"{CONFIG['golden_views_schema']}.v_realized_unrealized_glaccts")
+        bpc_exchange_rates = spark.table(f"{CONFIG['golden_views_schema']}.v_bpc_exchange_rates")
+        
+        # Step 4: Apply transformation logic
+        logger.info("Applying transformation logic")
+        
+        transformed_df = joined_df.select(
+            col("f.RYEAR").alias("FiscalYear"),
+            col("f.POPER").alias("PostingPeriod"),
+            col("f.DOCNR").alias("DocumentNumber"),
+            col("f.RBUKRS").alias("CompCode"),
+            # Join with entity view to get LegalEntity
+            col("entity_view.LegalEntity").alias("LegalEntity"),
+            col("f.RACCT").alias("GLAccount"),
+            # Join with gl view to get GoldenGLAcct
+            col("gl_view.GoldenGLAcct").alias("GoldenGLAcct"),
+            col("f.RCNTR").alias("TradingPartner"),
+            # Join with trading partner view to get GoldenTradingPartner
+            col("trading_partner_view.GoldenTradingPartner").alias("GoldenTradingPartner"),
+            # Will calculate GainLossGC later
+            lit(None).alias("GainLossGC"),
+            col("f.HSL").alias("GainLossLC"),
+            col("f.KSL").alias("GainLossTC"),
+            col("f.RHCUR").alias("LocalCurrency"),
+            col("f.RTCUR").alias("TransactionCurrency"),
+            # Will determine OffsetAccount later
+            lit(None).alias("OffsetAccount"),
+            lit(None).alias("GoldenOffsetAccount"),
+            col("b.DMBTR").alias("OffsetAccountLCAmount"),
+            col("b.AUGBL").alias("OffsetClearingDocumentNumber"),
+            lit("Everest ECC").alias("SourceSystem")
+        ).join(
+            entity_view,
+            col("CompCode") == entity_view.CompanyCode,
+            "left"
+        ).join(
+            gl_view,
+            col("GLAccount") == gl_view.GLAccount,
+            "left"
+        ).join(
+            trading_partner_view,
+            col("TradingPartner") == trading_partner_view.TradingPartner,
+            "left"
         )
         
-        # Apply final transformations
-        transformed_df = final_df.withColumn("FiscalYear", F.lit(fiscal_year)) \
-            .withColumn("PostingPeriod", F.lit(posting_period)) \
-            .withColumn("SourceFiscalYear", F.col("RYEAR")) \
-            .withColumn("SourcePeriod", F.col("POPER")) \
-            .withColumn("DocumentNumber", F.col("DOCNR")) \
-            .withColumn("CompCode", F.col("RBUKRS")) \
-            .withColumn("LegalEntity", F.col("GoldenEntity")) \
-            .withColumn("GLAccount", F.col("RACCT")) \
-            .withColumn("GoldenGLAcct", F.col("GoldenGLAccount")) \
-            .withColumn("TradingPartner", F.col("RASSC")) \
-            .withColumn("GoldenTradingPartner", F.col("GoldenTradingPartner")) \
-            .withColumn("LocalCurrency", F.col("EntityCurrency")) \
-            .withColumn("GainLossLC", F.col("HSL")) \
-            .withColumn("TransactionCurrency", F.col("RWCUR")) \
-            .withColumn("GainLossTC", F.col("TSL"))
+        # Step 5: Calculate GainLossGC
+        logger.info("Calculating GainLossGC")
         
-        # Calculate GainLossGC using BPC exchange rates
         transformed_df = transformed_df.join(
             bpc_exchange_rates,
+            (transformed_df.FiscalYear == bpc_exchange_rates.Year) & 
+            (transformed_df.PostingPeriod == bpc_exchange_rates.Period) & 
             (transformed_df.LocalCurrency == bpc_exchange_rates.FromCurrency) &
-            (bpc_exchange_rates.ToCurrency == "USD") &
-            (transformed_df.FiscalYear == bpc_exchange_rates.FiscalYear) &
-            (transformed_df.PostingPeriod == bpc_exchange_rates.Period),
+            (lit("USD") == bpc_exchange_rates.ToCurrency),
             "left"
         ).withColumn(
-            "GainLossGC", 
-            F.col("GainLossLC") * F.col("ExchangeRate")
+            "GainLossGC",
+            col("GainLossLC") * col("bpc_exchange_rates.ExchangeRate")
         )
         
-        # Determine offset account logic
-        transformed_df = transformed_df.withColumn(
+        # Step 6: Determine OffsetAccount
+        logger.info("Determining OffsetAccount")
+        
+        transformed_df = transformed_df.join(
+            realized_unrealized_view,
+            transformed_df.GLAccount == realized_unrealized_view.GLAccount,
+            "left"
+        ).withColumn(
             "OffsetAccount",
-            F.when(
-                (F.col("AccountType") == "Realized") | (F.col("AccountType") == "Unrealized"),
-                F.col("HKONT")
+            when(
+                col("realized_unrealized_view.Realized_Unrealized") == "Realized",
+                expr("CASE WHEN GainLossLC > 0 THEN '999001' ELSE '999002' END")
+            ).when(
+                col("realized_unrealized_view.Realized_Unrealized") == "Unrealized",
+                expr("CASE WHEN GainLossLC > 0 THEN '999003' ELSE '999004' END")
             ).otherwise(None)
         )
         
-        # Get Golden Offset Account
+        # Join with GL view again to get GoldenOffsetAccount
         transformed_df = transformed_df.join(
-            gl_golden_view.alias("offset_gl"),
-            transformed_df.OffsetAccount == F.col("offset_gl.SourceGLAccount"),
+            gl_view.alias("offset_gl"),
+            col("OffsetAccount") == col("offset_gl.GLAccount"),
             "left"
         ).withColumn(
             "GoldenOffsetAccount",
-            F.col("offset_gl.GoldenGLAccount")
+            col("offset_gl.GoldenGLAcct")
         )
         
-        # Add remaining fields
-        final_transformed_df = transformed_df.withColumn(
-            "OffsetAccountLCAmount", F.col("DMBTR")
-        ).withColumn(
-            "OffsetAccountTCAmount", F.col("WRBTR")
-        ).withColumn(
-            "OffsetClearingDocumentNumber", F.col("AUGBL")
-        ).withColumn(
-            "SourceSystem", F.lit("ECC Everest")
-        )
-        
-        # Select only the required columns for the final output
-        output_columns = [
-            "FiscalYear", "PostingPeriod", "SourceFiscalYear", "SourcePeriod",
-            "DocumentNumber", "CompCode", "LegalEntity", "GLAccount", 
-            "GoldenGLAcct", "TradingPartner", "GoldenTradingPartner",
-            "GainLossGC", "GainLossLC", "LocalCurrency", "GainLossTC",
-            "TransactionCurrency", "OffsetAccount", "GoldenOffsetAccount",
-            "OffsetAccountLCAmount", "OffsetAccountTCAmount",
+        # Select final columns and drop any temporary/intermediate columns
+        final_df = transformed_df.select(
+            "FiscalYear", "PostingPeriod", "DocumentNumber", "CompCode", "LegalEntity",
+            "GLAccount", "GoldenGLAcct", "TradingPartner", "GoldenTradingPartner",
+            "GainLossGC", "GainLossLC", "GainLossTC", "LocalCurrency", "TransactionCurrency",
+            "OffsetAccount", "GoldenOffsetAccount", "OffsetAccountLCAmount",
             "OffsetClearingDocumentNumber", "SourceSystem"
-        ]
+        )
         
-        result_df = final_transformed_df.select(output_columns)
-        
-        # Data validation
-        validate_data(result_df)
-        
-        logger.info(f"Transformation completed successfully. Result record count: {result_df.count()}")
-        
-        return result_df
+        logger.info("Finance data transformation completed successfully")
+        return final_df
         
     except Exception as e:
-        error_msg = f"Error during finance data transformation: {str(e)}"
-        logger.error(error_msg)
-        notify_stakeholders("Finance Data Transformation", error_msg)
+        logger.error(f"Error in finance data transformation: {e}")
+        send_notification(
+            "Finance Data Transformation Failed",
+            f"The finance data transformation job failed with the following error: {e}"
+        )
         raise
 
-def validate_data(df):
+def save_finance_data(df):
     """
-    Perform data validation checks on the transformed data.
+    Save the transformed finance data to the target table.
     
     Args:
-        df (DataFrame): Transformed data to validate
+        df: DataFrame containing transformed finance data
     """
     try:
-        logger.info("Performing data validation checks")
+        logger.info(f"Saving finance data to {CONFIG['target_schema']}.{CONFIG['target_table']}")
         
-        # Check for null values in critical columns
-        null_counts = {}
-        critical_columns = ["DocumentNumber", "CompCode", "LegalEntity", "GLAccount", "GoldenGLAcct"]
-        
-        for col in critical_columns:
-            null_count = df.filter(F.col(col).isNull()).count()
-            null_counts[col] = null_count
-            
-            if null_count > 0:
-                logger.warning(f"Column {col} has {null_count} null values")
-        
-        # Check for data consistency
-        currency_mismatch = df.filter(
-            (F.col("LocalCurrency").isNotNull()) & 
-            (F.col("GainLossLC").isNotNull()) & 
-            (F.col("GainLossLC") != 0) & 
-            (F.col("GainLossGC").isNull())
-        ).count()
-        
-        if currency_mismatch > 0:
-            logger.warning(f"Found {currency_mismatch} rows with LC values but missing GC values")
-        
-        # Return validation results
-        return {
-            "null_counts": null_counts,
-            "currency_mismatch": currency_mismatch
-        }
-    
-    except Exception as e:
-        error_msg = f"Error during data validation: {str(e)}"
-        logger.error(error_msg)
-        raise
-
-def save_to_target(spark, transformed_df):
-    """
-    Save the transformed data to the target Finance table.
-    
-    Args:
-        spark (SparkSession): Spark session
-        transformed_df (DataFrame): Transformed finance data
-    """
-    try:
-        logger.info("Saving transformed data to target Finance table")
-        
-        # Save to target table
-        transformed_df.write \
+        # Write the data to the target table
+        df.write \
             .format("delta") \
             .mode("overwrite") \
             .option("overwriteSchema", "true") \
-            .saveAsTable("Target.Finance")
+            .saveAsTable(f"{CONFIG['target_schema']}.{CONFIG['target_table']}")
         
-        logger.info("Data successfully saved to Target.Finance table")
-        
-        # Log row count for verification
-        row_count = spark.table("Target.Finance").count()
-        logger.info(f"Target.Finance table row count: {row_count}")
+        logger.info("Finance data saved successfully")
         
     except Exception as e:
-        error_msg = f"Error saving data to target: {str(e)}"
-        logger.error(error_msg)
-        notify_stakeholders("Finance Data Transformation", error_msg)
+        logger.error(f"Error saving finance data: {e}")
+        send_notification(
+            "Failed to Save Finance Data",
+            f"The finance data transformation job failed to save data with the following error: {e}"
+        )
         raise
 
-def main(fiscal_year, posting_period):
+def main():
     """
-    Main execution function for the finance data transformation.
-    
-    Args:
-        fiscal_year (str): Fiscal year parameter
-        posting_period (str): Posting period parameter
+    Main entry point for the finance data transformation job.
     """
-    start_time = datetime.now()
-    logger.info(f"Starting finance data transformation job at {start_time}")
-    logger.info(f"Parameters - Fiscal Year: {fiscal_year}, Posting Period: {posting_period}")
+    spark = get_spark_session()
     
     try:
-        # Create Spark session
-        spark = create_spark_session()
+        logger.info("Starting finance data transformation job")
         
-        # Transform data
-        transformed_df = transform_finance_data(spark, fiscal_year, posting_period)
+        # Execute the transformation with retry logic
+        transformed_df = execute_with_retry(lambda: transform_finance_data(spark))
         
-        # Save to target
-        save_to_target(spark, transformed_df)
+        # Save the transformed data
+        save_finance_data(transformed_df)
         
-        end_time = datetime.now()
-        duration = (end_time - start_time).total_seconds()
-        logger.info(f"Finance data transformation job completed successfully at {end_time}")
-        logger.info(f"Total duration: {duration} seconds")
+        logger.info("Finance data transformation job completed successfully")
+        send_notification(
+            "Finance Data Transformation Successful",
+            "The finance data transformation job has completed successfully."
+        )
         
     except Exception as e:
-        error_msg = f"Finance data transformation job failed: {str(e)}"
-        logger.error(error_msg)
-        notify_stakeholders("Finance Data Transformation", error_msg)
+        logger.error(f"Finance data transformation job failed: {e}")
+        send_notification(
+            "Finance Data Transformation Failed",
+            f"The finance data transformation job failed with the following error: {e}"
+        )
         raise
+    finally:
+        # Don't stop the SparkSession as it's managed by Databricks
 
 if __name__ == "__main__":
-    # These parameters would typically be passed as job parameters in Databricks
-    fiscal_year = "2023"
-    posting_period = "12"
-    
-    main(fiscal_year, posting_period)
+    main()
