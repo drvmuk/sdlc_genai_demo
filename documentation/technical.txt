@@ -2,39 +2,73 @@ Here is the Technical Requirement Document (TRD) based on the provided Functiona
 
 * **Technical Requirement ID:** TR-FIN-001
 * **Related Functional Requirement(s):** FR-FIN-001
-* **Objective:** Implement a data pipeline to populate the Finance table with transformed data from FAGLFLEXA and BSEG source tables in the Everest ECC schema.
+* **Objective:** Implement a data processing job to load finance data from Everest ECC into the Finance table by joining and transforming data from FAGLFLEXA and BSEG tables.
 
 * **Target Cluster Configuration:**
 	+ Cluster Name: Finance Data Processing Cluster
-	+ Databricks Runtime Version: 7.3 LTS
+	+ Databricks Runtime Version: 7.3.x-scala2.12
 	+ Node Type: Standard_DS3_v2
-	+ Driver Node: 1 x Standard_DS3_v2
-	+ Worker Nodes: 2-5 x Standard_DS3_v2 (autoscaling)
+	+ Driver Node: Standard_DS3_v2
+	+ Worker Nodes: 2-4 nodes (autoscaling)
 	+ Autoscaling: Enabled
-	+ Auto Termination: Enabled (30 minutes idle time)
-	+ Libraries Installed: PySpark, Scala, Python libraries for data processing and Golden views integration
+	+ Auto Termination: Enabled (30 minutes)
+	+ Libraries Installed: 
+		- PySpark
+		- Scala
 
 * **Source Data Details:**
-	+ FAGLFLEXA table: Everest ECC schema, SAP format, contains financial data
-	+ BSEG table: Everest ECC schema, SAP format, contains financial data
-	+ Entity Golden View: Golden views schema, Parquet format, contains entity data
-	+ GL Golden View: Golden views schema, Parquet format, contains GL account data
-	+ Trading Partner Golden View: Golden views schema, Parquet format, contains trading partner data
+	+ Dataset Name: FAGLFLEXA
+	+ Location: Everest ECC schema
+	+ Format: Relational database table
+	+ Description: Finance data from FAGLFLEXA table
+	+ Dataset Name: BSEG
+	+ Location: Everest ECC schema
+	+ Format: Relational database table
+	+ Description: Finance data from BSEG table
+	+ Dataset Name: Entity Golden View
+	+ Location: Golden views schema
+	+ Format: Relational database view
+	+ Description: Golden Entity values
+	+ Dataset Name: GL Golden View
+	+ Location: Golden views schema
+	+ Format: Relational database view
+	+ Description: Golden GL account values
+	+ Dataset Name: Trading Partner Golden View
+	+ Location: Golden views schema
+	+ Format: Relational database view
+	+ Description: Golden Trading Partner values
+	+ Dataset Name: s_shared.v_actual_exchange_rate_bpc
+	+ Location: Shared schema
+	+ Format: Relational database view
+	+ Description: Exchange rates
 
 * **Target Data Details:**
-	+ Finance table: Finance schema, Parquet format, contains transformed financial data
+	+ Output Name: Finance Table
+	+ Location: Finance schema
+	+ Format: Relational database table
+	+ Description: Transformed finance data
 
 * **Job Flow / Pipeline Stages:**
-	+ Retrieve data from FAGLFLEXA and BSEG tables
-	+ Apply filter and join conditions
-	+ Apply transformation logic to derive required fields
-	+ Populate Finance table with transformed data
+	+ Stage 1: Retrieve data from FAGLFLEXA and BSEG tables
+	+ Stage 2: Apply filters and transformations
+	+ Stage 3: Calculate GainLossGC and GainLossLC
+	+ Stage 4: Calculate GainLossTC
+	+ Stage 5: Determine Offset Account
+	+ Stage 6: Load data into Finance table
 
 * **Data Transformations / Business Logic:**
-	+ Derive FiscalYear, PostingPeriod, DocumentNumber, CompCode, LegalEntity, GLAccount, GoldenGLAcct, TradingPartner, GoldenTradingPartner, GainLossGC, GainLossLC, LocalCurrency, GainLossTC, TransactionCurrency, OffsetAccount, GoldenOffsetAccount, Offset Account LC Amount, Offset Account TC Amount, and Offset Clearing Document Number using specified logic
-	+ Apply data type conversions and formatting as required
+	+ Step 1: Join FAGLFLEXA and BSEG tables on specified conditions
+	+ Transformation Logic: Inner join on DOCNR = BELNR, RBUKRS = BUKRS, and RYEAR = GJAHR
+	+ Step 2: Apply filters
+	+ Transformation Logic: Filter records where RLDNR = '0L' and XBILK = 'X', and exclude records where RBUKRS starts with '8%'
+	+ Step 3: Convert Company Code to Golden Entity
+	+ Transformation Logic: Use Entity Golden View to convert Company Code
+	+ Step 4: Calculate GainLossGC and GainLossLC
+	+ Transformation Logic: Use exchange rates from s_shared.v_actual_exchange_rate_bpc to calculate GainLossGC and GainLossLC
+	+ Step 5: Determine Offset Account
+	+ Transformation Logic: Apply logic to find offset account for Realized and Unrealized accounts based on v_realized_unrealized_glaccts and BSEG tables
 
 * **Error Handling and Logging:**
-	+ Implement try-except blocks to handle data retrieval, transformation, and loading errors
-	+ Log errors and exceptions to a designated log file or logging framework
-	+ Implement data quality checks to ensure data consistency and integrity during processing
+	+ Log errors and exceptions during data processing
+	+ Implement retry mechanism for failed tasks
+	+ Notify administrators in case of critical errors
