@@ -1,47 +1,52 @@
-Here's the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+Here's a Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
 
-* **Technical Requirement ID**: TR-FIN-001
-* **Related Functional Requirement(s)**: FR-FIN-001
-* **Objective**: Implement a Spark SQL job to generate finance data by joining and transforming data from FAGLFLEXA and BSEG tables.
+* **1. Technical Requirement ID**
+TR-SQL-001
 
-* **Target Cluster Configuration**:
-	+ Cluster Name: Finance Data Processing Cluster
-	+ Databricks Runtime Version: 7.3 LTS or later
-	+ Node Type: Standard_DS3_v2
-	+ Driver Node: Standard_DS3_v2 (1 node)
-	+ Worker Nodes: Standard_DS3_v2 (2-5 nodes)
-	+ Autoscaling: Enabled
-	+ Auto Termination: 30 minutes
-	+ Libraries Installed: Spark SQL, Scala 2.12
+* **2. Related Functional Requirement(s)**
+FR-SQL-001
 
-* **Source Data Details**:
-	+ FAGLFLEXA table: Everest ECC source schema, Parquet format, contains financial data
-	+ BSEG table: Everest ECC source schema, Parquet format, contains financial data
-	+ s_shared.v_revenue_entity_bpc: Golden view, Parquet format, contains revenue entity data
-	+ s_shared.v_actual_exchange_rate_bpc: Golden view, Parquet format, contains exchange rate data
-	+ Other required golden views: Parquet format, contains various financial data
+* **3. Objective**
+Implement a Spark SQL code generator to read order data with a quantity filter.
 
-* **Target Data Details**:
-	+ Output: Finance data, Parquet format, contains transformed financial data
-	+ Location: /mnt/finance/data/output
+* **4. Target Cluster Configuration**
+* Cluster Name: Order Processing Cluster
+* Databricks Runtime Version: 7.3 LTS
+* Node Type: Standard_DS3_v2
+* Driver Node: Standard_DS3_v2
+* Worker Nodes: 2-5 (autoscaling)
+* Autoscaling: Enabled
+* Auto Termination: Enabled (30 minutes)
+* Libraries Installed: Spark SQL, Scala 2.12
 
-* **Job Flow / Pipeline Stages**:
-	+ Step 1: Filter FAGLFLEXA data
-	+ Step 2: Join FAGLFLEXA with BSEG
-	+ Step 3: Derive additional fields
-	+ Step 4: Calculate GainLossGC and other fields
-	+ Step 5: Determine OffsetAccount
-	+ Step 6: Generate output
+* **5. Source Data Details**
+* Dataset Name: Order Data
+* Location: order_table (database table)
+* Format: Delta Lake
+* Description: Order data with columns date, quantity, and ordered
 
-* **Data Transformations / Business Logic**:
-	+ Step 1: Filter FAGLFLEXA records where RLDNR = '0L', RYEAR = FY parameter, and POPER = Posting Period parameter; exclude records where RBUKRS starts with '8%'.
-	+ Step 2: Join FAGLFLEXA with BSEG on DOCNR = BELNR, RBUKRS = BUKRS, and RYEAR = GJAHR; filter joined records where XBILK = 'X'.
-	+ Step 3: Derive LegalEntity, GLAccount, GoldenGLAcct, TradingPartner, and GoldenTradingPartner using various golden views and logic.
-	+ Step 4: Calculate GainLossGC using BPC exchange rates; derive GainLossLC, LocalCurrency, GainLossTC, and TransactionCurrency.
-	+ Step 5: Determine OffsetAccount using BSEG.HKONT and specific logic for Realized and Unrealized accounts; derive GoldenOffsetAccount.
-	+ Step 6: Generate output with required fields, including FiscalYear, FY parameter, PostingPeriod, DocumentNumber, CompCode, and others.
+* **6. Target Data Details**
+* Output Name: Filtered Order Data
+* Location: /output/filtered_orders (file path)
+* Format: Parquet
+* Description: Filtered order data with quantity greater than 25
 
-* **Error Handling and Logging**:
-	+ Log errors and exceptions in a designated log file (/mnt/finance/logs/error.log)
-	+ Implement retry mechanism for failed Spark SQL queries (max 3 retries)
-	+ Notify administrators via email in case of job failure or data quality issues.
+* **7. Job Flow / Pipeline Stages**
+* Create a Spark SQL query to select data from the order table
+* Specify columns to be retrieved (date, quantity, and ordered)
+* Add a filter condition to the query to filter data based on quantity greater than 25
+* Execute the Spark SQL query to retrieve the filtered data
+* Return the resulting dataset
+
+* **8. Data Transformations / Business Logic**
+* Step: Create Spark SQL query
+* Description: Generate a Spark SQL query to read data from the order table
+* Transformation Logic: Use Spark SQL to select data from the order table
+* Step: Apply filter condition
+* Description: Filter data based on quantity greater than 25
+* Transformation Logic: Use Spark SQL filter condition to include only rows where quantity > 25
+
+* **9. Error Handling and Logging**
+* Log errors and exceptions to a log file (/logs/error.log)
+* Handle Spark SQL execution errors and exceptions
+* Retry failed jobs up to 3 times with a 5-minute interval between retries
