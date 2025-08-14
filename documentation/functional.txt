@@ -2,36 +2,48 @@ Here is the detailed Functional Requirement Document (FRD) based on the provided
 
 **FR-FIN-001: Generate Finance Data**
 
-**Title**: Generate Finance data by transforming and processing data from Everest ECC source tables FAGLFLEXA and BSEG.
+**Title:** Generate Finance Data for Reporting
 
-**Description**: The system must generate finance data by applying transformation logic to data from FAGLFLEXA and BSEG tables in the Everest ECC source schema, based on specific filters and joins.
+**Description:** The system must generate finance data by transforming and processing data from source tables FAGLFLEXA and BSEG, applying specified business rules and logic.
 
-**Preconditions**:
+**Preconditions:**
 
-* FAGLFLEXA and BSEG tables exist in the Everest ECC source schema.
-* Data is available in FAGLFLEXA and BSEG tables.
-* Fiscal Year and Posting Period parameters are provided.
+* Source data is available in FAGLFLEXA and BSEG tables.
+* Fiscal Year (FY) parameter is provided.
+* Posting Period parameter is provided.
 * Golden views (Entity, GL, Trading Partner) are available and up-to-date.
 
-**Main Flow / Functional Steps**:
+**Main Flow / Functional Steps:**
 
-1. **Retrieve data from FAGLFLEXA and BSEG tables**:
-	* Join FAGLFLEXA with BSEG on DOCNR = BELNR, RBUKRS = BUKRS, and RYEAR = GJAHR.
-	* Filter data where RLDNR = '0L' and XBILK = 'X'.
-2. **Apply transformation logic**:
-	* Derive FiscalYear, PostingPeriod, DocumentNumber, CompCode, LegalEntity, GLAccount, GoldenGLAcct, TradingPartner, GoldenTradingPartner, GainLossGC, GainLossLC, GainLossTC, LocalCurrency, TransactionCurrency, OffsetAccount, GoldenOffsetAccount, Offset Account LC Amount, Offset Clearing Document Number, and SourceSystem based on the provided logic.
-	* Exclude CompCode that starts with '8'.
-	* Filter out archived Golden Entity values.
-3. **Calculate GainLossGC**:
-	* Use BPC exchange rates (s_shared.v_actual_exchange_rate_bpc) to calculate GainLossGC from GainLossLC.
-4. **Determine OffsetAccount**:
-	* Apply logic to find offset account for Realized and Unrealized accounts based on v_realized_unrealized_glaccts.Realized_Unrealized value.
-	* Sort and pick the offset account with the maximum TC amount.
-5. **Store the transformed data**:
+1. **Retrieve Source Data:**
+	* Retrieve data from FAGLFLEXA and BSEG tables.
+	* Apply filter: RLDNR = '0L'.
+	* Join FAGLFLEXA with BSEG on DOCNR = BELNR, RBUKRS = BUKRS, and RYEAR = GJAHR, and XBILK = 'X'.
+2. **Apply Transformation Logic:**
+	* For each row:
+		+ Derive FiscalYear from FY parameter.
+		+ Derive PostingPeriod from Posting Period parameter.
+		+ Derive DocumentNumber from FAGLFLEXA.DOCNR.
+		+ Derive CompCode from FAGLFLEXA.RBUKRS, excluding values starting with '8'.
+		+ Derive LegalEntity by reading Entity golden view and converting Company Code to Golden Entity; exclude archived Golden Entity values.
+		+ Derive GLAccount from FAGLFLEXA.RACCT, selecting distinct values where FAGLFLEXA.RACCT belongs to golden realized and unrealized accounts.
+		+ Derive GoldenGLAcct by converting FAGLFLEXA.RACCT to golden GL account using golden GL view.
+		+ Derive TradingPartner from FAGLFLEXA.RASSC.
+		+ Derive GoldenTradingPartner by converting FAGLFLEXA.RASSC to golden trading partner using golden trading partner view.
+		+ Calculate GainLossGC using BPC exchange rates (s_shared.v_actual_exchange_rate_bpc) and BS exchange rate (AVG) for FiscalYearPeriod.
+		+ Derive GainLossLC from HSL.
+		+ Derive LocalCurrency by reading Entity view (GFA Revenue).
+		+ Derive GainLossTC from TSL.
+		+ Derive TransactionCurrency from RTCUR.
+		+ Derive OffsetAccount using logic for Realized and Unrealized accounts.
+		+ Derive GoldenOffsetAccount by converting OffsetAccount to golden GL account using golden GL view.
+		+ Derive Offset Account LC Amount from BSEG.DMBTR.
+		+ Derive Offset Account TC Amount from BSEG.WRBTR.
+		+ Derive Offset Clearing Document Number from BSEG.AUGBL.
+3. **Store Transformed Data:**
 	* Store the transformed data in the target Finance table.
 
-**Additional Requirements**:
+**Additional Requirements:**
 
-* Use Spark SQL to generate the code.
-* Use the provided parameters (Fiscal Year and Posting Period) in the data transformation logic.
-* Use Golden views to derive certain fields (e.g., LegalEntity, GoldenGLAcct, GoldenTradingPartner).
+* The system must handle multiple offset accounts for a document number/company code/Fiscal Year combination and pick the correct one based on the specified logic.
+* The system must apply the correct exchange rate to calculate GainLossGC.
