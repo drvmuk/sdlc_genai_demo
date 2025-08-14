@@ -1,0 +1,47 @@
+Based on the provided "Coding Requirements" section of the BRD, I will create a detailed Functional Requirement Document (FRD) in bullet points.
+
+**FR-FIN-001: Populate Finance Table with Transformed Data**
+
+* **Title**: Populate Finance Table with Transformed Data from FAGLFLEXA and BSEG Tables
+* **Description**: The system must transform data from FAGLFLEXA and BSEG tables based on specified logic and populate the Finance table.
+
+**Preconditions**
+
+* FAGLFLEXA and BSEG tables are available in the Everest ECC source schema.
+* FY and Posting Period parameters are provided.
+* Golden views (Entity, GL, Trading Partner) are available.
+
+**Main Flow / Functional Steps**
+
+1. **Retrieve Data from FAGLFLEXA and BSEG Tables**
+	* Join FAGLFLEXA with BSEG on DOCNR, RBUKRS, and RYEAR (Fiscal Year) where RLDNR = '0L' and XBILK = 'X'.
+	* Filter data based on FY and Posting Period parameters.
+2. **Apply Transformation Logic**
+	* For each record:
+		+ Derive FiscalYear, PostingPeriod, SourceFiscalYear, and SourcePeriod.
+		+ Extract DocumentNumber, CompCode (excluding those starting with '8'), and LegalEntity (using Golden Entity view).
+		+ Determine GLAccount and GoldenGLAcct (using Golden GL view).
+		+ Derive TradingPartner and GoldenTradingPartner (using Golden Trading Partner view).
+		+ Calculate GainLossGC using BPC exchange rates (s_shared.v_actual_exchange_rate_bpc).
+		+ Derive GainLossLC, LocalCurrency, GainLossTC, and TransactionCurrency.
+		+ Find OffsetAccount based on Realized/Unrealized logic.
+		+ Convert OffsetAccount to GoldenOffsetAccount (using Golden GL view).
+3. **Populate Finance Table**
+	* Store transformed data in the Finance table.
+4. **Handle Exceptions**
+	* Exclude records with archived Golden Entity values.
+
+**Detailed Transformation Logic**
+
+* For CompCode, exclude values starting with '8'.
+* For GLAccount, select distinct DOCNR where RACCT belongs to Golden Acct Realized and Unrealized.
+* For GainLossGC, use BS exchange rate (AVG) and FiscalYearPeriod.
+* For GainLossLC and GainLossTC, apply multiplication factor (100) if LocalCurrency or TransactionalCurrency is in the specified list.
+* For OffsetAccount, apply logic to find offset account for Realized and Unrealized accounts based on BSEG data.
+
+**Assumptions and Dependencies**
+
+* Availability of Golden views (Entity, GL, Trading Partner) and BPC exchange rates (s_shared.v_actual_exchange_rate_bpc).
+* Correctness of the data in FAGLFLEXA and BSEG tables.
+
+By following this FRD, the system will be able to populate the Finance table with transformed data from FAGLFLEXA and BSEG tables based on the specified logic.

@@ -1,0 +1,50 @@
+Here's a Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **Technical Requirement ID**: TR-FIN-001
+* **Related Functional Requirement(s)**: FR-FIN-001
+* **Objective**: Implement a PySpark job to transform data from FAGLFLEXA and BSEG tables and populate the Finance table.
+
+* **Target Cluster Configuration**:
+	+ Cluster Name: Finance Processing Cluster
+	+ Databricks Runtime Version: 7.3 LTS
+	+ Node Type: Standard_DS3_v2
+	+ Driver Node: 1 x Standard_DS3_v2
+	+ Worker Nodes: 2-5 x Standard_DS3_v2 (autoscaling)
+	+ Autoscaling: Enabled
+	+ Auto Termination: Enabled (30 minutes)
+	+ Libraries Installed: PySpark, pandas, NumPy
+
+* **Source Data Details**:
+	+ FAGLFLEXA table: Everest ECC source schema, Parquet format, contains financial data.
+	+ BSEG table: Everest ECC source schema, Parquet format, contains financial document data.
+	+ Golden Entity view: Golden views schema, Parquet format, contains entity data.
+	+ Golden GL view: Golden views schema, Parquet format, contains GL account data.
+	+ Golden Trading Partner view: Golden views schema, Parquet format, contains trading partner data.
+	+ s_shared.v_actual_exchange_rate_bpc: BPC exchange rates schema, Parquet format, contains exchange rate data.
+
+* **Target Data Details**:
+	+ Finance table: Finance schema, Parquet format, contains transformed financial data.
+
+* **Job Flow / Pipeline Stages**:
+	+ Retrieve data from FAGLFLEXA and BSEG tables.
+	+ Apply transformation logic to the retrieved data.
+	+ Populate the Finance table with transformed data.
+	+ Handle exceptions (exclude records with archived Golden Entity values).
+
+* **Data Transformations / Business Logic**:
+	+ Join FAGLFLEXA with BSEG on DOCNR, RBUKRS, and RYEAR.
+	+ Filter data based on FY and Posting Period parameters.
+	+ Derive FiscalYear, PostingPeriod, SourceFiscalYear, and SourcePeriod.
+	+ Extract DocumentNumber, CompCode, and LegalEntity.
+	+ Determine GLAccount and GoldenGLAcct.
+	+ Derive TradingPartner and GoldenTradingPartner.
+	+ Calculate GainLossGC using BPC exchange rates.
+	+ Derive GainLossLC, LocalCurrency, GainLossTC, and TransactionCurrency.
+	+ Find OffsetAccount based on Realized/Unrealized logic.
+	+ Convert OffsetAccount to GoldenOffsetAccount.
+
+* **Error Handling and Logging**:
+	+ Log errors and exceptions during data processing.
+	+ Handle null or missing values in the source data.
+	+ Log records with archived Golden Entity values that are excluded from processing.
+	+ Monitor job execution and alert on failures or anomalies.
