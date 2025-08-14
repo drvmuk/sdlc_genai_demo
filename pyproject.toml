@@ -3,11 +3,11 @@ requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "finance-transformation"
+name = "finance_data_transformation"
 version = "1.0.0"
-description = "Finance data transformation from FAGLFLEXA and BSEG tables to Finance table"
+description = "Transforms finance data from FAGLFLEXA and BSEG tables into a target Finance table"
 authors = [
-    {name = "Finance Data Engineering Team", email = "finance-data-eng@example.com"}
+    {name = "Finance Data Engineering Team", email = "finance-data@company.com"}
 ]
 readme = "README.md"
 requires-python = ">=3.7"
@@ -18,5 +18,5 @@ classifiers = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/example/finance-transformation"
-"Bug Tracker" = "https://github.com/example/finance-transformation/issues"
+"Homepage" = "https://github.com/company/finance-data-transformation"
+"Bug Tracker" = "https://github.com/company/finance-data-transformation/issues"

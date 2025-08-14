@@ -1,42 +1,46 @@
-Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD) "Coding Requirements" section:
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD) "Coding Requirements" section.
 
-**1. Requirement ID**
-FR-FIN-001
+**FR-FIN-001: Generate Spark SQL Code for Finance Data Transformation**
 
-**2. Title**
-Generate Finance Data from ECC Everest Source System
+**Description:** 
+The system must generate Spark SQL code to transform finance data from the source tables FAGLFLEXA and BSEG in the Everest ECC schema into the target Finance table.
 
-**3. Description**
-The system must generate finance data by extracting and transforming relevant information from the ECC Everest source system, specifically from the FAGLFLEXA and BSEG tables, based on specified filters and joins.
+**Preconditions:**
 
-**4. Preconditions**
+* The source tables FAGLFLEXA and BSEG exist in the Everest ECC schema.
+* The required parameters (FY, Posting Period) are available.
+* The golden views (Entity, GL, Trading Partner) are available.
 
-* FAGLFLEXA and BSEG tables are available in the ECC Everest source system.
-* Relevant data is populated in the FAGLFLEXA and BSEG tables.
-* Golden views (e.g., Entity, GL, Trading Partner) are available and populated.
-* BPC exchange rates are available in the s_shared.v_actual_exchange_rate_bpc table.
+**Main Flow / Functional Steps:**
 
-**5. Main Flow / Functional Steps**
+* Step 1: Filter FAGLFLEXA records based on RLDNR = '0L'.
+* Step 2: Join FAGLFLEXA with BSEG on DOCNR = BELNR, RBUKRS = BUKRS, RYEAR = GJAHR, and XBILK = 'X'.
+* Step 3: Apply the following transformations:
+	+ FiscalYear: FY parameter.
+	+ PostingPeriod: Posting Period parameter.
+	+ SourceFiscalYear: FAGLFLEXA.RYEAR = FY Parameter.
+	+ SourcePeriod: FAGLFLEXA.POPER = Posting Period parameter.
+	+ DocumentNumber: FAGLFLEXA.DOCNR.
+	+ CompCode: FAGLFLEXA.RBUKRS (exclude RBUKRS like '8%').
+	+ LegalEntity: Convert Company Code to Golden Entity using Entity golden view and filter out archived Golden Entity values.
+	+ GLAccount: FAGLFLEXA.RACCT (select distinct FAGLFLEXA.DOCNR where FAGLFLEXA.RACCT belongs to golden acct realized and unrealized).
+	+ GoldenGLAcct: Convert FAGLFLEXA.RACCT to golden GL account using golden GL view.
+	+ TradingPartner: FAGLFLEXA.RASSC.
+	+ GoldenTradingPartner: Convert FAGLFLEXA.RASSC to golden trading partner using golden trading partner view.
+	+ GainLossGC: Calculate GC values from LC values using BPC exchange rates (s_shared.v_actual_exchange_rate_bpc).
+	+ GainLossLC: FAGLFLEXA.HSL (apply special logic for certain LocalCurrency values).
+	+ LocalCurrency: Derive Local Currency from Entity view (GFA Revenue).
+	+ GainLossTC: FAGLFLEXA.TSL (apply special logic for certain TransactionalCurrency values).
+	+ TransactionCurrency: FAGLFLEXA.RWCUR.
+	+ OffsetAccount: Determine offset account for Realized/Unrealized accounts using BSEG.HKONT and specific logic.
+	+ GoldenOffsetAccount: Convert OffsetAccount to golden GL account using golden GL view.
+	+ Offset Account LC Amount: BSEG.DMBTR.
+	+ Offset Account TC Amount: BSEG.WRBTR.
+	+ Offset Clearing Document Number: BSEG.AUGBL.
+	+ SourceSystem: 'ECC Everest'.
+* Step 4: Generate Spark SQL code to perform the above transformations and load the data into the target Finance table.
 
-1. **Retrieve Data from FAGLFLEXA and BSEG Tables**
-	* Join FAGLFLEXA with BSEG on DOCNR, RBUKRS, and RYEAR (Fiscal Year) columns.
-	* Filter data where RLDNR = '0L' and XBILK = 'X'.
-2. **Apply Filters and Transformations**
-	* Exclude records where RBUKRS starts with '8%'.
-	* Convert Company Code to Golden Entity using the Entity golden view.
-	* Filter out archived Golden Entity values.
-	* Convert FAGLFLEXA.RACCT to Golden GL account using the Golden GL view.
-	* Convert FAGLFLEXA.RASSC to Golden Trading Partner using the Golden Trading Partner view.
-3. **Calculate GainLossGC and GainLossLC**
-	* Retrieve exchange rates from s_shared.v_actual_exchange_rate_bpc table.
-	* Calculate GainLossGC using the exchange rate and GainLossLC.
-	* Apply special logic for certain Local Currencies (e.g., ADP, AFA, BEF, etc.).
-4. **Determine Offset Account**
-	* For Realized accounts, find the offset account using BSEG.HKONT and specific logic (e.g., sorting by absolute value of BSEG.WRBTR and checking for non-NULL BSEG.AUGBL).
-	* For Unrealized accounts, find the offset account using BSEG.HKONT and specific logic (e.g., sorting by absolute value of BSEG.WRBTR and checking for NULL BSEG.AUGBL).
-5. **Convert Offset Account to Golden GL Account**
-	* Use the Golden GL view to convert the Offset Account to a Golden GL Account.
-6. **Generate Output**
-	* Produce the final output with the required fields, including FiscalYear, PostingPeriod, DocumentNumber, CompCode, LegalEntity, GLAccount, GoldenGLAcct, TradingPartner, GoldenTradingPartner, GainLossGC, GainLossLC, GainLossTC, TransactionCurrency, OffsetAccount, GoldenOffsetAccount, Offset Account LC Amount, Offset Clearing Document Number, and SourceSystem.
+**Additional Requirements:**
 
-The system should execute these steps to generate the finance data from the ECC Everest source system.
+* The system must handle the logic for determining the offset account for Realized and Unrealized accounts as specified.
+* The system must apply the special logic for certain LocalCurrency and TransactionalCurrency values when calculating GainLossLC and GainLossTC.

@@ -1,32 +1,43 @@
-# Finance Transformation
+# Finance Data Transformation
 
-This project implements a PySpark job to transform financial data from FAGLFLEXA and BSEG tables into a consolidated Finance table.
+This project transforms finance data from FAGLFLEXA and BSEG tables into a target Finance table according to TR-FIN-001 requirements.
 
 ## Overview
 
 The transformation process includes:
-- Reading data from FAGLFLEXA and BSEG tables
-- Filtering by fiscal year and posting period
-- Joining with reference data (Golden Entity, GL, Trading Partner)
-- Applying business logic for gain/loss calculations
-- Writing transformed data to the Finance table
-
-## Requirements
-
-- Databricks Runtime 7.3 LTS
-- Python 3.7+
-- PySpark 3.1.2
-- pandas 1.3.5
-- numpy 1.21.6
+- Filtering FAGLFLEXA records based on RLDNR = '0L'
+- Joining FAGLFLEXA with BSEG on specific conditions
+- Applying business transformations including currency conversions, GL account mappings, and entity mappings
+- Loading the transformed data into the target Finance table
 
 ## Setup
 
-1. Upload the project files to your Databricks workspace
-2. Install required libraries on your cluster
-3. Configure mount points for source and target data locations
+1. Create a Databricks cluster with the following configuration:
+   - Databricks Runtime Version: 7.3 LTS or later
+   - Node Type: Standard_DS3_v2
+   - Worker Nodes: 2-5 (autoscaling)
+   - Auto Termination: 30 minutes
 
-## Configuration
+2. Install required libraries:
+   ```
+   pip install -r requirements.txt
+   ```
 
-The job accepts the following parameters:
+## Usage
 
-- `faglflexa_
+Run the main transformation script:
+
+```python
+%run ./src/finance_transformation.py
+```
+
+## Parameters
+
+The transformation requires two parameters:
+- `fiscal_year`: The fiscal year for data processing
+- `posting_period`: The posting period for data processing
+
+Example:
+```python
+fiscal_year = "2023"
+posting_period = "12"

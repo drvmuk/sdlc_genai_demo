@@ -1,384 +1,360 @@
 """
-Finance data transformation module for processing FAGLFLEXA and BSEG data.
-This module implements the technical requirement TR-FIN-001.
+Finance Data Transformation Module
+
+This module contains the main logic for transforming finance data from FAGLFLEXA and BSEG tables
+into the target Finance table according to TR-FIN-001 requirements.
 """
 
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
-from pyspark.sql.window import Window
+from pyspark.sql.types import StringType, DecimalType
 import logging
 from datetime import datetime
+from src.utils import setup_logger, notify_stakeholders
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+# Set up logging
+logger = setup_logger("finance_transformation")
 
-class FinanceTransformation:
+def create_spark_session():
     """
-    Class to handle finance data transformation from FAGLFLEXA and BSEG tables.
-    """
+    Create and configure the Spark session.
     
-    def __init__(self, spark, config):
-        """
-        Initialize the transformation class with SparkSession and configuration.
-        
-        Args:
-            spark (SparkSession): Active Spark session
-            config (dict): Configuration parameters including paths and fiscal parameters
-        """
-        self.spark = spark
-        self.config = config
-        self.logger = logger
-
-    def read_source_data(self):
-        """
-        Read all required source data tables.
-        
-        Returns:
-            tuple: Dataframes for FAGLFLEXA, BSEG, and reference tables
-        """
-        try:
-            self.logger.info("Reading source data tables")
-            
-            # Read FAGLFLEXA table
-            faglflexa_df = self.spark.read.parquet(self.config["faglflexa_path"])
-            self.logger.info(f"FAGLFLEXA record count: {faglflexa_df.count()}")
-            
-            # Read BSEG table
-            bseg_df = self.spark.read.parquet(self.config["bseg_path"])
-            self.logger.info(f"BSEG record count: {bseg_df.count()}")
-            
-            # Read Golden Entity view
-            golden_entity_df = self.spark.read.parquet(self.config["golden_entity_path"])
-            self.logger.info(f"Golden Entity record count: {golden_entity_df.count()}")
-            
-            # Read Golden GL view
-            golden_gl_df = self.spark.read.parquet(self.config["golden_gl_path"])
-            self.logger.info(f"Golden GL record count: {golden_gl_df.count()}")
-            
-            # Read Golden Trading Partner view
-            golden_tp_df = self.spark.read.parquet(self.config["golden_trading_partner_path"])
-            self.logger.info(f"Golden Trading Partner record count: {golden_tp_df.count()}")
-            
-            # Read Exchange Rate table
-            exchange_rate_df = self.spark.read.parquet(self.config["exchange_rate_path"])
-            self.logger.info(f"Exchange Rate record count: {exchange_rate_df.count()}")
-            
-            return faglflexa_df, bseg_df, golden_entity_df, golden_gl_df, golden_tp_df, exchange_rate_df
-            
-        except Exception as e:
-            self.logger.error(f"Error reading source data: {str(e)}")
-            raise
-
-    def filter_by_fiscal_period(self, faglflexa_df):
-        """
-        Filter FAGLFLEXA data based on fiscal year and posting period.
-        
-        Args:
-            faglflexa_df (DataFrame): FAGLFLEXA data
-            
-        Returns:
-            DataFrame: Filtered FAGLFLEXA data
-        """
-        try:
-            self.logger.info(f"Filtering data for FY: {self.config['fiscal_year']} and Period: {self.config['posting_period']}")
-            
-            filtered_df = faglflexa_df.filter(
-                (F.col("RYEAR") == self.config["fiscal_year"]) & 
-                (F.col("POPER") == self.config["posting_period"])
-            )
-            
-            self.logger.info(f"Records after fiscal filtering: {filtered_df.count()}")
-            return filtered_df
-        
-        except Exception as e:
-            self.logger.error(f"Error filtering by fiscal period: {str(e)}")
-            raise
-
-    def join_and_transform_data(self, faglflexa_df, bseg_df, golden_entity_df, golden_gl_df, golden_tp_df, exchange_rate_df):
-        """
-        Join and transform the data according to business requirements.
-        
-        Args:
-            faglflexa_df (DataFrame): FAGLFLEXA data
-            bseg_df (DataFrame): BSEG data
-            golden_entity_df (DataFrame): Golden Entity data
-            golden_gl_df (DataFrame): Golden GL data
-            golden_tp_df (DataFrame): Golden Trading Partner data
-            exchange_rate_df (DataFrame): Exchange Rate data
-            
-        Returns:
-            DataFrame: Transformed finance data
-        """
-        try:
-            self.logger.info("Starting data join and transformation")
-            
-            # Join FAGLFLEXA with BSEG
-            joined_df = faglflexa_df.join(
-                bseg_df,
-                (faglflexa_df.DOCNR == bseg_df.BELNR) &
-                (faglflexa_df.RBUKRS == bseg_df.BUKRS) &
-                (faglflexa_df.RYEAR == bseg_df.GJAHR),
-                "left"
-            )
-            
-            self.logger.info(f"Records after joining FAGLFLEXA and BSEG: {joined_df.count()}")
-            
-            # Derive fiscal fields
-            transformed_df = joined_df.withColumn(
-                "FiscalYear", F.col("RYEAR")
-            ).withColumn(
-                "PostingPeriod", F.col("POPER")
-            ).withColumn(
-                "SourceFiscalYear", F.col("RYEAR")
-            ).withColumn(
-                "SourcePeriod", F.col("POPER")
-            )
-            
-            # Extract document information
-            transformed_df = transformed_df.withColumn(
-                "DocumentNumber", F.col("DOCNR")
-            ).withColumn(
-                "CompCode", F.col("RBUKRS")
-            )
-            
-            # Join with Golden Entity for Legal Entity mapping
-            transformed_df = transformed_df.join(
-                golden_entity_df,
-                transformed_df.CompCode == golden_entity_df.SourceCompanyCode,
-                "left"
-            ).withColumn(
-                "LegalEntity", F.col("GoldenEntityID")
-            )
-            
-            # Filter out records with archived Golden Entity values
-            archived_count = transformed_df.filter(F.col("IsArchived") == True).count()
-            if archived_count > 0:
-                self.logger.warning(f"Excluding {archived_count} records with archived Golden Entity values")
-            
-            transformed_df = transformed_df.filter(
-                (F.col("IsArchived").isNull()) | (F.col("IsArchived") == False)
-            )
-            
-            # GL Account mapping
-            transformed_df = transformed_df.withColumn(
-                "GLAccount", F.col("RACCT")
-            )
-            
-            # Join with Golden GL for GL Account mapping
-            transformed_df = transformed_df.join(
-                golden_gl_df,
-                transformed_df.GLAccount == golden_gl_df.SourceGLAccount,
-                "left"
-            ).withColumn(
-                "GoldenGLAcct", F.col("GoldenGLID")
-            )
-            
-            # Trading Partner derivation
-            transformed_df = transformed_df.withColumn(
-                "TradingPartner", F.col("PRCTR")
-            )
-            
-            # Join with Golden Trading Partner
-            transformed_df = transformed_df.join(
-                golden_tp_df,
-                transformed_df.TradingPartner == golden_tp_df.SourceTradingPartner,
-                "left"
-            ).withColumn(
-                "GoldenTradingPartner", F.col("GoldenTradingPartnerID")
-            )
-            
-            # Currency and exchange rate calculations
-            transformed_df = transformed_df.withColumn(
-                "LocalCurrency", F.col("RHCUR")
-            ).withColumn(
-                "TransactionCurrency", F.col("RKCUR")
-            )
-            
-            # Join with exchange rates for gain/loss calculations
-            transformed_df = transformed_df.join(
-                exchange_rate_df,
-                (transformed_df.LocalCurrency == exchange_rate_df.FromCurrency) &
-                (F.lit("USD") == exchange_rate_df.ToCurrency) &
-                (transformed_df.FiscalYear == exchange_rate_df.FiscalYear) &
-                (transformed_df.PostingPeriod == exchange_rate_df.Period),
-                "left"
-            )
-            
-            # Calculate gain/loss amounts
-            transformed_df = transformed_df.withColumn(
-                "GainLossLC", 
-                F.when(F.col("LocalCurrency") == F.col("TransactionCurrency"), 0)
-                 .otherwise(F.col("HSL") - F.col("KSL"))
-            ).withColumn(
-                "GainLossGC",
-                F.when(F.col("LocalCurrency") == "USD", F.col("GainLossLC"))
-                 .otherwise(F.col("GainLossLC") * F.col("ExchangeRate"))
-            ).withColumn(
-                "GainLossTC",
-                F.when(F.col("TransactionCurrency") == "USD", F.col("GainLossLC") * F.col("ExchangeRate"))
-                 .otherwise(0)
-            )
-            
-            # Determine if realized or unrealized gain/loss
-            transformed_df = transformed_df.withColumn(
-                "IsRealized", 
-                F.when(F.col("BLART").isin(["AB", "DZ", "KZ"]), True).otherwise(False)
-            )
-            
-            # Derive offset account based on realized/unrealized logic
-            transformed_df = transformed_df.withColumn(
-                "OffsetAccount",
-                F.when(
-                    F.col("IsRealized"), 
-                    F.when(F.col("GainLossGC") >= 0, self.config["realized_gain_account"])
-                     .otherwise(self.config["realized_loss_account"])
-                ).otherwise(
-                    F.when(F.col("GainLossGC") >= 0, self.config["unrealized_gain_account"])
-                     .otherwise(self.config["unrealized_loss_account"])
-                )
-            )
-            
-            # Join with Golden GL for Offset Account mapping
-            offset_gl_df = golden_gl_df.withColumnRenamed("SourceGLAccount", "OffsetSourceGL")
-            offset_gl_df = offset_gl_df.withColumnRenamed("GoldenGLID", "GoldenOffsetGLID")
-            
-            transformed_df = transformed_df.join(
-                offset_gl_df,
-                transformed_df.OffsetAccount == offset_gl_df.OffsetSourceGL,
-                "left"
-            ).withColumn(
-                "GoldenOffsetAccount", F.col("GoldenOffsetGLID")
-            )
-            
-            # Select final columns for output
-            final_df = transformed_df.select(
-                "FiscalYear",
-                "PostingPeriod",
-                "SourceFiscalYear",
-                "SourcePeriod",
-                "DocumentNumber",
-                "CompCode",
-                "LegalEntity",
-                "GLAccount",
-                "GoldenGLAcct",
-                "TradingPartner",
-                "GoldenTradingPartner",
-                "LocalCurrency",
-                "TransactionCurrency",
-                "GainLossLC",
-                "GainLossGC",
-                "GainLossTC",
-                "IsRealized",
-                "OffsetAccount",
-                "GoldenOffsetAccount",
-                F.current_timestamp().alias("ProcessedTimestamp")
-            )
-            
-            self.logger.info(f"Final transformed record count: {final_df.count()}")
-            return final_df
-            
-        except Exception as e:
-            self.logger.error(f"Error in join and transform: {str(e)}")
-            raise
-
-    def write_finance_table(self, finance_df):
-        """
-        Write the transformed data to the Finance table.
-        
-        Args:
-            finance_df (DataFrame): Transformed finance data
-        """
-        try:
-            self.logger.info(f"Writing {finance_df.count()} records to Finance table")
-            
-            # Write to target location
-            finance_df.write.mode("overwrite").parquet(self.config["finance_table_path"])
-            
-            self.logger.info("Successfully wrote data to Finance table")
-            
-        except Exception as e:
-            self.logger.error(f"Error writing to Finance table: {str(e)}")
-            raise
-
-    def run_transformation(self):
-        """
-        Execute the full transformation pipeline.
-        """
-        try:
-            self.logger.info("Starting finance transformation pipeline")
-            
-            # Read source data
-            faglflexa_df, bseg_df, golden_entity_df, golden_gl_df, golden_tp_df, exchange_rate_df = self.read_source_data()
-            
-            # Filter by fiscal period
-            filtered_faglflexa_df = self.filter_by_fiscal_period(faglflexa_df)
-            
-            # Join and transform data
-            transformed_df = self.join_and_transform_data(
-                filtered_faglflexa_df, 
-                bseg_df, 
-                golden_entity_df, 
-                golden_gl_df, 
-                golden_tp_df, 
-                exchange_rate_df
-            )
-            
-            # Write to finance table
-            self.write_finance_table(transformed_df)
-            
-            self.logger.info("Finance transformation pipeline completed successfully")
-            
-        except Exception as e:
-            self.logger.error(f"Finance transformation pipeline failed: {str(e)}")
-            raise
-
-
-def run_finance_job(spark, params):
+    Returns:
+        SparkSession: Configured Spark session
     """
-    Main entry point for the finance transformation job.
+    try:
+        spark = SparkSession.builder \
+            .appName("Finance Data Transformation") \
+            .config("spark.sql.legacy.timeParserPolicy", "LEGACY") \
+            .config("spark.sql.sources.partitionOverwriteMode", "dynamic") \
+            .getOrCreate()
+        
+        logger.info("Spark session created successfully")
+        return spark
+    except Exception as e:
+        error_msg = f"Failed to create Spark session: {str(e)}"
+        logger.error(error_msg)
+        notify_stakeholders("Finance Data Transformation", error_msg)
+        raise
+
+def load_source_data(spark, fiscal_year, posting_period):
+    """
+    Load source data from FAGLFLEXA, BSEG, and Golden Views.
     
     Args:
-        spark (SparkSession): Active Spark session
-        params (dict): Job parameters
+        spark (SparkSession): Spark session
+        fiscal_year (str): Fiscal year parameter
+        posting_period (str): Posting period parameter
+        
+    Returns:
+        tuple: Tuple containing DataFrames for FAGLFLEXA, BSEG, and Golden Views
     """
-    logger.info(f"Starting finance job with parameters: {params}")
+    try:
+        logger.info(f"Loading source data for fiscal year {fiscal_year} and posting period {posting_period}")
+        
+        # Load FAGLFLEXA data
+        faglflexa_df = spark.table("Everest_ECC.FAGLFLEXA")
+        logger.info(f"FAGLFLEXA record count: {faglflexa_df.count()}")
+        
+        # Load BSEG data
+        bseg_df = spark.table("Everest_ECC.BSEG")
+        logger.info(f"BSEG record count: {bseg_df.count()}")
+        
+        # Load Golden Views
+        entity_golden_view = spark.table("Golden_Views.Entity")
+        gl_golden_view = spark.table("Golden_Views.GL")
+        trading_partner_golden_view = spark.table("Golden_Views.TradingPartner")
+        
+        # Load BPC exchange rates
+        bpc_exchange_rates = spark.table("Golden_Views.BPC_ExchangeRates")
+        
+        return faglflexa_df, bseg_df, entity_golden_view, gl_golden_view, trading_partner_golden_view, bpc_exchange_rates
     
-    # Default configuration
-    config = {
-        "faglflexa_path": params.get("faglflexa_path", "/mnt/everest-ecc/FAGLFLEXA"),
-        "bseg_path": params.get("bseg_path", "/mnt/everest-ecc/BSEG"),
-        "golden_entity_path": params.get("golden_entity_path", "/mnt/golden-views/entity"),
-        "golden_gl_path": params.get("golden_gl_path", "/mnt/golden-views/gl"),
-        "golden_trading_partner_path": params.get("golden_trading_partner_path", "/mnt/golden-views/trading_partner"),
-        "exchange_rate_path": params.get("exchange_rate_path", "/mnt/bpc/s_shared/v_actual_exchange_rate_bpc"),
-        "finance_table_path": params.get("finance_table_path", "/mnt/finance/finance_table"),
-        "fiscal_year": params.get("fiscal_year", datetime.now().year),
-        "posting_period": params.get("posting_period", datetime.now().month),
-        "realized_gain_account": params.get("realized_gain_account", "425000"),
-        "realized_loss_account": params.get("realized_loss_account", "525000"),
-        "unrealized_gain_account": params.get("unrealized_gain_account", "426000"),
-        "unrealized_loss_account": params.get("unrealized_loss_account", "526000")
-    }
-    
-    # Create and run the transformation
-    finance_transformation = FinanceTransformation(spark, config)
-    finance_transformation.run_transformation()
-    
-    logger.info("Finance job completed successfully")
+    except Exception as e:
+        error_msg = f"Error loading source data: {str(e)}"
+        logger.error(error_msg)
+        notify_stakeholders("Finance Data Transformation", error_msg)
+        raise
 
+def transform_finance_data(spark, fiscal_year, posting_period):
+    """
+    Main transformation function to process finance data.
+    
+    Args:
+        spark (SparkSession): Spark session
+        fiscal_year (str): Fiscal year parameter
+        posting_period (str): Posting period parameter
+        
+    Returns:
+        DataFrame: Transformed finance data
+    """
+    try:
+        logger.info(f"Starting finance data transformation for FY {fiscal_year}, Period {posting_period}")
+        
+        # Load source data
+        faglflexa_df, bseg_df, entity_golden_view, gl_golden_view, trading_partner_golden_view, bpc_exchange_rates = \
+            load_source_data(spark, fiscal_year, posting_period)
+        
+        # Stage 1: Filter FAGLFLEXA records based on RLDNR = '0L'
+        filtered_faglflexa = faglflexa_df.filter(F.col("RLDNR") == "0L")
+        logger.info(f"Filtered FAGLFLEXA record count: {filtered_faglflexa.count()}")
+        
+        # Stage 2: Join FAGLFLEXA with BSEG
+        join_condition = (
+            (filtered_faglflexa.DOCNR == bseg_df.BELNR) & 
+            (filtered_faglflexa.RBUKRS == bseg_df.BUKRS) & 
+            (filtered_faglflexa.RYEAR == bseg_df.GJAHR) & 
+            (filtered_faglflexa.XBILK == "X")
+        )
+        
+        joined_df = filtered_faglflexa.join(
+            bseg_df,
+            join_condition,
+            "left"
+        )
+        
+        logger.info(f"Joined data record count: {joined_df.count()}")
+        
+        # Stage 3: Apply transformations
+        
+        # Filter out company codes starting with '8'
+        filtered_df = joined_df.filter(~F.col("RBUKRS").like("8%"))
+        
+        # Join with Golden Views for mapping
+        df_with_entity = filtered_df.join(
+            entity_golden_view,
+            filtered_df.RBUKRS == entity_golden_view.CompanyCode,
+            "left"
+        )
+        
+        df_with_gl = df_with_entity.join(
+            gl_golden_view,
+            df_with_entity.RACCT == gl_golden_view.SourceGLAccount,
+            "left"
+        )
+        
+        df_with_tp = df_with_gl.join(
+            trading_partner_golden_view,
+            df_with_gl.RASSC == trading_partner_golden_view.SourceTradingPartner,
+            "left"
+        )
+        
+        # Filter for realized and unrealized accounts
+        realized_unrealized_accounts = gl_golden_view.filter(
+            (F.col("AccountType") == "Realized") | (F.col("AccountType") == "Unrealized")
+        ).select("SourceGLAccount").distinct()
+        
+        df_with_realized_unrealized = df_with_tp.join(
+            realized_unrealized_accounts,
+            df_with_tp.RACCT == realized_unrealized_accounts.SourceGLAccount,
+            "inner"
+        )
+        
+        # Select distinct document numbers with realized/unrealized accounts
+        distinct_docs = df_with_realized_unrealized.select("DOCNR").distinct()
+        
+        # Filter original dataset to include only those document numbers
+        final_df = df_with_tp.join(
+            distinct_docs,
+            df_with_tp.DOCNR == distinct_docs.DOCNR,
+            "inner"
+        )
+        
+        # Apply final transformations
+        transformed_df = final_df.withColumn("FiscalYear", F.lit(fiscal_year)) \
+            .withColumn("PostingPeriod", F.lit(posting_period)) \
+            .withColumn("SourceFiscalYear", F.col("RYEAR")) \
+            .withColumn("SourcePeriod", F.col("POPER")) \
+            .withColumn("DocumentNumber", F.col("DOCNR")) \
+            .withColumn("CompCode", F.col("RBUKRS")) \
+            .withColumn("LegalEntity", F.col("GoldenEntity")) \
+            .withColumn("GLAccount", F.col("RACCT")) \
+            .withColumn("GoldenGLAcct", F.col("GoldenGLAccount")) \
+            .withColumn("TradingPartner", F.col("RASSC")) \
+            .withColumn("GoldenTradingPartner", F.col("GoldenTradingPartner")) \
+            .withColumn("LocalCurrency", F.col("EntityCurrency")) \
+            .withColumn("GainLossLC", F.col("HSL")) \
+            .withColumn("TransactionCurrency", F.col("RWCUR")) \
+            .withColumn("GainLossTC", F.col("TSL"))
+        
+        # Calculate GainLossGC using BPC exchange rates
+        transformed_df = transformed_df.join(
+            bpc_exchange_rates,
+            (transformed_df.LocalCurrency == bpc_exchange_rates.FromCurrency) &
+            (bpc_exchange_rates.ToCurrency == "USD") &
+            (transformed_df.FiscalYear == bpc_exchange_rates.FiscalYear) &
+            (transformed_df.PostingPeriod == bpc_exchange_rates.Period),
+            "left"
+        ).withColumn(
+            "GainLossGC", 
+            F.col("GainLossLC") * F.col("ExchangeRate")
+        )
+        
+        # Determine offset account logic
+        transformed_df = transformed_df.withColumn(
+            "OffsetAccount",
+            F.when(
+                (F.col("AccountType") == "Realized") | (F.col("AccountType") == "Unrealized"),
+                F.col("HKONT")
+            ).otherwise(None)
+        )
+        
+        # Get Golden Offset Account
+        transformed_df = transformed_df.join(
+            gl_golden_view.alias("offset_gl"),
+            transformed_df.OffsetAccount == F.col("offset_gl.SourceGLAccount"),
+            "left"
+        ).withColumn(
+            "GoldenOffsetAccount",
+            F.col("offset_gl.GoldenGLAccount")
+        )
+        
+        # Add remaining fields
+        final_transformed_df = transformed_df.withColumn(
+            "OffsetAccountLCAmount", F.col("DMBTR")
+        ).withColumn(
+            "OffsetAccountTCAmount", F.col("WRBTR")
+        ).withColumn(
+            "OffsetClearingDocumentNumber", F.col("AUGBL")
+        ).withColumn(
+            "SourceSystem", F.lit("ECC Everest")
+        )
+        
+        # Select only the required columns for the final output
+        output_columns = [
+            "FiscalYear", "PostingPeriod", "SourceFiscalYear", "SourcePeriod",
+            "DocumentNumber", "CompCode", "LegalEntity", "GLAccount", 
+            "GoldenGLAcct", "TradingPartner", "GoldenTradingPartner",
+            "GainLossGC", "GainLossLC", "LocalCurrency", "GainLossTC",
+            "TransactionCurrency", "OffsetAccount", "GoldenOffsetAccount",
+            "OffsetAccountLCAmount", "OffsetAccountTCAmount",
+            "OffsetClearingDocumentNumber", "SourceSystem"
+        ]
+        
+        result_df = final_transformed_df.select(output_columns)
+        
+        # Data validation
+        validate_data(result_df)
+        
+        logger.info(f"Transformation completed successfully. Result record count: {result_df.count()}")
+        
+        return result_df
+        
+    except Exception as e:
+        error_msg = f"Error during finance data transformation: {str(e)}"
+        logger.error(error_msg)
+        notify_stakeholders("Finance Data Transformation", error_msg)
+        raise
+
+def validate_data(df):
+    """
+    Perform data validation checks on the transformed data.
+    
+    Args:
+        df (DataFrame): Transformed data to validate
+    """
+    try:
+        logger.info("Performing data validation checks")
+        
+        # Check for null values in critical columns
+        null_counts = {}
+        critical_columns = ["DocumentNumber", "CompCode", "LegalEntity", "GLAccount", "GoldenGLAcct"]
+        
+        for col in critical_columns:
+            null_count = df.filter(F.col(col).isNull()).count()
+            null_counts[col] = null_count
+            
+            if null_count > 0:
+                logger.warning(f"Column {col} has {null_count} null values")
+        
+        # Check for data consistency
+        currency_mismatch = df.filter(
+            (F.col("LocalCurrency").isNotNull()) & 
+            (F.col("GainLossLC").isNotNull()) & 
+            (F.col("GainLossLC") != 0) & 
+            (F.col("GainLossGC").isNull())
+        ).count()
+        
+        if currency_mismatch > 0:
+            logger.warning(f"Found {currency_mismatch} rows with LC values but missing GC values")
+        
+        # Return validation results
+        return {
+            "null_counts": null_counts,
+            "currency_mismatch": currency_mismatch
+        }
+    
+    except Exception as e:
+        error_msg = f"Error during data validation: {str(e)}"
+        logger.error(error_msg)
+        raise
+
+def save_to_target(spark, transformed_df):
+    """
+    Save the transformed data to the target Finance table.
+    
+    Args:
+        spark (SparkSession): Spark session
+        transformed_df (DataFrame): Transformed finance data
+    """
+    try:
+        logger.info("Saving transformed data to target Finance table")
+        
+        # Save to target table
+        transformed_df.write \
+            .format("delta") \
+            .mode("overwrite") \
+            .option("overwriteSchema", "true") \
+            .saveAsTable("Target.Finance")
+        
+        logger.info("Data successfully saved to Target.Finance table")
+        
+        # Log row count for verification
+        row_count = spark.table("Target.Finance").count()
+        logger.info(f"Target.Finance table row count: {row_count}")
+        
+    except Exception as e:
+        error_msg = f"Error saving data to target: {str(e)}"
+        logger.error(error_msg)
+        notify_stakeholders("Finance Data Transformation", error_msg)
+        raise
+
+def main(fiscal_year, posting_period):
+    """
+    Main execution function for the finance data transformation.
+    
+    Args:
+        fiscal_year (str): Fiscal year parameter
+        posting_period (str): Posting period parameter
+    """
+    start_time = datetime.now()
+    logger.info(f"Starting finance data transformation job at {start_time}")
+    logger.info(f"Parameters - Fiscal Year: {fiscal_year}, Posting Period: {posting_period}")
+    
+    try:
+        # Create Spark session
+        spark = create_spark_session()
+        
+        # Transform data
+        transformed_df = transform_finance_data(spark, fiscal_year, posting_period)
+        
+        # Save to target
+        save_to_target(spark, transformed_df)
+        
+        end_time = datetime.now()
+        duration = (end_time - start_time).total_seconds()
+        logger.info(f"Finance data transformation job completed successfully at {end_time}")
+        logger.info(f"Total duration: {duration} seconds")
+        
+    except Exception as e:
+        error_msg = f"Finance data transformation job failed: {str(e)}"
+        logger.error(error_msg)
+        notify_stakeholders("Finance Data Transformation", error_msg)
+        raise
 
 if __name__ == "__main__":
-    # Create Spark session
-    spark = SparkSession.builder \
-        .appName("Finance Data Transformation") \
-        .config("spark.sql.legacy.timeParserPolicy", "LEGACY") \
-        .config("spark.sql.sources.partitionOverwriteMode", "dynamic") \
-        .getOrCreate()
+    # These parameters would typically be passed as job parameters in Databricks
+    fiscal_year = "2023"
+    posting_period = "12"
     
-    # Set log level
-    spark.sparkContext.setLogLevel("INFO")
-    
-    # Run the job with default parameters
-    # In production, parameters would be passed from job scheduler
-    run_finance_job(spark, {})
+    main(fiscal_year, posting_period)

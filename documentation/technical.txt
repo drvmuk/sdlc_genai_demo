@@ -1,50 +1,84 @@
-Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+Here's the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
 
-* **1. Technical Requirement ID**: TR-FIN-001
-* **2. Related Functional Requirement(s)**: FR-FIN-001
-* **3. Objective**: Implement a PySpark job to extract and transform finance data from ECC Everest source system and generate output in required format.
+* **Technical Requirement ID**: TR-FIN-001
+* **Related Functional Requirement(s)**: FR-FIN-001
+* **Objective**: Generate Spark SQL code to transform finance data from FAGLFLEXA and BSEG tables into the target Finance table.
 
-* **4. Target Cluster Configuration**:
-	+ Cluster Name: Finance Data Processing Cluster
-	+ Databricks Runtime Version: 7.3 LTS
-	+ Node Type: Standard_DS3_v2
+* **Target Cluster Configuration**:
+	+ Cluster Name: Finance Data Transformation Cluster
+	+ Databricks Runtime Version: 7.3 LTS (or latest compatible version)
+	+ Node Type: Standard_DS3_v2 (or equivalent)
 	+ Driver Node: 1 x Standard_DS3_v2
 	+ Worker Nodes: 2-5 x Standard_DS3_v2 (autoscaling)
 	+ Autoscaling: Enabled
-	+ Auto Termination: Enabled (30 minutes idle time)
-	+ Libraries Installed: PySpark, pandas, numpy
+	+ Auto Termination: Enabled (30 minutes)
+	+ Libraries Installed: spark-sql, pyspark, pandas, numpy
 
-* **5. Source Data Details**:
-	+ FAGLFLEXA table: ECC Everest source system, SAP BW format, contains financial data
-	+ BSEG table: ECC Everest source system, SAP BW format, contains financial data
-	+ Entity golden view: Golden views database, Parquet format, contains entity mapping
-	+ GL golden view: Golden views database, Parquet format, contains GL account mapping
-	+ Trading Partner golden view: Golden views database, Parquet format, contains trading partner mapping
-	+ s_shared.v_actual_exchange_rate_bpc table: BPC database, Parquet format, contains exchange rates
+* **Source Data Details**:
+	+ Dataset Name: FAGLFLEXA
+	+ Location: Everest ECC schema
+	+ Format: Table
+	+ Description: Finance data from FAGLFLEXA table
+	+ Dataset Name: BSEG
+	+ Location: Everest ECC schema
+	+ Format: Table
+	+ Description: Finance data from BSEG table
+	+ Dataset Name: Entity Golden View
+	+ Location: Golden Views schema
+	+ Format: View
+	+ Description: Golden Entity values
+	+ Dataset Name: GL Golden View
+	+ Location: Golden Views schema
+	+ Format: View
+	+ Description: Golden GL account values
+	+ Dataset Name: Trading Partner Golden View
+	+ Location: Golden Views schema
+	+ Format: View
+	+ Description: Golden Trading Partner values
 
-* **6. Target Data Details**:
-	+ Finance data output: Output location, Parquet format, contains transformed financial data with required fields
+* **Target Data Details**:
+	+ Output Name: Finance Table
+	+ Location: Target schema
+	+ Format: Table
+	+ Description: Transformed finance data
 
-* **7. Job Flow / Pipeline Stages**:
-	+ Retrieve data from FAGLFLEXA and BSEG tables
-	+ Apply filters and transformations
-	+ Calculate GainLossGC and GainLossLC
-	+ Determine offset account
-	+ Convert offset account to Golden GL account
-	+ Generate output
+* **Job Flow / Pipeline Stages**:
+	+ Stage 1: Filter FAGLFLEXA records based on RLDNR = '0L'
+	+ Stage 2: Join FAGLFLEXA with BSEG on DOCNR = BELNR, RBUKRS = BUKRS, RYEAR = GJAHR, and XBILK = 'X'
+	+ Stage 3: Apply transformations and load data into target Finance table
 
-* **8. Data Transformations / Business Logic**:
-	+ Join FAGLFLEXA with BSEG on DOCNR, RBUKRS, and RYEAR columns
-	+ Filter data where RLDNR = '0L' and XBILK = 'X'
-	+ Exclude records where RBUKRS starts with '8%'
-	+ Convert Company Code to Golden Entity using Entity golden view
-	+ Convert FAGLFLEXA.RACCT to Golden GL account using GL golden view
-	+ Convert FAGLFLEXA.RASSC to Golden Trading Partner using Trading Partner golden view
-	+ Retrieve exchange rates from s_shared.v_actual_exchange_rate_bpc table
-	+ Apply special logic for certain Local Currencies
+* **Data Transformations / Business Logic**:
+	+ Step 1: Filter FAGLFLEXA records
+		- Transformation Logic: FAGLFLEXA.RLDNR = '0L'
+	+ Step 2: Join FAGLFLEXA with BSEG
+		- Transformation Logic: FAGLFLEXA.DOCNR = BSEG.BELNR, FAGLFLEXA.RBUKRS = BSEG.BUKRS, FAGLFLEXA.RYEAR = BSEG.GJAHR, FAGLFLEXA.XBILK = 'X'
+	+ Step 3: Apply transformations
+		- Transformation Logic:
+			- FiscalYear: FY parameter
+			- PostingPeriod: Posting Period parameter
+			- SourceFiscalYear: FAGLFLEXA.RYEAR = FY Parameter
+			- SourcePeriod: FAGLFLEXA.POPER = Posting Period parameter
+			- DocumentNumber: FAGLFLEXA.DOCNR
+			- CompCode: FAGLFLEXA.RBUKRS (exclude RBUKRS like '8%')
+			- LegalEntity: Convert Company Code to Golden Entity using Entity golden view
+			- GLAccount: FAGLFLEXA.RACCT (select distinct FAGLFLEXA.DOCNR where FAGLFLEXA.RACCT belongs to golden acct realized and unrealized)
+			- GoldenGLAcct: Convert FAGLFLEXA.RACCT to golden GL account using golden GL view
+			- TradingPartner: FAGLFLEXA.RASSC
+			- GoldenTradingPartner: Convert FAGLFLEXA.RASSC to golden trading partner using golden trading partner view
+			- GainLossGC: Calculate GC values from LC values using BPC exchange rates
+			- GainLossLC: FAGLFLEXA.HSL (apply special logic for certain LocalCurrency values)
+			- LocalCurrency: Derive Local Currency from Entity view (GFA Revenue)
+			- GainLossTC: FAGLFLEXA.TSL (apply special logic for certain TransactionalCurrency values)
+			- TransactionCurrency: FAGLFLEXA.RWCUR
+			- OffsetAccount: Determine offset account for Realized/Unrealized accounts using BSEG.HKONT and specific logic
+			- GoldenOffsetAccount: Convert OffsetAccount to golden GL account using golden GL view
+			- Offset Account LC Amount: BSEG.DMBTR
+			- Offset Account TC Amount: BSEG.WRBTR
+			- Offset Clearing Document Number: BSEG.AUGBL
+			- SourceSystem: 'ECC Everest'
 
-* **9. Error Handling and Logging**:
-	+ Log errors and exceptions in a log file
-	+ Handle null or missing values in input data
-	+ Retry failed tasks up to 3 times before failing the job
-	+ Send notification email to administrators in case of job failure
+* **Error Handling and Logging**:
+	+ Log errors and exceptions to a designated log file or database
+	+ Handle null or missing values in source data
+	+ Implement data validation and data quality checks
+	+ Send notifications to designated stakeholders in case of job failure or data quality issues
