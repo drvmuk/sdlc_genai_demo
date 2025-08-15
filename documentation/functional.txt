@@ -1,0 +1,48 @@
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD) "Coding Requirements" section.
+
+**FR-FIN-001: Load Finance Data from ECC Everest**
+
+**Title:** Load Finance Data from ECC Everest
+
+**Description:** The system must load finance data from ECC Everest into the target table "Finance" based on the specified transformation logic.
+
+**Preconditions:**
+
+* The source tables FAGLFLEXA and BSEG are available in ECC Everest.
+* The FY parameter and Posting Period parameter are provided.
+* The golden views (Entity, GL, Trading Partner) are available and up-to-date.
+
+**Main Flow / Functional Steps:**
+
+1. **Retrieve Data from Source Tables**:
+	* Retrieve data from FAGLFLEXA and BSEG tables in ECC Everest.
+	* Apply filter RLDNR = 0L on FAGLFLEXA.
+2. **Join FAGLFLEXA and BSEG**:
+	* Join FAGLFLEXA with BSEG on DOCNR = BELNR, RBUKRS = BUKRS, and RYEAR = GJAHR.
+	* Filter joined data where XBILK = 'X'.
+3. **Apply Transformation Logic**:
+	* For each field in the target table "Finance":
+		+ FiscalYear: Use FY parameter.
+		+ PostingPeriod: Use Posting Period parameter.
+		+ SourceFiscalYear: Use FAGLFLEXA.RYEAR where FAGLFLEXA.RYEAR = FY parameter.
+		+ SourcePeriod: Use FAGLFLEXA.POPER where FAGLFLEXA.POPER = Posting Period parameter.
+		+ DocumentNumber: Use FAGLFLEXA.DOCNR.
+		+ CompCode: Use FAGLFLEXA.RBUKRS excluding values starting with '8'.
+		+ LegalEntity: Read Entity golden view to convert Company Code to Golden Entity; exclude archived Golden Entity values.
+		+ GLAccount: Use FAGLFLEXA.RACCT where FAGLFLEXA.RACCT belongs to golden acct realized and unrealized.
+		+ GoldenGLAcct: Convert FAGLFLEXA.RACCT to golden GL account by reading golden GL view.
+		+ TradingPartner: Use FAGLFLEXA.RASSC.
+		+ GoldenTradingPartner: Convert FAGLFLEXA.RASSC to golden trading partner by reading golden trading partner view.
+		+ GainLossGC: Calculate GC values from LC values using BPC exchange rates.
+		+ GainLossLC: Use HSL; if LocalCurrency is in specified list, multiply PeriodLC by 100.
+		+ LocalCurrency: Read Entity view (GFA Revenue) to derive Local Currency.
+		+ GainLossTC: Use TSL; if TransactionalCurrency is in specified list, multiply PeriodTC by 100.
+		+ TransactionCurrency: Use FAGLFLEXA.RWCUR (RTCUR).
+		+ OffsetAccount: Apply logic to find offset account for Realized and Unrealized accounts.
+		+ GoldenOffsetAccount: Convert OffsetAccount to golden GL account by reading golden GL view.
+		+ Offset Account LC Amount: Use BSEG.DMBTR.
+		+ Offset Account TC Amount: Use BSEG.WRBTR.
+		+ Offset Clearing Document Number: Use BSEG.AUGBL.
+		+ SourceSystem: Use 'ECC Everest'.
+4. **Load Data into Target Table**:
+	* Load transformed data into the target table "Finance".
