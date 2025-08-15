@@ -1,0 +1,78 @@
+Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **1. Technical Requirement ID**
+TR-FIN-001
+
+* **2. Related Functional Requirement(s)**
+FR-FIN-001
+
+* **3. Objective**
+Implement a data processing job to extract financial data from Everest ECC, apply specified transformations, and load the data into the Finance target table.
+
+* **4. Target Cluster Configuration**
+* Cluster Name: Finance Processing Cluster
+* Databricks Runtime Version: 7.3 LTS
+* Node Type: Standard_DS3_v2
+* Driver Node: 1 x Standard_DS3_v2
+* Worker Nodes: 2-5 x Standard_DS3_v2 (autoscaling)
+* Autoscaling: Enabled
+* Auto Termination: Enabled (30 minutes)
+* Libraries Installed: 
+  + PySpark
+  + pandas
+  + numpy
+
+* **5. Source Data Details**
+* Dataset Name: FAGLFLEXA
+* Location: Everest ECC system
+* Format: SAP BW/4HANA format
+* Description: Financial data from FAGLFLEXA table
+* Dataset Name: BSEG
+* Location: Everest ECC system
+* Format: SAP BW/4HANA format
+* Description: Financial data from BSEG table
+* Dataset Name: Entity Golden View
+* Location: Golden Views database
+* Format: Relational database format
+* Description: Entity information for company code conversion
+* Dataset Name: Golden GL View
+* Location: Golden Views database
+* Format: Relational database format
+* Description: GL account information for conversion
+* Dataset Name: Golden Trading Partner View
+* Location: Golden Views database
+* Format: Relational database format
+* Description: Trading partner information for conversion
+
+* **6. Target Data Details**
+* Output Name: Finance Target Table
+* Location: Finance database
+* Format: Relational database format
+* Description: Transformed financial data for finance reporting
+
+* **7. Job Flow / Pipeline Stages**
+* Stage 1: Data Extraction
+* Stage 2: Data Transformation
+* Stage 3: Data Loading
+
+* **8. Data Transformations / Business Logic**
+* Step: Data Extraction
+* Description: Extract data from FAGLFLEXA and BSEG tables
+* Transformation Logic: Apply filter RLDNR = 0L and join FAGLFLEXA with BSEG on DOCNR=BELNR, RBUKRS=BUKRS, and RYEAR=GJAHR, and BSEG.XBILK = 'X'
+* Step: Data Transformation
+* Description: Apply transformations as specified
+* Transformation Logic: 
+  + FiscalYear: FY parameter
+  + PostingPeriod: Posting Period parameter
+  + SourceFiscalYear: FAGLFLEXA.RYEAR = FY Parameter
+  + ...
+  + GainLossGC: Calculate GC values from LC values using BPC exchange rates (s_shared.v_actual_exchange_rate_bpc)
+  + ...
+* Step: Data Loading
+* Description: Load transformed data into Finance target table
+* Transformation Logic: None
+
+* **9. Error Handling and Logging**
+* Log all errors and exceptions during data extraction, transformation, and loading
+* Implement retry mechanism for data extraction and loading in case of temporary failures
+* Log key metrics and statistics during data processing, such as row counts and processing times
