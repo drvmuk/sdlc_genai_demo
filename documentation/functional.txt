@@ -1,48 +1,58 @@
-Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD) "Coding Requirements" section.
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD) and adhering to the specified template:
 
-**FR-FIN-001: Load Finance Data from ECC Everest**
+**1. Requirement ID**
+FR-FIN-001
 
-**Title:** Load Finance Data from ECC Everest
+**2. Title**
+Load Finance Data from Everest ECC into Finance Table
 
-**Description:** The system must load finance data from ECC Everest into the target table "Finance" based on the specified transformation logic.
+**3. Description**
+The system must load finance data from Everest ECC source tables (FAGLFLEXA and BSEG) into the Finance table, applying specified filters, joins, and transformation logic.
 
-**Preconditions:**
+**4. Preconditions**
+- Source data is available in Everest ECC tables FAGLFLEXA and BSEG.
+- RLDNR = '0L' in FAGLFLEXA.
+- FY parameter (Fiscal Year) is provided.
+- Posting Period parameter is provided.
+- Golden views (Entity, GL, Trading Partner) are available and up-to-date.
+- BPC exchange rates (s_shared.v_actual_exchange_rate_bpc) are available.
 
-* The source tables FAGLFLEXA and BSEG are available in ECC Everest.
-* The FY parameter and Posting Period parameter are provided.
-* The golden views (Entity, GL, Trading Partner) are available and up-to-date.
+**5. Main Flow / Functional Steps**
 
-**Main Flow / Functional Steps:**
+1. **Retrieve Source Data**
+   - Join FAGLFLEXA with BSEG on DOCNR = BELNR, RBUKRS = BUKRS, and RYEAR = GJAHR where XBILK = 'X'.
 
-1. **Retrieve Data from Source Tables**:
-	* Retrieve data from FAGLFLEXA and BSEG tables in ECC Everest.
-	* Apply filter RLDNR = 0L on FAGLFLEXA.
-2. **Join FAGLFLEXA and BSEG**:
-	* Join FAGLFLEXA with BSEG on DOCNR = BELNR, RBUKRS = BUKRS, and RYEAR = GJAHR.
-	* Filter joined data where XBILK = 'X'.
-3. **Apply Transformation Logic**:
-	* For each field in the target table "Finance":
-		+ FiscalYear: Use FY parameter.
-		+ PostingPeriod: Use Posting Period parameter.
-		+ SourceFiscalYear: Use FAGLFLEXA.RYEAR where FAGLFLEXA.RYEAR = FY parameter.
-		+ SourcePeriod: Use FAGLFLEXA.POPER where FAGLFLEXA.POPER = Posting Period parameter.
-		+ DocumentNumber: Use FAGLFLEXA.DOCNR.
-		+ CompCode: Use FAGLFLEXA.RBUKRS excluding values starting with '8'.
-		+ LegalEntity: Read Entity golden view to convert Company Code to Golden Entity; exclude archived Golden Entity values.
-		+ GLAccount: Use FAGLFLEXA.RACCT where FAGLFLEXA.RACCT belongs to golden acct realized and unrealized.
-		+ GoldenGLAcct: Convert FAGLFLEXA.RACCT to golden GL account by reading golden GL view.
-		+ TradingPartner: Use FAGLFLEXA.RASSC.
-		+ GoldenTradingPartner: Convert FAGLFLEXA.RASSC to golden trading partner by reading golden trading partner view.
-		+ GainLossGC: Calculate GC values from LC values using BPC exchange rates.
-		+ GainLossLC: Use HSL; if LocalCurrency is in specified list, multiply PeriodLC by 100.
-		+ LocalCurrency: Read Entity view (GFA Revenue) to derive Local Currency.
-		+ GainLossTC: Use TSL; if TransactionalCurrency is in specified list, multiply PeriodTC by 100.
-		+ TransactionCurrency: Use FAGLFLEXA.RWCUR (RTCUR).
-		+ OffsetAccount: Apply logic to find offset account for Realized and Unrealized accounts.
-		+ GoldenOffsetAccount: Convert OffsetAccount to golden GL account by reading golden GL view.
-		+ Offset Account LC Amount: Use BSEG.DMBTR.
-		+ Offset Account TC Amount: Use BSEG.WRBTR.
-		+ Offset Clearing Document Number: Use BSEG.AUGBL.
-		+ SourceSystem: Use 'ECC Everest'.
-4. **Load Data into Target Table**:
-	* Load transformed data into the target table "Finance".
+2. **Apply Filters**
+   - Filter records where RLDNR = '0L'.
+   - Exclude records where RBUKRS starts with '8%'.
+
+3. **Transform Data**
+   - Map FAGLFLEXA.RYEAR to SourceFiscalYear.
+   - Map FAGLFLEXA.POPER to SourcePeriod.
+   - Map FAGLFLEXA.DOCNR to DocumentNumber.
+   - Map FAGLFLEXA.RBUKRS to CompCode (after excluding those starting with '8%').
+   - Derive LegalEntity from CompCode using Entity golden view and exclude archived Golden Entity values.
+   - Map FAGLFLEXA.RACCT to GLAccount if it belongs to realized/unrealized golden accounts.
+   - Convert FAGLFLEXA.RACCT to GoldenGLAcct using golden GL view.
+   - Map FAGLFLEXA.RASSC to TradingPartner.
+   - Convert FAGLFLEXA.RASSC to GoldenTradingPartner using golden trading partner view.
+   - Calculate GainLossGC using GainLossLC and BPC exchange rate (AVG) for FiscalYearPeriod.
+   - Derive LocalCurrency from Entity view and apply it to calculate GainLossLC (HSL).
+   - Derive TransactionCurrency from RTCUR and apply it to calculate GainLossTC (TSL).
+   - Determine OffsetAccount based on the logic for Realized/Unrealized accounts and BSEG data.
+   - Convert OffsetAccount to GoldenOffsetAccount using golden GL view.
+   - Map BSEG.DMBTR to Offset Account LC Amount.
+   - Map BSEG.WRBTR to Offset Account TC Amount.
+   - Map BSEG.AUGBL to Offset Clearing Document Number.
+
+4. **Load Data into Finance Table**
+   - Insert transformed data into the Finance table.
+
+5. **Audit and Logging**
+   - Log the number of records processed and any errors encountered during processing.
+
+**Additional Requirements/Notes**
+
+- Ensure data consistency and integrity during the loading process.
+- Handle potential errors gracefully, logging issues for further investigation.
+- The system should be able to handle large volumes of data efficiently.
