@@ -1,0 +1,73 @@
+Here's the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **1. Technical Requirement ID**
+TR-FIN-001
+
+* **2. Related Functional Requirement(s)**
+FR-FIN-001
+
+* **3. Objective**
+Implement a PySpark job to load finance data from ECC Everest into the Finance table by joining FAGLFLEXA and BSEG tables, applying transformations, and calculating gain/loss amounts.
+
+* **4. Target Cluster Configuration**
+* Cluster Name: Finance Data Processing Cluster
+* Databricks Runtime Version: 7.3 LTS
+* Node Type: Standard_DS3_v2
+* Driver Node: 1 x Standard_DS3_v2
+* Worker Nodes: 2-5 x Standard_DS3_v2 (autoscaling)
+* Autoscaling: Enabled
+* Auto Termination: 30 minutes
+* Libraries Installed: 
+  * pyspark
+  * pandas
+  * numpy
+
+* **5. Source Data Details**
+* Dataset Name: FAGLFLEXA
+  * Location: ECC Everest source system
+  * Format: Table
+  * Description: FAGLFLEXA table containing finance data
+* Dataset Name: BSEG
+  * Location: ECC Everest source system
+  * Format: Table
+  * Description: BSEG table containing finance data
+* Dataset Name: Entity Golden View
+  * Location: s_shared.v_revenue_entity_bpc
+  * Format: View
+  * Description: Golden view for Entity
+* Dataset Name: BPC Exchange Rates
+  * Location: s_shared.v_actual_exchange_rate_bpc
+  * Format: View
+  * Description: BPC exchange rates
+
+* **6. Target Data Details**
+* Output Name: Finance Table
+  * Location: Finance database
+  * Format: Table
+  * Description: Transformed finance data loaded into the Finance table
+
+* **7. Job Flow / Pipeline Stages**
+* Retrieve Data from FAGLFLEXA and BSEG Tables
+* Apply Filters and Transformations
+* Calculate GainLossGC and GainLossLC
+* Calculate GainLossTC
+* Determine Offset Account
+* Convert Offset Account to Golden GL Account
+* Load Data into Finance Table
+
+* **8. Data Transformations / Business Logic**
+* Step: Join FAGLFLEXA and BSEG tables
+  * Description: Join FAGLFLEXA with BSEG on DOCNR=BELNR, RBUKRS=BUKRS, and RYEAR=GJAHR
+  * Transformation Logic: Inner join using PySpark
+* Step: Filter records
+  * Description: Filter out records where RBUKRS starts with '8%' and XBILK != 'X'
+  * Transformation Logic: Use PySpark filter function
+* Step: Calculate GainLossGC and GainLossLC
+  * Description: Retrieve exchange rate from BPC exchange rates and calculate GainLossGC = GainLossLC * exchange rate
+  * Transformation Logic: Use PySpark to retrieve exchange rate and perform calculation
+
+* **9. Error Handling and Logging**
+* Log errors and exceptions during data processing and loading
+* Use try-except blocks to catch and handle exceptions
+* Log error messages and related data for debugging and auditing purposes
+* Use Databricks logging mechanisms to log job execution and errors.

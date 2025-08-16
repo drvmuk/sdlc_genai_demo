@@ -1,0 +1,50 @@
+%sql
+-- Load data into Finance table
+-- This inserts the transformed data into the Finance table
+
+INSERT INTO Finance.Finance_Data
+SELECT 
+  Client,
+  CompanyCode,
+  FiscalYear,
+  Period,
+  DocumentNumber,
+  FiscalYearDocument,
+  GLAccount,
+  CostCenter,
+  ProfitCenter,
+  FunctionalArea,
+  BusinessArea,
+  ControllingArea,
+  DebitCreditIndicator,
+  AmountInLocalCurrency,
+  AmountInGroupCurrency,
+  AmountInTransactionCurrency,
+  AccountAssignment,
+  ChartOfAccounts,
+  CostElement,
+  LocalCurrency,
+  GroupCurrency,
+  TransactionCurrency,
+  LineItem,
+  TO_DATE(ClearingDate, 'yyyyMMdd'),
+  ClearingPeriod,
+  ClearingDocument,
+  AssignmentNumber,
+  ItemText,
+  HouseBank,
+  PostingKey,
+  AccountType,
+  EntityID,
+  EntityName,
+  EntityType,
+  EntityRegion,
+  ExchangeRate,
+  GainLossLC,
+  GainLossGC,
+  GainLossTC,
+  OffsetAccount,
+  GoldenOffsetAccount,
+  CURRENT_TIMESTAMP() AS ProcessedTimestamp
+FROM 
+  v_finance_mapped;
