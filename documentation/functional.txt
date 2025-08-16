@@ -1,0 +1,47 @@
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD):
+
+**1. Requirement ID**
+FR-FIN-001
+
+**2. Title**
+Load Finance Data from ECC Everest Source System
+
+**3. Description**
+The system must load finance data from the ECC Everest source system into the target "Finance" table, applying specified transformations and filters.
+
+**4. Preconditions**
+
+* The ECC Everest source system is available and accessible.
+* The required source tables (FAGLFLEXA and BSEG) exist and contain relevant data.
+* The necessary views (Entity golden view, Golden GL view, Golden Trading Partner view, and s_shared.v_revenue_entity_bpc) exist and are up-to-date.
+* The FY parameter and Posting Period parameter are provided.
+
+**5. Main Flow / Functional Steps**
+
+* **Step 1: Retrieve Data from Source Tables**
+	+ Retrieve data from FAGLFLEXA and BSEG tables from the ECC Everest source system.
+	+ Apply filter: RLDNR = '0L'.
+* **Step 2: Join FAGLFLEXA and BSEG Tables**
+	+ Join FAGLFLEXA with BSEG on DOCNR = BELNR, RBUKRS = BUKRS, and RYEAR = GJAHR.
+	+ Filter joined data to include only records with XBILK = 'X'.
+* **Step 3: Apply Transformations**
+	+ Derive FiscalYear from FY parameter.
+	+ Derive PostingPeriod from Posting Period parameter.
+	+ Derive DocumentNumber from FAGLFLEXA.DOCNR.
+	+ Derive CompCode from FAGLFLEXA.RBUKRS, excluding values starting with '8'.
+	+ Derive LegalEntity by reading Entity golden view and converting Company Code to Golden Entity; exclude archived Golden Entity values.
+	+ Derive GLAccount from FAGLFLEXA.RACCT, selecting distinct values where FAGLFLEXA.RACCT belongs to golden acct realized and unrealized.
+	+ Derive GoldenGLAcct by converting FAGLFLEXA.RACCT to golden GL account using Golden GL view.
+	+ Derive TradingPartner from FAGLFLEXA.RASSC.
+	+ Derive GoldenTradingPartner by converting FAGLFLEXA.RASSC to golden trading partner using Golden Trading Partner view.
+	+ Derive GainLossGC by calculating GC values from LC values using BPC exchange rates (s_shared.v_actual_exchange_rate_bpc).
+	+ Derive GainLossLC from HSL.
+	+ Derive LocalCurrency by reading Entity view (GFA Revenue).
+	+ Derive GainLossTC from TSL.
+	+ Derive TransactionCurrency from RTCUR.
+	+ Derive OffsetAccount using logic for Realized and Unrealized accounts.
+	+ Derive GoldenOffsetAccount by converting OffsetAccount to golden GL account using Golden GL view.
+* **Step 4: Load Transformed Data into Target Table**
+	+ Load the transformed data into the target "Finance" table.
+
+The functional steps are based on the "Coding Requirements" section of the provided BRD. The detailed transformations and logic are applied as specified in the BRD.

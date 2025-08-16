@@ -1,0 +1,51 @@
+Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **1. Technical Requirement ID**: TR-FIN-001
+* **2. Related Functional Requirement(s)**: FR-FIN-001
+* **3. Objective**: Implement a PySpark job to load finance data from ECC Everest source system into the target "Finance" table, applying specified transformations and filters.
+* **4. Target Cluster Configuration**:
+	+ Cluster Name: Finance Data Processing Cluster
+	+ Databricks Runtime Version: 7.3.x-scala2.12
+	+ Node Type: Standard_DS3_v2
+	+ Driver Node: 1 x Standard_DS3_v2
+	+ Worker Nodes: 2-5 x Standard_DS3_v2 (autoscaling)
+	+ Autoscaling: Enabled
+	+ Auto Termination: Enabled (after 30 minutes of inactivity)
+	+ Libraries Installed: pyspark, pandas, numpy
+* **5. Source Data Details**:
+	+ FAGLFLEXA table: ECC Everest source system, relational database, used for finance data
+	+ BSEG table: ECC Everest source system, relational database, used for finance data
+	+ Entity golden view: relational database, used for entity mapping
+	+ Golden GL view: relational database, used for GL account mapping
+	+ Golden Trading Partner view: relational database, used for trading partner mapping
+	+ s_shared.v_revenue_entity_bpc: relational database, used for revenue entity mapping
+	+ s_shared.v_actual_exchange_rate_bpc: relational database, used for exchange rates
+* **6. Target Data Details**:
+	+ Finance table: target relational database, used for storing transformed finance data
+	+ Output Format: Parquet
+* **7. Job Flow / Pipeline Stages**:
+	+ Retrieve data from FAGLFLEXA and BSEG tables
+	+ Join FAGLFLEXA and BSEG tables on specified columns
+	+ Apply transformations and filters to joined data
+	+ Load transformed data into target Finance table
+* **8. Data Transformations / Business Logic**:
+	+ Derive FiscalYear from FY parameter
+	+ Derive PostingPeriod from Posting Period parameter
+	+ Derive DocumentNumber from FAGLFLEXA.DOCNR
+	+ Derive CompCode from FAGLFLEXA.RBUKRS (excluding values starting with '8')
+	+ Derive LegalEntity by reading Entity golden view and converting Company Code to Golden Entity
+	+ Derive GLAccount from FAGLFLEXA.RACCT (selecting distinct values)
+	+ Derive GoldenGLAcct by converting FAGLFLEXA.RACCT to golden GL account using Golden GL view
+	+ Derive TradingPartner from FAGLFLEXA.RASSC
+	+ Derive GoldenTradingPartner by converting FAGLFLEXA.RASSC to golden trading partner using Golden Trading Partner view
+	+ Derive GainLossGC by calculating GC values from LC values using BPC exchange rates
+	+ Derive GainLossLC from HSL
+	+ Derive LocalCurrency by reading Entity view (GFA Revenue)
+	+ Derive GainLossTC from TSL
+	+ Derive TransactionCurrency from RTCUR
+	+ Derive OffsetAccount using logic for Realized and Unrealized accounts
+	+ Derive GoldenOffsetAccount by converting OffsetAccount to golden GL account using Golden GL view
+* **9. Error Handling and Logging**:
+	+ Log errors and exceptions to a designated log file
+	+ Implement retry mechanism for database connections and queries
+	+ Send notifications to designated personnel in case of job failure or errors
