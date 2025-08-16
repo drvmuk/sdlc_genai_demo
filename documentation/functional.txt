@@ -1,0 +1,84 @@
+Based on the provided Business Requirement Document (BRD), I have constructed a detailed Functional Requirement Document (FRD) as per the given template. Here are the requirements in bullet points, adhering to the "Coding Requirements" section of the BRD.
+
+### FR-FIN-001: Load Finance Data from ECC to Finance Table
+
+* **Requirement ID:** FR-FIN-001
+* **Title:** Load Finance Data from ECC to Finance Table
+* **Description:** The system must load finance data from ECC (ECC Everest) into the Finance table based on specified transformation logic and filters.
+
+### Preconditions
+* The system has access to the source tables FAGLFLEXA and BSEG in ECC Everest.
+* The FY parameter (Fiscal Year) is provided.
+* The Posting Period parameter is provided.
+* The Golden views (Entity, GL, Trading Partner) are available and up-to-date.
+* The BPC exchange rates (s_shared.v_actual_exchange_rate_bpc) are available.
+
+### Main Flow / Functional Steps
+
+1. **Retrieve Data from Source Tables**
+   - Retrieve data from FAGLFLEXA and BSEG tables where RLDNR = '0L'.
+
+2. **Apply Joins**
+   - Join FAGLFLEXA with BSEG on DOCNR = BELNR, RBUKRS = BUKRS, and RYEAR = GJAHR.
+   - Ensure XBILK = 'X' for the joined records.
+
+3. **Apply Filters**
+   - Filter records based on the FY parameter and Posting Period parameter.
+
+4. **Transform Data**
+   - For each field in the target table "Finance":
+     - **FiscalYear:** Use the FY parameter.
+     - **PostingPeriod:** Use the Posting Period parameter.
+     - **SourceFiscalYear:** FAGLFLEXA.RYEAR = FY Parameter.
+     - **SourcePeriod:** FAGLFLEXA.POPER = Posting Period parameter.
+     - **DocumentNumber:** FAGLFLEXA.DOCNR.
+     - **CompCode:** FAGLFLEXA.RBUKRS, excluding those starting with '8'.
+     - **LegalEntity:** Convert Company Code to Golden Entity using the Entity golden view. Exclude archived Golden Entity values.
+     - **GLAccount:** FAGLFLEXA.RACCT where it belongs to golden acct realized and unrealized.
+     - **GoldenGLAcct:** Convert FAGLFLEXA.RACCT to golden GL account.
+     - **TradingPartner:** FAGLFLEXA.RASSC.
+     - **GoldenTradingPartner:** Convert FAGLFLEXA.RASSC to golden trading partner.
+     - **GainLossGC:** Calculate using GainLossLC and BPC exchange rates.
+     - **GainLossLC:** FAGLFLEXA.HSL; adjust for certain Local Currencies.
+     - **LocalCurrency:** Derive from Entity view (GFA Revenue).
+     - **GainLossTC:** FAGLFLEXA.WSL; adjust for certain Transactional Currencies.
+     - **TransactionCurrency:** FAGLFLEXA.RWCUR.
+     - **OffsetAccount:** Determine based on realized or unrealized accounts logic.
+     - **GoldenOffsetAccount:** Convert OffsetAccount to golden GL account.
+     - **Offset Account LC Amount:** BSEG.DMBTR.
+     - **Offset Account TC Amount:** BSEG.WRBTR.
+     - **Offset Clearing Document Number:** BSEG.AUGBL.
+     - **SourceSystem:** 'ECC Everest'.
+
+5. **Load Data into Finance Table**
+   - Insert the transformed data into the Finance table.
+
+### FR-FIN-002: Determine Offset Account for Realized and Unrealized Accounts
+
+* **Requirement ID:** FR-FIN-002
+* **Title:** Determine Offset Account for Realized and Unrealized Accounts
+* **Description:** The system must determine the offset account for both realized and unrealized accounts based on specific logic.
+
+### Preconditions
+* Data is available in FAGLFLEXA and BSEG tables.
+* The logic for determining realized and unrealized accounts is defined.
+
+### Main Flow / Functional Steps
+
+1. **For Realized Accounts:**
+   - Identify accounts where v_realized_unrealized_glaccts.Realized_Unrealized = 'R'.
+   - Use BSEG.HKONT as the offsetting account.
+   - Sort by absolute value of BSEG.WRBTR in descending order where BSEG.AUGBL is not NULL.
+   - Pick the BSEG.HKONT with the max TC Amount and clearing document number.
+
+2. **For Unrealized Accounts:**
+   - Identify accounts where v_realized_unrealized_glaccts.Realized_Unrealized = 'U'.
+   - Use BSEG.HKONT as the offsetting account.
+   - Sort by absolute value of BSEG.WRBTR in descending order where BSEG.AUGBL is NULL.
+   - Pick the BSEG.HKONT with the max TC Amount and no clearing document number.
+
+3. **Update Offset Account in Finance Table**
+   - Update the Finance table with the determined OffsetAccount for each relevant record.
+
+4. **Convert OffsetAccount to GoldenOffsetAccount**
+   - Use the Golden GL view to convert the OffsetAccount to GoldenOffsetAccount.
