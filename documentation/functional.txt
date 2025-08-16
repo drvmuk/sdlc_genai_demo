@@ -1,48 +1,50 @@
-Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD):
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD) "Coding Requirements" section:
 
-**1. Requirement ID**
-FR-FIN-001
+**FR-FIN-001: Load Finance Data from ECC Everest**
 
-**2. Title**
-Populate Finance Table with Data from Everest ECC
+**Title:** Load Finance Data from ECC Everest
 
-**3. Description**
-The system must extract data from Everest ECC source tables (FAGLFLEXA and BSEG), apply transformations, and load the data into the Finance table.
+**Description:** The system must load finance data from ECC Everest into the Finance table based on the specified transformation logic.
 
-**4. Preconditions**
+**Preconditions:**
 
-* Source data is available in Everest ECC tables FAGLFLEXA and BSEG.
-* Fiscal Year and Posting Period parameters are provided.
-* Golden views (Entity, GL, Trading Partner) are available and up-to-date.
-* BPC exchange rates are available in s_shared.v_actual_exchange_rate_bpc.
+* The ECC Everest source system is available.
+* The FAGLFLEXA and BSEG tables exist in the ECC Everest source system.
+* The necessary parameters (FY, Posting Period) are provided.
+* The Golden views (Entity, GL, Trading Partner) are available.
 
-**5. Main Flow / Functional Steps**
+**Main Flow / Functional Steps:**
 
-* **Step 1: Filter and Join Source Data**
-	+ Filter FAGLFLEXA records where RLDNR = '0L'.
-	+ Join FAGLFLEXA with BSEG on DOCNR = BELNR, RBUKRS = BUKRS, and RYEAR = GJAHR.
-	+ Filter joined records where XBILK = 'X'.
-* **Step 2: Apply Transformations**
-	+ Derive FiscalYear from FY parameter.
-	+ Derive PostingPeriod from Posting Period parameter.
-	+ Derive DocumentNumber from FAGLFLEXA.DOCNR.
-	+ Derive CompCode from FAGLFLEXA.RBUKRS (excluding values starting with '8').
-	+ Derive LegalEntity by converting Company Code to Golden Entity using Entity golden view.
-	+ Filter out archived Golden Entity values.
-	+ Derive GLAccount from FAGLFLEXA.RACCT (selecting distinct DOCNR where RACCT belongs to golden acct realized and unrealized).
-	+ Derive GoldenGLAcct by converting FAGLFLEXA.RACCT to golden GL account using golden GL view.
-	+ Derive TradingPartner from FAGLFLEXA.RASSC.
-	+ Derive GoldenTradingPartner by converting FAGLFLEXA.RASSC to golden trading partner using golden trading partner view.
-	+ Calculate GainLossGC using BPC exchange rates and GainLossLC.
-	+ Derive GainLossLC from FAGLFLEXA.HSL (applying special logic for certain Local Currencies).
-	+ Derive LocalCurrency from Entity view (GFA Revenue).
-	+ Derive GainLossTC from FAGLFLEXA.WSL (applying special logic for certain Transactional Currencies).
-	+ Derive TransactionCurrency from FAGLFLEXA.RWCUR.
-	+ Derive OffsetAccount using logic for Realized and Unrealized accounts.
-	+ Derive GoldenOffsetAccount by converting OffsetAccount to golden GL account using golden GL view.
-	+ Derive Offset Account LC Amount from BSEG.DMBTR.
-	+ Derive Offset Account TC Amount from BSEG.WRBTR.
-	+ Derive Offset Clearing Document Number from BSEG.AUGBL.
-* **Step 3: Load Data into Finance Table**
-	+ Load transformed data into the Finance table.
-	+ Set SourceSystem to 'ECC Everest'.
+1. **Retrieve Data from ECC Everest:**
+	* Retrieve data from FAGLFLEXA and BSEG tables based on the filters:
+		+ RLDNR = 0L
+		+ FAGLFLEXA.DOCNR = BSEG.BELNR
+		+ FAGLFLEXA.RBUKRS = BSEG.BUKRS
+		+ FAGLFLEXA.RYEAR = BSEG.GJAHR
+		+ BSEG.XBILK = 'X'
+2. **Apply Transformation Logic:**
+	* For each record:
+		+ Derive FiscalYear from FY parameter.
+		+ Derive PostingPeriod from Posting Period parameter.
+		+ Derive DocumentNumber from FAGLFLEXA.DOCNR.
+		+ Derive CompCode from FAGLFLEXA.RBUKRS (excluding values starting with '8%').
+		+ Derive LegalEntity by reading Entity golden view and converting Company Code to Golden Entity.
+		+ Filter out archived Golden Entity values.
+		+ Derive GLAccount from FAGLFLEXA.RACCT (select distinct FAGLFLEXA.DOCNR where FAGLFLEXA.RACCT belongs to golden acct realized and unrealized).
+		+ Derive GoldenGLAcct by converting FAGLFLEXA.RACCT to golden GL account using golden GL view.
+		+ Derive TradingPartner from FAGLFLEXA.RASSC.
+		+ Derive GoldenTradingPartner by converting FAGLFLEXA.RASSC to golden trading partner using golden trading partner view.
+		+ Calculate GainLossGC using BPC exchange rates (s_shared.v_actual_exchange_rate_bpc).
+		+ Derive GainLossLC from HSL.
+		+ Derive LocalCurrency by reading Entity view (GFA Revenue).
+		+ Derive GainLossTC from FAGLFLEXA.WSL.
+		+ Derive TransactionCurrency from FAGLFLEXA.RWCUR.
+		+ Derive OffsetAccount using the logic for Realized/Unrealized accounts.
+		+ Derive GoldenOffsetAccount by converting OffsetAccount to golden GL account using golden GL view.
+		+ Derive Offset Account LC Amount from BSEG.DMBTR.
+		+ Derive Offset Account TC Amount from BSEG.WRBTR.
+		+ Derive Offset Clearing Document Number from BSEG.AUGBL.
+3. **Load Data into Finance Table:**
+	* Load the transformed data into the Finance table.
+4. **Set SourceSystem:**
+	* Set SourceSystem to 'ECC Everest'.
