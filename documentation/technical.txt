@@ -1,0 +1,49 @@
+Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **Technical Requirement ID**: TR-SO-001
+* **Related Functional Requirement(s)**: FR-SO-001, FR-SO-002
+* **Objective**: Implement a PySpark job to create intermediate and main tables for sales orders by transforming and joining data from multiple source tables.
+
+* **Target Cluster Configuration**:
+	+ Cluster Name: Sales Order Processing Cluster
+	+ Databricks Runtime Version: 7.3 LTS
+	+ Node Type: Standard_DS3_v2
+	+ Driver Node: 1 x Standard_DS3_v2
+	+ Worker Nodes: 2-5 x Standard_DS3_v2 (autoscaling)
+	+ Autoscaling: Enabled
+	+ Auto Termination: Enabled (after 30 minutes of inactivity)
+	+ Libraries Installed: spark-sql, pandas, numpy
+
+* **Source Data Details**:
+	+ `b_lots.plooh`: Located at `/mnt/data/b_lots/plooh`, Format: Delta Lake, Description: Sales order header data
+	+ `b_lots.plool`: Located at `/mnt/data/b_lots/plool`, Format: Delta Lake, Description: Sales order item data
+	+ `b_lots.plcam`: Located at `/mnt/data/b_lots/plcam`, Format: Delta Lake, Description: Sales distribution channel data
+	+ `b_lots.plcbe`: Located at `/mnt/data/b_lots/plcbe`, Format: Delta Lake, Description: Ship-to and sold-to customer data
+	+ `b_lots.ploal`: Located at `/mnt/data/b_lots/ploal`, Format: Delta Lake, Description: Site data
+	+ `b_lots.plosl`: Located at `/mnt/data/b_lots/plosl`, Format: Delta Lake, Description: Site data
+
+* **Target Data Details**:
+	+ `s_shared.sales_orders_hdr_itm_lots`: Located at `/mnt/data/s_shared/sales_orders_hdr_itm_lots`, Format: Delta Lake, Description: Intermediate table for sales orders
+	+ `sales_orders`: Located at `/mnt/data/sales_orders`, Format: Delta Lake, Description: Main table for sales orders
+
+* **Job Flow / Pipeline Stages**:
+	+ Stage 1: Retrieve data from `b_lots.plooh` and `b_lots.plool`, apply filter and join data
+	+ Stage 2: Apply transformations to generate required columns for `s_shared.sales_orders_hdr_itm_lots`
+	+ Stage 3: Create `s_shared.sales_orders_hdr_itm_lots` with transformed data
+	+ Stage 4: Retrieve data from `s_shared.sales_orders_hdr_itm_lots`, apply filter and join with other source tables
+	+ Stage 5: Apply transformations to generate required columns for `sales_orders`
+	+ Stage 6: Create `sales_orders` with transformed data
+
+* **Data Transformations / Business Logic**:
+	+ Step 1: Filter `b_lots.plooh` data where `DATA_OPERATION <> 'D'`
+	+ Step 2: Join `b_lots.plooh` with `b_lots.plool` on `refto` and `refno` columns
+	+ Step 3: Apply transformations to generate `OrderNumber`, `OrderType`, `SalesOrgCompanyCode`, etc.
+	+ Step 4: Filter `s_shared.sales_orders_hdr_itm_lots` data where `DATA_OPERATION <> 'D'` and `year(cast(to_date(from_unixtime(unix_timestamp(cast(datoxc as string), 'yyyyMMdd'))) as date)) >= year(current_date()) - 3`
+	+ Step 5: Join `s_shared.sales_orders_hdr_itm_lots` with `b_lots.plcam` to get `SalesDistributionChannel`
+	+ Step 6: Join `s_shared.sales_orders_hdr_itm_lots` with `b_lots.plcbe` to get `ShipToName` and `SoldToName`
+	+ Step 7: Apply transformations to generate `SiteId` based on data from `b_lots.ploal` and `b_lots.plosl`
+
+* **Error Handling and Logging**:
+	+ Log errors and exceptions to a designated log file
+	+ Implement retry mechanism for failed tasks
+	+ Send notifications to designated teams in case of job failure
