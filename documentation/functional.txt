@@ -1,42 +1,39 @@
-Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD):
+Based on the provided Business Requirement Document (BRD), I will create a detailed Functional Requirement Document (FRD) in bullet points, adhering to the "Coding Requirements" section.
 
-**FR-SO-001: Create Intermediate Table for Sales Orders**
+**FR-SOL-001: Create Intermediate Table s_shared.sales_orders_hdr_itm_lots**
 
-1. **Requirement ID**: FR-SO-001
-2. **Title**: Create Intermediate Table for Sales Orders
-3. **Description**: The system must create an intermediate table `s_shared.sales_orders_hdr_itm_lots` by transforming and joining data from multiple source tables.
+* **Title:** Create Intermediate Table for Sales Orders
+* **Description:** The system must create an intermediate table `s_shared.sales_orders_hdr_itm_lots` by joining and transforming data from various source tables.
+* **Preconditions:**
+	+ Source tables `b_lots.plooh`, `b_lots.plool`, and others are available and populated with data.
+	+ Data in source tables meets the required format and quality standards.
+* **Main Flow / Functional Steps:**
+	1. Retrieve data from `b_lots.plooh` and apply filter `DATA_OPERATION <> 'D'`.
+	2. Join `b_lots.plooh` with `b_lots.plool` on `refto` and `refno` columns.
+	3. Apply transformations and calculations as specified in the mapping document.
+	4. Create the intermediate table `s_shared.sales_orders_hdr_itm_lots` with the required columns.
+	5. Populate the intermediate table with the transformed data.
 
-4. **Preconditions**:
-	* Source tables (`b_lots.plooh`, `b_lots.plool`, etc.) are available and populated with data.
-	* Data in source tables is valid and consistent.
+**FR-SOL-002: Create Main Table sales_orders**
 
-5. **Main Flow / Functional Steps**:
-	* Retrieve data from `b_lots.plooh` and apply filter `DATA_OPERATION <> 'D'`.
-	* Join `b_lots.plooh` with `b_lots.plool` on `refto` and `refno` columns.
-	* Apply transformations to generate required columns (e.g., `OrderNumber`, `OrderType`, `SalesOrgCompanyCode`, etc.).
-	* Create intermediate table `s_shared.sales_orders_hdr_itm_lots` with the transformed data.
+* **Title:** Create Main Table for Sales Orders
+* **Description:** The system must create the main table `sales_orders` by transforming and joining data from the intermediate table `s_shared.sales_orders_hdr_itm_lots` and other source tables.
+* **Preconditions:**
+	+ Intermediate table `s_shared.sales_orders_hdr_itm_lots` is available and populated with data.
+	+ Data in intermediate table meets the required format and quality standards.
+* **Main Flow / Functional Steps:**
+	1. Retrieve data from `s_shared.sales_orders_hdr_itm_lots` and apply filter `DATA_OPERATION <> 'D'` and `year(cast(to_date(from_unixtime(unix_timestamp(cast(a.datoxc as string), 'yyyyMMdd'))) as date))>=year(current_date())-3`.
+	2. Join `s_shared.sales_orders_hdr_itm_lots` with other source tables as specified in the mapping document.
+	3. Apply transformations and calculations as specified in the mapping document.
+	4. Create the main table `sales_orders` with the required columns.
+	5. Populate the main table with the transformed data.
 
-**FR-SO-002: Create Main Table for Sales Orders**
+Some specific functional steps for FR-SOL-002 include:
 
-1. **Requirement ID**: FR-SO-002
-2. **Title**: Create Main Table for Sales Orders
-3. **Description**: The system must create the main table `sales_orders` by transforming and joining data from the intermediate table and other source tables.
+* Derive `SiteId` by joining `s_shared.sales_orders_hdr_itm_lots` with `b_lots.ploal` and `b_lots.plosl` on specific columns.
+* Derive `SalesDistributionChannel` by joining `s_shared.sales_orders_hdr_itm_lots` with `b_lots.plcam` and `b_lots.plpms` on specific columns.
+* Derive `ExchangeRate` by joining `s_shared.sales_orders_hdr_itm_lots` with `s_shared.currency_conversion` on specific columns.
+* Derive `ActualShipDate` by joining `s_shared.sales_orders_hdr_itm_lots` with `b_lots.phihm` on specific columns.
+* Derive `LatestProcessingDate` by joining `s_shared.sales_orders_hdr_itm_lots` with `b_lots.lecotw1` on specific columns.
 
-4. **Preconditions**:
-	* Intermediate table `s_shared.sales_orders_hdr_itm_lots` is available and populated with data.
-	* Other source tables (`b_lots.plcam`, `b_lots.plcbe`, etc.) are available and populated with data.
-
-5. **Main Flow / Functional Steps**:
-	* Retrieve data from `s_shared.sales_orders_hdr_itm_lots` and apply filter `DATA_OPERATION <> 'D'` and `year(cast(to_date(from_unixtime(unix_timestamp(cast(datoxc as string), 'yyyyMMdd'))) as date)) >= year(current_date()) - 3`.
-	* Join `s_shared.sales_orders_hdr_itm_lots` with other source tables (`b_lots.plcam`, `b_lots.plcbe`, etc.) on relevant columns.
-	* Apply transformations to generate required columns (e.g., `SiteId`, `SalesDistributionChannel`, `ShipToName`, etc.).
-	* Create main table `sales_orders` with the transformed data.
-
-Some specific functional steps for FR-SO-002 are:
-
-* System retrieves data from `s_shared.sales_orders_hdr_itm_lots` and joins it with `b_lots.plcam` to get `SalesDistributionChannel`.
-* System retrieves data from `s_shared.sales_orders_hdr_itm_lots` and joins it with `b_lots.plcbe` to get `ShipToName` and `SoldToName`.
-* System applies transformations to generate `SiteId` based on data from `b_lots.ploal` and `b_lots.plosl`.
-* System creates main table `sales_orders` with the transformed data.
-
-Let me know if you'd like me to make any changes!
+These functional requirements outline the necessary steps to create the intermediate and main tables for sales orders, ensuring data is properly transformed and joined according to the specified mapping documents.
