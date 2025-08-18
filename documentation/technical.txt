@@ -1,0 +1,88 @@
+Here's the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* Technical Requirement ID: TR-SO-001
+* Related Functional Requirement(s): FR-SO-001
+* Objective: Implement a PySpark job to create and populate the intermediate table `s_shared.sales_orders_hdr_itm_lots` and the main table `sales_orders` based on the provided mapping document and source tables.
+
+* Target Cluster Configuration:
+  * Cluster Name: Sales Order Processing Cluster
+  * Databricks Runtime Version: 10.4 LTS
+  * Node Type: Standard_DS3_v2
+  * Driver Node: 1 x Standard_DS3_v2
+  * Worker Nodes: 2-5 x Standard_DS3_v2
+  * Autoscaling: Enabled
+  * Auto Termination: 30 minutes
+  * Libraries Installed: 
+    * PySpark
+    * Spark SQL
+
+* Source Data Details:
+  * Dataset Name: 
+    * plooh
+    * plool
+    * plcbe
+    * plcam
+    * plpms
+    * phihm
+    * lecotw1
+    * lmpmt03
+    * isc_registry
+    * currency_conversion
+    * rtbl_lots_ref_type_category_bo_scope
+    * rtbl_lots_market_region_cco
+  * Location (Path/Table): 
+    * b_lots.plooh
+    * b_lots.plool
+    * b_lots.plcbe
+    * b_lots.plcam
+    * b_lots.plpms
+    * b_lots.phihm
+    * b_lots.lecotw1
+    * b_lots.lmpmt03
+    * s_shared.isc_registry
+    * s_shared.currency_conversion
+    * b_user_managed.rtbl_lots_ref_type_category_bo_scope
+    * b_user_managed.rtbl_lots_market_region_cco
+  * Format: 
+    * Parquet
+  * Description: 
+    * Source tables for sales order data
+
+* Target Data Details:
+  * Output Name: 
+    * s_shared.sales_orders_hdr_itm_lots
+    * sales_orders
+  * Location: 
+    * s_shared.sales_orders_hdr_itm_lots
+    * sales_orders
+  * Format: 
+    * Delta Lake
+  * Description: 
+    * Intermediate and main sales order tables
+
+* Job Flow / Pipeline Stages:
+  * Create Intermediate Table `s_shared.sales_orders_hdr_itm_lots`
+  * Populate Columns of `s_shared.sales_orders_hdr_itm_lots`
+  * Create Main Table `sales_orders`
+  * Populate Columns of `sales_orders`
+  * Data Validation and Integrity Checks
+
+* Data Transformations / Business Logic:
+  * Step: Create Intermediate Table `s_shared.sales_orders_hdr_itm_lots`
+    * Description: Retrieve data from `b_lots.plooh` and `b_lots.plool` based on the join condition and filters specified.
+    * Transformation Logic: Apply the transformation logic as defined in the mapping document to populate the columns of `s_shared.sales_orders_hdr_itm_lots`.
+  * Step: Populate Columns of `s_shared.sales_orders_hdr_itm_lots`
+    * Description: For each column, apply the specified transformation logic or directly map from the source columns.
+    * Transformation Logic: Examples include concatenating fields (e.g., OrderNumber: CONCAT(refto, refno)), applying conditional logic, and converting data types.
+  * Step: Create Main Table `sales_orders`
+    * Description: Retrieve data from `s_shared.sales_orders_hdr_itm_lots` and other related tables.
+    * Transformation Logic: Apply the join conditions and filters as specified to populate `sales_orders`.
+  * Step: Populate Columns of `sales_orders`
+    * Description: For each column, apply the specified transformation logic or directly map from the source columns or intermediate table.
+    * Transformation Logic: Handle null or missing values as per the specifications (e.g., setting certain fields to NULL or specific default values).
+
+* Error Handling and Logging:
+  * Log the completion of the process and any errors encountered during execution.
+  * Ensure that the data is consistent and ready for further processing or reporting.
+  * Implement try-except blocks to catch and handle exceptions.
+  * Log error messages and relevant details for debugging purposes.

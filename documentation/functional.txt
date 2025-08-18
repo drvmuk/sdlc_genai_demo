@@ -1,0 +1,65 @@
+### Functional Requirement Document (FRD)
+
+#### Requirement ID
+FR-SO-001
+
+#### Title
+Create Intermediate and Main Sales Order Tables
+
+#### Description
+The system must create two tables: an intermediate table `s_shared.sales_orders_hdr_itm_lots` and a main table `sales_orders`. The intermediate table will be populated based on the provided mapping document from source tables in `b_lots` schema. The main table will be populated using data from the intermediate table and other related tables.
+
+#### Preconditions
+- The source tables (`b_lots.plooh`, `b_lots.plool`, `b_lots.plcbe`, `b_lots.plcam`, `b_lots.plpms`, `b_lots.phihm`, `b_lots.lecotw1`, `b_lots.lmpmt03`) exist and contain the required data.
+- The registry table `s_shared.isc_registry` exists and is populated with the necessary configuration data.
+- The currency conversion table `s_shared.currency_conversion` exists and contains up-to-date exchange rates.
+
+#### Main Flow / Functional Steps
+
+1. **Create Intermediate Table `s_shared.sales_orders_hdr_itm_lots`**
+   - Retrieve data from `b_lots.plooh` and `b_lots.plool` based on the join condition and filters specified.
+   - Apply the transformation logic as defined in the mapping document to populate the columns of `s_shared.sales_orders_hdr_itm_lots`.
+   - Ensure that the `DATA_OPERATION` is not equal to 'D' for both tables.
+
+2. **Populate Columns of `s_shared.sales_orders_hdr_itm_lots`**
+   - For each column, apply the specified transformation logic or directly map from the source columns.
+   - Examples include concatenating fields, applying conditional logic, and converting data types.
+
+3. **Create Main Table `sales_orders`**
+   - Retrieve data from `s_shared.sales_orders_hdr_itm_lots` and other related tables (`b_lots.plcbe`, `b_lots.plcam`, `b_lots.plpms`, `b_lots.phihm`, `b_lots.lecotw1`, `b_lots.lmpmt03`, `b_user_managed.rtbl_lots_ref_type_category_bo_scope`, `b_user_managed.rtbl_lots_market_region_cco`).
+   - Apply the join conditions and filters as specified to populate `sales_orders`.
+
+4. **Populate Columns of `sales_orders`**
+   - For each column, apply the specified transformation logic or directly map from the source columns or intermediate table.
+   - Handle null or missing values as per the specifications (e.g., setting certain fields to NULL or specific default values).
+
+5. **Data Validation and Integrity Checks**
+   - Ensure that the data types and formats of the columns in both tables match the specifications.
+   - Validate that the join conditions and filters are correctly applied to avoid data inconsistencies.
+
+6. **Completion**
+   - The system should log the completion of the process and any errors encountered during execution.
+   - Ensure that the data is consistent and ready for further processing or reporting.
+
+#### Detailed Column Mapping and Transformation for Both Tables
+
+The detailed steps for populating each column in both tables are as follows:
+
+**For `s_shared.sales_orders_hdr_itm_lots`:**
+* OrderNumber: CONCAT(refto, refno) from `b_lots.plooh`
+* OrderType: stndx from `b_lots.plooh` after joining with `b_lots.plool`
+* SalesOrgCompanyCode: bdcob from `b_lots.plool`
+* ... (all other columns as per the provided mapping document)
+
+**For `sales_orders`:**
+* SourceSystem: StandardValue from `s_shared.isc_registry` after applying filters
+* OrderNumber: Directly from `s_shared.sales_orders_hdr_itm_lots`
+* SiteId: Determined based on joins with `b_lots.ploal`, `b_lots.plosl`, and `b_lots.phihm`
+* SalesDistributionChannel: Derived from `b_lots.plcam` and `b_lots.plpms` after applying join conditions
+* ... (all other columns as per the provided mapping document)
+
+#### Post-Conditions
+- Both `s_shared.sales_orders_hdr_itm_lots` and `sales_orders` tables are populated with the required data.
+- The data is consistent and follows the specified transformation logic.
+
+By following these steps, the system will successfully create and populate the required tables as per the business requirements.
