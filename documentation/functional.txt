@@ -1,48 +1,57 @@
-Here are the detailed Functional Requirements based on the provided Business Requirement Document (BRD) and Coding Requirements:
+# Functional Requirement Document (FRD)
 
-### FR-SQL-001: Generate SQL Query for Intermediate Table "s_shared.sales_orders_hdr_itm_lots"
+## FR-SQL-001: SQL Generation for Sales Orders Data Integration
 
-* **Title:** Generate SQL Query for Intermediate Table "s_shared.sales_orders_hdr_itm_lots"
-* **Description:** The system must generate a complete SQL SELECT statement that applies transformation logic, includes appropriate joins, and ensures correct data types and formatting for the intermediate table "s_shared.sales_orders_hdr_itm_lots".
-* **Preconditions:**
-	+ The input mapping table is available with the required columns.
-	+ The source tables (e.g., "b_lots.plooh", "b_lots.plool") are available and contain the required data.
-* **Main Flow / Functional Steps:**
-	1. Retrieve the input mapping table with the required columns (Column Name, Column Type, Source Table, Source Column/Transformation Logic, Join Condition).
-	2. Parse the input mapping table to identify the required columns, data types, and transformation logic for the intermediate table.
-	3. Generate the SQL SELECT statement with the required columns, applying transformation logic as specified.
-	4. Include appropriate joins based on the join conditions specified in the input mapping table.
-	5. Ensure correct data types and formatting (e.g., date conversions) for the selected columns.
-	6. Store the generated SQL query in a suitable format for execution.
+### Title
+SQL Query Generation for Two-Step Sales Orders Data Processing
 
-### FR-SQL-002: Generate SQL Query for Main Table "sales_orders"
+### Description
+The system must generate SQL queries to create intermediate and main sales order tables by transforming source data from various tables according to specified mapping logic.
 
-* **Title:** Generate SQL Query for Main Table "sales_orders"
-* **Description:** The system must generate a complete SQL SELECT statement that applies transformation logic, includes appropriate joins, and ensures correct data types and formatting for the main table "sales_orders".
-* **Preconditions:**
-	+ The intermediate table "s_shared.sales_orders_hdr_itm_lots" is available and populated with data.
-	+ The source tables (e.g., "b_lots.plcam", "b_lots.plcbe") are available and contain the required data.
-* **Main Flow / Functional Steps:**
-	1. Retrieve the input mapping table with the required columns (Column Name, Column Type, Source Table, Source Column/Transformation Logic, Join Condition) for the main table.
-	2. Parse the input mapping table to identify the required columns, data types, and transformation logic for the main table.
-	3. Generate the SQL SELECT statement with the required columns, applying transformation logic as specified.
-	4. Include appropriate joins based on the join conditions specified in the input mapping table, using the intermediate table "s_shared.sales_orders_hdr_itm_lots" as required.
-	5. Ensure correct data types and formatting (e.g., date conversions) for the selected columns.
-	6. Store the generated SQL query in a suitable format for execution.
+### Preconditions
+- All source tables must be available and accessible
+- Source data must adhere to expected formats and data types
+- Required join conditions must be valid
+- User must have appropriate permissions to execute queries
 
-The detailed functional requirements are as follows in bullet points:
+### Main Flow / Functional Steps
 
-* For FR-SQL-001:
-	+ Retrieve input mapping table.
-	+ Parse input mapping table.
-	+ Generate SQL SELECT statement.
-	+ Apply transformation logic.
-	+ Include joins based on join conditions.
-	+ Ensure correct data types and formatting.
-* For FR-SQL-002:
-	+ Retrieve input mapping table for main table.
-	+ Parse input mapping table.
-	+ Generate SQL SELECT statement.
-	+ Apply transformation logic.
-	+ Include joins based on join conditions using intermediate table.
-	+ Ensure correct data types and formatting.
+#### Step 1: Create Intermediate Table Query
+- **FR-SQL-001.1:** Generate a SQL query to create the intermediate table `s_shared.sales_orders_hdr_itm_lots` with the following requirements:
+  - Select data from `b_lots.plooh` as base table with alias 'a' where DATA_OPERATION is not 'D'
+  - Join with `b_lots.plool` table with alias 'b' using the specified join conditions (refto, refno)
+  - Apply all required column transformations including:
+    - String concatenations (e.g., CONCAT(refto,refno) for OrderNumber)
+    - Conditional logic using IF statements
+    - Mathematical operations (e.g., b.ordqx-b.tcqtx-b.tdqtx for OpenQuantityOrginal)
+    - Date conversions using cast, to_date, from_unixtime, and unix_timestamp functions
+  - Include all 25 specified target columns with appropriate data types
+
+#### Step 2: Create Main Table Query
+- **FR-SQL-001.2:** Generate a SQL query to create the main `sales_orders` table with the following requirements:
+  - Use the intermediate table `s_shared.sales_orders_hdr_itm_lots` as the primary data source
+  - Apply additional filtering to include only records where CreateDate is within the last 3 years
+  - Join with multiple reference tables including:
+    - `s_shared.isc_registry` for source system information
+    - `b_lots.plcbe` for customer information
+    - `b_lots.plcam` and `lots_staging.PLPMS_stg` for sales distribution channel
+    - `b_lots.phihm` for actual ship date
+    - `s_shared.currency_conversion` for exchange rate information
+    - `b_lots.lecotw1` for latest processing date
+    - `b_user_managed.rtbl_lots_ref_type_category_bo_scope` for BO scope
+    - `b_lots.lmpmt03` for availability description
+    - `b_user_managed.rtbl_lots_market_region_cco` for bill to market
+  - Apply all required column transformations including:
+    - Conditional logic (e.g., for SiteId, ExchangeRate)
+    - Date conversions
+    - Setting default values for specified columns
+  - Include all 145 specified target columns with appropriate data types
+  - Handle NULL values and blank values as specified in the mapping
+
+#### Common Requirements for Both Queries
+- **FR-SQL-001.3:** Use consistent table aliases (a, b, etc.) as specified in join conditions
+- **FR-SQL-001.4:** Format SQL for readability with proper indentation and line breaks
+- **FR-SQL-001.5:** Apply all transformation logic exactly as specified in the mapping document
+- **FR-SQL-001.6:** Include appropriate data type casting and conversions
+- **FR-SQL-001.7:** Implement all specified join conditions and filters
+- **FR-SQL-001.8:** Handle conditional logic (IF, CASE statements) as described in the mapping
