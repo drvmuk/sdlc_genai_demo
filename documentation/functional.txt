@@ -1,0 +1,39 @@
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD) and adhering to the specified template:
+
+**FR-SQL-001: Generate SQL Query for Sales Orders**
+
+**Title:** Generate SQL Query for Sales Orders Data Extraction
+
+**Description:** The system must generate a complete SQL query to extract sales orders data from various source tables, apply transformation logic, and join tables as specified in the mapping documents.
+
+**Preconditions:**
+
+* The input mapping documents for `s_shared.sales_orders_hdr_itm_lots` and `sales_orders` are available and correctly formatted.
+* The source tables (`b_lots.plooh`, `b_lots.plool`, `b_lots.plcbe`, etc.) exist and contain the required data.
+* The necessary joins and filters are correctly specified in the mapping documents.
+
+**Main Flow / Functional Steps:**
+
+1. **Create Intermediate Table `s_shared.sales_orders_hdr_itm_lots`:**
+	* Retrieve the mapping document for `s_shared.sales_orders_hdr_itm_lots`.
+	* Generate a SQL query to extract data from source tables (`b_lots.plooh`, `b_lots.plool`, etc.) based on the mapping document.
+	* Apply transformation logic (e.g., `CONCAT`, `IF`, `CASE`) as specified in the mapping document.
+	* Join tables as specified in the mapping document (e.g., `b_lots.plooh` with `b_lots.plool`).
+	* Apply filters (e.g., `DATA_OPERATION <> 'D'`) as specified in the mapping document.
+2. **Create Main Table `sales_orders`:**
+	* Retrieve the mapping document for `sales_orders`.
+	* Generate a SQL query to extract data from `s_shared.sales_orders_hdr_itm_lots` and other source tables (`b_lots.plcbe`, `b_lots.plcam`, etc.) based on the mapping document.
+	* Apply transformation logic (e.g., `CASE`, `IF`) as specified in the mapping document.
+	* Join tables as specified in the mapping document (e.g., `s_shared.sales_orders_hdr_itm_lots` with `b_lots.plcbe`).
+	* Apply filters (e.g., `DATA_OPERATION <> 'D'`, `year(cast(to_date(from_unixtime(unix_timestamp(cast(a.datoxc as string), 'yyyyMMdd'))) as date))>=year(current_date())-3`) as specified in the mapping document.
+3. **Generate Final SQL Query:**
+	* Combine the SQL queries generated in steps 1 and 2 to create a single, complete SQL query.
+	* Ensure that the final SQL query is formatted for readability (indentation, line breaks).
+
+The generated SQL query should meet the output requirements specified in the BRD, including:
+
+* A complete SQL query using `SELECT ... FROM ... JOIN ...` syntax.
+* All necessary joins and filters applied.
+* Consistent use of aliases (a, b, etc.) as per the join logic.
+* Correct application of transformation logic.
+* Readable formatting (indentation, line breaks).

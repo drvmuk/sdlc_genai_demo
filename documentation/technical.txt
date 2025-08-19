@@ -1,0 +1,46 @@
+Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **Technical Requirement ID**: TR-SQL-001
+* **Related Functional Requirement(s)**: FR-SQL-001
+* **Objective**: Implement a SQL query generator to extract sales orders data from various source tables, apply transformation logic, and join tables as specified in the mapping documents.
+
+* **Target Cluster Configuration**:
+	+ Cluster Name: Sales Order Processing Cluster
+	+ Databricks Runtime Version: 7.3 LTS
+	+ Node Type: Standard_DS3_v2
+	+ Driver Node: 1 x Standard_DS3_v2
+	+ Worker Nodes: 2-5 x Standard_DS3_v2 (autoscaling)
+	+ Autoscaling: Enabled
+	+ Auto Termination: Enabled (30 minutes)
+	+ Libraries Installed: spark-sql, spark-core, scala-library
+
+* **Source Data Details**:
+	+ Dataset Name: b_lots.plooh, b_lots.plool, b_lots.plcbe, etc.
+	+ Location (Path/Table): Various source tables in the database
+	+ Format: Relational data
+	+ Description: Source data for sales orders
+	+ Mapping documents for `s_shared.sales_orders_hdr_itm_lots` and `sales_orders`
+
+* **Target Data Details**:
+	+ Output Name: Complete SQL query for sales orders data extraction
+	+ Location: Output will be stored in a designated location (e.g., file system, database)
+	+ Format: SQL query string
+	+ Description: Final SQL query that extracts sales orders data from source tables
+
+* **Job Flow / Pipeline Stages**:
+	+ Stage 1: Retrieve mapping documents for `s_shared.sales_orders_hdr_itm_lots` and `sales_orders`
+	+ Stage 2: Generate SQL query for intermediate table `s_shared.sales_orders_hdr_itm_lots`
+	+ Stage 3: Generate SQL query for main table `sales_orders`
+	+ Stage 4: Combine SQL queries to create a single, complete SQL query
+
+* **Data Transformations / Business Logic**:
+	+ Step 1: Retrieve mapping document and generate SQL query for `s_shared.sales_orders_hdr_itm_lots`
+		- Transformation Logic: Apply `CONCAT`, `IF`, `CASE` as specified in the mapping document
+	+ Step 2: Generate SQL query for `sales_orders`
+		- Transformation Logic: Apply `CASE`, `IF` as specified in the mapping document
+	+ Step 3: Join tables and apply filters as specified in the mapping document
+
+* **Error Handling and Logging**:
+	+ Log errors and exceptions during SQL query generation
+	+ Provide meaningful error messages to facilitate debugging and troubleshooting
+	+ Log input mapping documents and generated SQL queries for auditing and debugging purposes
