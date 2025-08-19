@@ -1,57 +1,48 @@
 # Functional Requirement Document (FRD)
 
-## FR-SQL-001: SQL Generation for Sales Orders Data Integration
+## FR-SQL-001
 
 ### Title
-SQL Query Generation for Two-Step Sales Orders Data Processing
+SQL Generation Assistant for Tabular Mapping Documents
 
 ### Description
-The system must generate SQL queries to create intermediate and main sales order tables by transforming source data from various tables according to specified mapping logic.
+The system shall provide functionality to generate SQL SELECT statements based on tabular mapping documents with specified column mappings, transformations, and join conditions.
 
 ### Preconditions
-- All source tables must be available and accessible
-- Source data must adhere to expected formats and data types
-- Required join conditions must be valid
-- User must have appropriate permissions to execute queries
+- A valid tabular mapping document must be provided with the required columns: Column Name, Column Type, Source Table, Source Column/Transformation Logic, and Join Condition
+- Source tables and columns referenced in the mapping document must exist in the database
+- User must have appropriate permissions to execute the generated SQL
 
 ### Main Flow / Functional Steps
 
-#### Step 1: Create Intermediate Table Query
-- **FR-SQL-001.1:** Generate a SQL query to create the intermediate table `s_shared.sales_orders_hdr_itm_lots` with the following requirements:
-  - Select data from `b_lots.plooh` as base table with alias 'a' where DATA_OPERATION is not 'D'
-  - Join with `b_lots.plool` table with alias 'b' using the specified join conditions (refto, refno)
-  - Apply all required column transformations including:
-    - String concatenations (e.g., CONCAT(refto,refno) for OrderNumber)
-    - Conditional logic using IF statements
-    - Mathematical operations (e.g., b.ordqx-b.tcqtx-b.tdqtx for OpenQuantityOrginal)
-    - Date conversions using cast, to_date, from_unixtime, and unix_timestamp functions
-  - Include all 25 specified target columns with appropriate data types
+- **Input Processing Requirements**
+  * System shall accept tabular mapping documents with clearly defined column structure
+  * System shall validate that all required mapping columns are present
+  * System shall parse the mapping document to extract table relationships and transformation logic
 
-#### Step 2: Create Main Table Query
-- **FR-SQL-001.2:** Generate a SQL query to create the main `sales_orders` table with the following requirements:
-  - Use the intermediate table `s_shared.sales_orders_hdr_itm_lots` as the primary data source
-  - Apply additional filtering to include only records where CreateDate is within the last 3 years
-  - Join with multiple reference tables including:
-    - `s_shared.isc_registry` for source system information
-    - `b_lots.plcbe` for customer information
-    - `b_lots.plcam` and `lots_staging.PLPMS_stg` for sales distribution channel
-    - `b_lots.phihm` for actual ship date
-    - `s_shared.currency_conversion` for exchange rate information
-    - `b_lots.lecotw1` for latest processing date
-    - `b_user_managed.rtbl_lots_ref_type_category_bo_scope` for BO scope
-    - `b_lots.lmpmt03` for availability description
-    - `b_user_managed.rtbl_lots_market_region_cco` for bill to market
-  - Apply all required column transformations including:
-    - Conditional logic (e.g., for SiteId, ExchangeRate)
-    - Date conversions
-    - Setting default values for specified columns
-  - Include all 145 specified target columns with appropriate data types
-  - Handle NULL values and blank values as specified in the mapping
+- **SQL Generation Requirements**
+  * System shall generate complete SQL SELECT statements based on the provided mapping
+  * System shall apply all transformation logic exactly as specified in the Source Column/Transformation Logic field
+  * System shall include appropriate table aliases (a, b, etc.) as indicated in the join conditions
+  * System shall implement all join conditions specified in the mapping document
+  * System shall handle conditional logic expressions (IF, CASE statements) as described in the transformation logic
+  * System shall ensure correct data type handling and formatting (e.g., date conversions)
+  * System shall apply common filters specified in the mapping document
 
-#### Common Requirements for Both Queries
-- **FR-SQL-001.3:** Use consistent table aliases (a, b, etc.) as specified in join conditions
-- **FR-SQL-001.4:** Format SQL for readability with proper indentation and line breaks
-- **FR-SQL-001.5:** Apply all transformation logic exactly as specified in the mapping document
-- **FR-SQL-001.6:** Include appropriate data type casting and conversions
-- **FR-SQL-001.7:** Implement all specified join conditions and filters
-- **FR-SQL-001.8:** Handle conditional logic (IF, CASE statements) as described in the mapping
+- **Data Transformation Requirements**
+  * System shall implement string concatenation operations as specified (e.g., CONCAT functions)
+  * System shall handle date conversions using the specified formatting patterns
+  * System shall implement arithmetic operations for decimal calculations as specified
+  * System shall handle conditional transformations using IF statements as specified
+  * System shall implement string manipulations (e.g., TRIM functions) as specified
+
+- **Output Requirements**
+  * System shall generate syntactically correct SQL that can be executed directly
+  * Generated SQL shall include all columns specified in the mapping document
+  * Generated SQL shall maintain the data types specified in the Column Type field
+  * System shall format the SQL output in a readable and structured manner
+
+- **Error Handling Requirements**
+  * System shall validate the mapping document for completeness before generating SQL
+  * System shall provide clear error messages for invalid transformation logic
+  * System shall identify and report inconsistencies in join conditions

@@ -1,130 +1,74 @@
 # Technical Requirement Document (TRD)
 
 ## 1. Technical Requirement ID
-* TR-SQL-001
+TR-SQL-001
 
 ## 2. Related Functional Requirement(s)
-* FR-SQL-001
+FR-SQL-001
 
 ## 3. Objective
-* Implement SQL queries to create intermediate and main sales order tables by transforming source data according to specified mapping logic.
+Implement a SQL generation service that converts tabular mapping documents into executable SQL SELECT statements with proper joins and transformations.
 
 ## 4. Target Cluster Configuration
-* Cluster Name: prod-etl-cluster
-* Databricks Runtime Version: 10.4 LTS
-* Node Type: Standard_DS4_v2
-* Driver Node: 1x Standard_DS4_v2
-* Worker Nodes: 2-8 Standard_DS4_v2
-* Autoscaling: Enabled (2-8 nodes)
-* Auto Termination: 30 minutes
-* Libraries Installed: SparkSQL, Delta Lake, PySpark
+
+- Cluster Name: SQL-Generator-Cluster
+- Databricks Runtime Version: 10.4 LTS (includes Apache Spark 3.2.1)
+- Node Type: Standard_DS3_v2
+- Driver Node: Standard_DS3_v2
+- Worker Nodes: 2-4
+- Autoscaling: Enabled (min 2, max 4 nodes)
+- Auto Termination: 30 minutes
+- Libraries Installed: 
+  * pyspark==3.2.1
+  * pandas==1.4.4
+  * numpy==1.23.1
+  * sqlparse==0.4.3
 
 ## 5. Source Data Details
-* Dataset Name: b_lots.plooh
-  * Location: /data/raw/lots/plooh
-  * Format: Delta
-  * Description: Base table for sales order headers
-  
-* Dataset Name: b_lots.plool
-  * Location: /data/raw/lots/plool
-  * Format: Delta
-  * Description: Sales order line items
-  
-* Dataset Name: b_lots.plcbe
-  * Location: /data/raw/lots/plcbe
-  * Format: Delta
-  * Description: Customer information
-  
-* Dataset Name: b_lots.plcam
-  * Location: /data/raw/lots/plcam
-  * Format: Delta
-  * Description: Sales channel information
-  
-* Dataset Name: lots_staging.PLPMS_stg
-  * Location: /data/staging/lots/PLPMS_stg
-  * Format: Delta
-  * Description: Sales distribution channel data
-  
-* Dataset Name: b_lots.phihm
-  * Location: /data/raw/lots/phihm
-  * Format: Delta
-  * Description: Shipping information
-  
-* Dataset Name: s_shared.currency_conversion
-  * Location: /data/shared/currency_conversion
-  * Format: Delta
-  * Description: Exchange rate information
-  
-* Dataset Name: b_lots.lecotw1
-  * Location: /data/raw/lots/lecotw1
-  * Format: Delta
-  * Description: Processing date information
-  
-* Dataset Name: b_user_managed.rtbl_lots_ref_type_category_bo_scope
-  * Location: /data/user_managed/rtbl_lots_ref_type_category_bo_scope
-  * Format: Delta
-  * Description: BO scope reference data
-  
-* Dataset Name: b_lots.lmpmt03
-  * Location: /data/raw/lots/lmpmt03
-  * Format: Delta
-  * Description: Availability description data
-  
-* Dataset Name: b_user_managed.rtbl_lots_market_region_cco
-  * Location: /data/user_managed/rtbl_lots_market_region_cco
-  * Format: Delta
-  * Description: Bill to market reference data
-  
-* Dataset Name: s_shared.isc_registry
-  * Location: /data/shared/isc_registry
-  * Format: Delta
-  * Description: Source system information
+- The source data will be tabular mapping documents with the following columns:
+  * Column Name
+  * Column Type
+  * Source Table
+  * Source Column/Transformation Logic
+  * Join Condition
 
 ## 6. Target Data Details
-* Output Name: s_shared.sales_orders_hdr_itm_lots
-  * Location: /data/shared/sales_orders_hdr_itm_lots
-  * Format: Delta
-  * Description: Intermediate table containing transformed sales order data
-  
-* Output Name: s_shared.sales_orders
-  * Location: /data/shared/sales_orders
-  * Format: Delta
-  * Description: Main sales orders table with complete transformation and enrichment
+- Output Name: Generated SQL Statement
+- Location: Returned as string output to calling application
+- Format: Plain text SQL
+- Description: Executable SQL SELECT statement that implements all mappings, joins, and transformations
 
 ## 7. Job Flow / Pipeline Stages
-* Stage 1: Execute SQL query to create intermediate table s_shared.sales_orders_hdr_itm_lots
-* Stage 2: Execute SQL query to create main table s_shared.sales_orders
-* Stage 3: Validate data completeness and integrity
-* Stage 4: Log execution metrics and results
+- Input validation stage: Validate the structure and content of the mapping document
+- Parsing stage: Extract column definitions, source tables, and join conditions
+- SQL construction stage:
+  * Generate SELECT clause with all target columns
+  * Generate FROM clause with proper table references
+  * Generate JOIN clauses based on specified conditions
+  * Apply transformation logic to columns
+- Output formatting stage: Format the SQL statement for readability
 
 ## 8. Data Transformations / Business Logic
-* Step 1: Create Intermediate Table
-  * Description: Transform and join base tables to create intermediate table
-  * Transformation Logic:
-    * Filter plooh where DATA_OPERATION is not 'D'
-    * Join with plool on refto and refno
-    * Apply string concatenations for OrderNumber
-    * Implement conditional logic using IF statements
-    * Calculate OpenQuantityOrginal using b.ordqx-b.tcqtx-b.tdqtx
-    * Perform date conversions using cast, to_date, from_unixtime, and unix_timestamp
-    * Create all 25 target columns with appropriate transformations
-
-* Step 2: Create Main Table
-  * Description: Transform and join intermediate table with reference tables
-  * Transformation Logic:
-    * Filter intermediate table for records within last 3 years
-    * Join with multiple reference tables for enrichment
-    * Apply conditional logic for SiteId and ExchangeRate
-    * Perform date conversions as specified
-    * Set default values for specified columns
-    * Handle NULL values according to mapping requirements
-    * Create all 145 target columns with appropriate transformations
+- Parse mapping document to extract column definitions and relationships
+- Apply table aliases as specified in join conditions
+- Implement transformation logic for each column including:
+  * String concatenation operations
+  * Date conversions with specified formats
+  * Arithmetic operations for decimal calculations
+  * Conditional logic (IF, CASE statements)
+  * String manipulations (TRIM, etc.)
+- Generate syntactically correct SQL with proper joins
+- Format SQL output for readability
 
 ## 9. Error Handling and Logging
-* Implement pre-execution validation to verify source table existence and accessibility
-* Log query execution start and end times
-* Capture and log record counts for source and target tables
-* Implement error handling for join failures and data type conversion issues
-* Log detailed error messages with table and column information for troubleshooting
-* Implement data quality checks to validate key business rules
-* Create summary execution report with success/failure status
+- Validate mapping document structure before processing
+- Check for missing required columns in the mapping document
+- Validate source table and column references
+- Validate transformation logic syntax
+- Log all processing steps with appropriate detail level
+- Generate clear error messages for:
+  * Invalid mapping document structure
+  * Missing required fields
+  * Invalid transformation logic
+  * Inconsistent join conditions
+- Return detailed error information to calling application
