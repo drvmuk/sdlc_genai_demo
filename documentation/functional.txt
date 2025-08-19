@@ -1,0 +1,59 @@
+### Functional Requirement Document (FRD)
+
+#### 1. Requirement ID
+FR-SQLG-001
+
+#### 2. Title
+Generate SQL Query for Sales Orders Data Integration
+
+#### 3. Description
+The system must generate a complete SQL SELECT statement that integrates sales orders data from various source tables into a unified output table, applying specified transformations, joins, and filters as per the provided mapping documents.
+
+#### 4. Preconditions
+- The input mapping documents for `s_shared.sales_orders_hdr_itm_lots` and `sales_orders` are available and correctly formatted.
+- The source tables (`b_lots.plooh`, `b_lots.plool`, `b_lots.plcbe`, `b_lots.plcam`, `b_lots.plpms`, `b_lots.phihm`, `b_lots.lecotw1`, `b_user_managed.rtbl_lots_ref_type_category_bo_scope`, `b_user_managed.rtbl_lots_market_region_cco`, `s_shared.isc_registry`, `s_shared.currency_conversion`) exist and contain the required data.
+- The necessary data types and formatting rules are defined.
+
+#### 5. Main Flow / Functional Steps
+
+1. **Create Intermediate Table `s_shared.sales_orders_hdr_itm_lots`**
+   - Retrieve data from source tables `b_lots.plooh` and `b_lots.plool`.
+   - Apply join logic between `b_lots.plooh` and `b_lots.plool` on `refto` and `refno`.
+   - Filter out records where `DATA_OPERATION = 'D'`.
+   - Apply transformation logic as specified in the mapping document for each column (e.g., `OrderNumber`, `OrderType`, `CreateDate`).
+   - Handle conditional logic (e.g., `CASE`, `IF`) for derived columns (e.g., `RelatedOrderNumber`, `RelatedOrderType`).
+
+2. **Create Main Table `sales_orders`**
+   - Retrieve data from `s_shared.sales_orders_hdr_itm_lots` and other source tables as specified.
+   - Perform left joins with tables like `b_lots.plcbe`, `b_lots.plcam`, `b_lots.plpms`, `b_lots.phihm`, `b_lots.lecotw1`, and `s_shared.currency_conversion` based on the mapping document.
+   - Apply filters, including `DATA_OPERATION <> 'D'` and year filter on `CreateDate`.
+   - Apply transformation logic for columns like `SiteId`, `SalesDistributionChannel`, `ExchangeRate`, and `ActualShipDate`.
+   - Handle conditional logic and data type conversions as specified.
+
+3. **Generate SQL Query**
+   - Construct a SQL SELECT statement that incorporates all the joins, filters, and transformations defined in the mapping documents.
+   - Ensure the query follows the specified output requirements (e.g., correct data types, formatting).
+
+4. **Output SQL Query**
+   - The final SQL query should be formatted for readability.
+   - The query should be executable against the specified database schema.
+
+### Detailed Functional Steps in Bullet Points:
+
+* **For `s_shared.sales_orders_hdr_itm_lots`:**
+  - Join `b_lots.plooh` and `b_lots.plool` on `refto` and `refno`.
+  - Apply transformations (e.g., `CONCAT`, `CAST`, `IF`, `CASE`).
+  - Filter data (`DATA_OPERATION <> 'D'`).
+
+* **For `sales_orders`:**
+  - Retrieve data from `s_shared.sales_orders_hdr_itm_lots`.
+  - Perform multiple left joins with other tables as per the mapping document.
+  - Apply specified transformations and filters.
+  - Handle complex logic for columns like `SiteId`, `SalesDistributionChannel`, and `ExchangeRate`.
+
+* **Common Steps:**
+  - Ensure correct data types and formatting.
+  - Use aliases consistently.
+  - Format the SQL query for readability.
+
+By following these steps, the system will generate a comprehensive SQL query that integrates sales orders data from multiple sources, applying the necessary transformations and filters as defined in the mapping documents.

@@ -1,0 +1,75 @@
+Here's the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **1. Technical Requirement ID**
+  TR-SQLG-001
+
+* **2. Related Functional Requirement(s)**
+  FR-SQLG-001
+
+* **3. Objective**
+  Implement a SQL query generator that integrates sales orders data from various source tables into a unified output table, applying specified transformations, joins, and filters as per the provided mapping documents.
+
+* **4. Target Cluster Configuration**
+  * Cluster Name: Sales Orders Integration Cluster
+  * Databricks Runtime Version: 10.4 LTS
+  * Node Type: Standard_DS3_v2
+  * Driver Node: Standard_DS3_v2
+  * Worker Nodes: 2-5 (autoscaling)
+  * Autoscaling: Enabled
+  * Auto Termination: 30 minutes
+  * Libraries Installed:
+    * Spark SQL
+    * Python 3.8
+
+* **5. Source Data Details**
+  * Dataset Name: `b_lots.plooh`
+    * Location: `b_lots.plooh` table
+    * Format: Parquet
+    * Description: Sales orders header data
+  * Dataset Name: `b_lots.plool`
+    * Location: `b_lots.plool` table
+    * Format: Parquet
+    * Description: Sales orders item data
+  * Dataset Name: `b_lots.plcbe`, `b_lots.plcam`, `b_lots.plpms`, `b_lots.phihm`, `b_lots.lecotw1`
+    * Location: Respective tables
+    * Format: Parquet
+    * Description: Additional sales orders data
+  * Dataset Name: `s_shared.isc_registry`, `s_shared.currency_conversion`
+    * Location: Respective tables
+    * Format: Parquet
+    * Description: Reference data for sales orders integration
+
+* **6. Target Data Details**
+  * Output Name: `sales_orders`
+    * Location: `s_shared.sales_orders` table
+    * Format: Parquet
+    * Description: Unified sales orders data
+  * Output Name: `s_shared.sales_orders_hdr_itm_lots`
+    * Location: `s_shared.sales_orders_hdr_itm_lots` table
+    * Format: Parquet
+    * Description: Intermediate sales orders data
+
+* **7. Job Flow / Pipeline Stages**
+  * Stage 1: Create intermediate table `s_shared.sales_orders_hdr_itm_lots`
+    * Retrieve data from `b_lots.plooh` and `b_lots.plool`
+    * Apply join logic and filter out records where `DATA_OPERATION = 'D'`
+    * Apply transformation logic as specified in the mapping document
+  * Stage 2: Create main table `sales_orders`
+    * Retrieve data from `s_shared.sales_orders_hdr_itm_lots` and other source tables
+    * Perform left joins with other tables as per the mapping document
+    * Apply filters and transformation logic as specified
+  * Stage 3: Generate SQL query
+    * Construct a SQL SELECT statement that incorporates all the joins, filters, and transformations defined in the mapping documents
+
+* **8. Data Transformations / Business Logic**
+  * Step: Join `b_lots.plooh` and `b_lots.plool` on `refto` and `refno`
+    * Transformation Logic: Inner join with filter `DATA_OPERATION <> 'D'`
+  * Step: Apply transformations for columns like `OrderNumber`, `OrderType`, `CreateDate`
+    * Transformation Logic: Use `CONCAT`, `CAST`, `IF`, `CASE` statements as specified in the mapping document
+  * Step: Handle complex logic for columns like `SiteId`, `SalesDistributionChannel`, and `ExchangeRate`
+    * Transformation Logic: Use `CASE` statements and data type conversions as specified
+
+* **9. Error Handling and Logging**
+  * Log errors and exceptions during SQL query generation and execution
+  * Use try-except blocks to handle errors and provide meaningful error messages
+  * Log input data and output results for auditing and debugging purposes
