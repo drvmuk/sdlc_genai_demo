@@ -1,0 +1,54 @@
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD) and adhering to the specified template:
+
+### FR-SQLG-001: Generate SQL Query for Sales Orders Data
+
+#### Title
+Generate SQL Query for Sales Orders Data
+
+#### Description
+The system must generate a complete SQL SELECT statement that applies all transformation logic, includes appropriate joins based on the join conditions, uses aliases consistently, ensures correct data types and formatting, and handles conditional logic as described in the mapping document.
+
+#### Preconditions
+- The input mapping table is available with the required columns (Column Name, Column Type, Source Table, Source Column/Transformation Logic, Join Condition).
+- The source tables (e.g., `b_lots.plooh`, `b_lots.plool`, `s_shared.isc_registry`, etc.) exist and contain the necessary data.
+- The join conditions and transformation logic are correctly defined in the mapping document.
+
+#### Main Flow / Functional Steps
+
+1. **Create Intermediate Table `s_shared.sales_orders_hdr_itm_lots`**
+   - Retrieve data from source tables `b_lots.plooh` and `b_lots.plool` based on the join conditions specified in the mapping document.
+   - Apply the transformation logic to derive the target columns (e.g., `OrderNumber`, `OrderType`, `SalesOrgCompanyCode`, etc.).
+   - Use aliases (a, b, etc.) consistently as per the join logic.
+   - Ensure correct data types and formatting (e.g., date conversions).
+   - Handle conditional logic (e.g., IF, CASE) as described in the mapping document.
+   - Store the resulting data in the intermediate table `s_shared.sales_orders_hdr_itm_lots`.
+
+2. **Create Main Table `sales_orders`**
+   - Retrieve data from the intermediate table `s_shared.sales_orders_hdr_itm_lots` and other source tables (e.g., `s_shared.isc_registry`, `b_lots.plcam`, `b_lots.plcbe`, etc.) based on the join conditions specified in the mapping document.
+   - Apply the transformation logic to derive the target columns (e.g., `SourceSystem`, `OrderNumber`, `SalesOrgCompanyCode`, etc.).
+   - Use aliases consistently as per the join logic.
+   - Ensure correct data types and formatting.
+   - Handle conditional logic as described in the mapping document.
+   - Store the resulting data in the main table `sales_orders`.
+
+3. **Generate SQL Query**
+   - Use the mapping document to generate a complete SQL SELECT statement that includes all necessary joins and filters.
+   - Ensure that the SQL query applies all transformation logic and handles conditional logic correctly.
+   - Format the SQL query for readability (indentation, line breaks).
+
+4. **Output SQL Query**
+   - Output the generated SQL query.
+
+The detailed steps for generating the SQL query are as follows:
+
+* For Step 1 (Create Intermediate table `s_shared.sales_orders_hdr_itm_lots`):
+  - The system creates a SQL query that joins `b_lots.plooh` and `b_lots.plool` based on the specified join conditions.
+  - Applies transformation logic to derive target columns.
+  - Ensures correct data types and formatting.
+
+* For Step 2 (Create Main table `sales_orders`):
+  - The system creates a SQL query that retrieves data from `s_shared.sales_orders_hdr_itm_lots` and other source tables.
+  - Applies transformation logic to derive target columns.
+  - Handles conditional logic as specified.
+
+The resulting SQL queries for both steps should be formatted for readability and should correctly apply all transformation logic and join conditions as specified in the mapping document.

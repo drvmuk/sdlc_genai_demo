@@ -1,0 +1,66 @@
+Here's the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **Technical Requirement ID**: TR-SQLG-001
+* **Related Functional Requirement(s)**: FR-SQLG-001
+* **Objective**: Develop a system to generate a complete SQL SELECT statement for Sales Orders Data based on the provided mapping document.
+
+* **Target Cluster Configuration**:
+  * Cluster Name: Sales Order Processing Cluster
+  * Databricks Runtime Version: 7.3 LTS
+  * Node Type: Standard_DS3_v2
+  * Driver Node: Standard_DS3_v2
+  * Worker Nodes: 2-4 (autoscaled)
+  * Autoscaling: Enabled
+  * Auto Termination: Enabled (30 minutes)
+  * Libraries Installed: 
+    * Spark SQL
+    * Scala or Python for scripting
+
+* **Source Data Details**:
+  * Dataset Name: 
+    * b_lots.plooh
+    * b_lots.plool
+    * s_shared.isc_registry
+    * b_lots.plcam
+    * b_lots.plcbe
+  * Location (Path/Table): 
+    * Respective database tables or paths
+  * Format: 
+    * Structured data in database tables
+  * Description: 
+    * Source tables containing sales order data
+
+* **Target Data Details**:
+  * Output Name: 
+    * Intermediate table: s_shared.sales_orders_hdr_itm_lots
+    * Main table: sales_orders
+    * SQL Query Output
+  * Location: 
+    * Respective database tables or output files
+  * Format: 
+    * Structured data in database tables or SQL query string
+  * Description: 
+    * Intermediate and main tables containing transformed sales order data, and the generated SQL query
+
+* **Job Flow / Pipeline Stages**:
+  * Create Intermediate Table: Join source tables, apply transformation logic, and store data in s_shared.sales_orders_hdr_itm_lots
+  * Create Main Table: Retrieve data from intermediate table and other source tables, apply transformation logic, and store data in sales_orders
+  * Generate SQL Query: Use mapping document to generate a complete SQL SELECT statement
+
+* **Data Transformations / Business Logic**:
+  * Step 1: Create Intermediate Table
+    * Join b_lots.plooh and b_lots.plool based on specified join conditions
+    * Apply transformation logic to derive target columns
+    * Ensure correct data types and formatting
+  * Step 2: Create Main Table
+    * Retrieve data from s_shared.sales_orders_hdr_itm_lots and other source tables
+    * Apply transformation logic to derive target columns
+    * Handle conditional logic as specified
+  * Step 3: Generate SQL Query
+    * Use mapping document to generate a complete SQL SELECT statement
+    * Ensure correct application of transformation logic and join conditions
+
+* **Error Handling and Logging**:
+  * Implement try-catch blocks to handle data processing errors
+  * Log errors and exceptions to a designated logging table or file
+  * Provide meaningful error messages to facilitate debugging and troubleshooting
