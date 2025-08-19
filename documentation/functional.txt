@@ -1,0 +1,36 @@
+Here is the Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD):
+
+**FR-SQL-001: Generate SQL Query for Sales Orders**
+
+**Title:** Generate SQL Query for Sales Orders
+
+**Description:** The system must generate a complete SQL query to extract sales orders data from various tables based on the provided mapping document.
+
+**Preconditions:**
+
+* The input mapping table is available with the required columns (Column Name, Column Type, Source Table, Source Column/Transformation Logic, Join Condition, Common Filter).
+* The necessary tables (e.g., `b_lots.plooh`, `b_lots.plool`, `s_shared.isc_registry`, etc.) exist in the database with the required data.
+
+**Main Flow / Functional Steps:**
+
+1. Create an intermediate table `s_shared.sales_orders_hdr_itm_lots` by applying the transformation logic and join conditions specified in the mapping document.
+	* Retrieve data from `b_lots.plooh` and `b_lots.plool` tables.
+	* Apply filters (e.g., `DATA_OPERATION <> 'D'`) and join conditions (e.g., `trim(a.refto)=trim(b.refto)`).
+	* Perform transformations (e.g., `CONCAT(refto,refno)`, `cast(to_date(from_unixtime(unix_timestamp(cast(a.datoxc as string), 'yyyyMMdd'))) as date)`).
+2. Create the main table `sales_orders` by using the intermediate table and applying additional transformations and joins.
+	* Retrieve data from `s_shared.sales_orders_hdr_itm_lots` and other tables (e.g., `b_lots.plcam`, `b_lots.plcbe`, `s_shared.currency_conversion`).
+	* Apply filters (e.g., `year(cast(to_date(from_unixtime(unix_timestamp(cast(a.datoxc as string), 'yyyyMMdd'))) as date))>=year(current_date())-3`).
+	* Perform transformations (e.g., `IF(TRIM(PLCAM.SCTCX) <> '',PLCAM.SCTCX,PLPMS.SCPXXC)`, `cast(to_date(from_unixtime(unix_timestamp(cast(cur.from_date as string), 'yyyyMMdd'))) as date)`).
+3. Generate the final SQL query by selecting the required columns and applying the necessary joins and filters.
+
+**Functional Requirements:**
+
+* The system must support the creation of intermediate and main tables based on the provided mapping document.
+* The system must apply the specified transformation logic and join conditions to generate the required data.
+* The system must handle conditional logic (e.g., `IF`, `CASE`) and date conversions.
+* The system must generate a complete and valid SQL query that can be executed on the target database.
+
+**Non-Functional Requirements:**
+
+* The generated SQL query must be optimized for performance and readability.
+* The system must ensure data consistency and accuracy by applying the necessary filters and transformations.
