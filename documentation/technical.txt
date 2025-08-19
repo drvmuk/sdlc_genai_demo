@@ -1,0 +1,59 @@
+Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **Technical Requirement ID**: TR-SQL-001
+* **Related Functional Requirement(s)**: FR-SQL-001, FR-SQL-002
+* **Objective**: Implement a SQL query generator that creates SQL SELECT statements for intermediate table "s_shared.sales_orders_hdr_itm_lots" and main table "sales_orders" with transformation logic and joins.
+
+* **Target Cluster Configuration**:
+	+ Cluster Name: Data Integration Cluster
+	+ Databricks Runtime Version: 7.3 LTS
+	+ Node Type: Standard_DS3_v2
+	+ Driver Node: Standard_DS3_v2
+	+ Worker Nodes: 2-4 Standard_DS3_v2
+	+ Autoscaling: Enabled
+	+ Auto Termination: 30 minutes
+	+ Libraries Installed: spark-sql, spark-core, scala-library
+
+* **Source Data Details**:
+	+ Dataset Name: Input Mapping Table
+	+ Location: s_shared.input_mapping_table
+	+ Format: Delta Lake
+	+ Description: Contains column mappings and transformation logic for intermediate and main tables
+	+ Dataset Name: Source Tables (e.g., b_lots.plooh, b_lots.plool)
+	+ Location: b_lots schema in the database
+	+ Format: Relational Database Tables
+	+ Description: Contain raw data for sales orders
+
+* **Target Data Details**:
+	+ Output Name: Intermediate Table "s_shared.sales_orders_hdr_itm_lots"
+	+ Location: s_shared schema in the database
+	+ Format: Delta Lake
+	+ Description: Contains transformed data for sales orders with header, item, and lot details
+	+ Output Name: Main Table "sales_orders"
+	+ Location: sales schema in the database
+	+ Format: Delta Lake
+	+ Description: Contains final transformed data for sales orders
+
+* **Job Flow / Pipeline Stages**:
+	+ Retrieve input mapping table
+	+ Parse input mapping table to identify required columns and transformation logic
+	+ Generate SQL SELECT statement for intermediate table
+	+ Execute SQL query to populate intermediate table
+	+ Generate SQL SELECT statement for main table using intermediate table
+	+ Execute SQL query to populate main table
+
+* **Data Transformations / Business Logic**:
+	+ Step: Retrieve input mapping table
+	+ Description: Read input mapping table from Delta Lake
+	+ Transformation Logic: None
+	+ Step: Parse input mapping table
+	+ Description: Identify required columns, data types, and transformation logic
+	+ Transformation Logic: Apply data type conversions and transformation logic as specified
+	+ Step: Generate SQL SELECT statement
+	+ Description: Create SQL query with required columns, joins, and transformation logic
+	+ Transformation Logic: Apply transformation logic and joins as specified
+
+* **Error Handling and Logging**:
+	+ Log errors and exceptions during SQL query generation and execution
+	+ Store error logs in a designated logging table or file system
+	+ Implement retry mechanism for transient errors during SQL query execution
