@@ -1,48 +1,47 @@
-# Functional Requirement Document (FRD)
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD) and the "Coding Requirements" section.
 
-## FR-SQL-001
+**FR-SQLG-001: Generate SQL Query for Sales Orders Data**
 
-### Title
-SQL Generation Assistant for Tabular Mapping Documents
+**Title:** Generate SQL Query for Sales Orders Data
 
-### Description
-The system shall provide functionality to generate SQL SELECT statements based on tabular mapping documents with specified column mappings, transformations, and join conditions.
+**Description:** The system must generate a complete SQL query to extract sales orders data from various tables based on the provided mapping document and apply necessary transformations, joins, and filters.
 
-### Preconditions
-- A valid tabular mapping document must be provided with the required columns: Column Name, Column Type, Source Table, Source Column/Transformation Logic, and Join Condition
-- Source tables and columns referenced in the mapping document must exist in the database
-- User must have appropriate permissions to execute the generated SQL
+**Preconditions:**
 
-### Main Flow / Functional Steps
+* The input mapping table is available with the required columns (Column Name, Column Type, Source Table, Source Column/Transformation logic, Join Condition, Common Filter).
+* The source tables (e.g., `b_lots.plooh`, `b_lots.plool`, `s_shared.isc_registry`) exist and contain the required data.
+* The necessary joins and filters are defined in the mapping document.
 
-- **Input Processing Requirements**
-  * System shall accept tabular mapping documents with clearly defined column structure
-  * System shall validate that all required mapping columns are present
-  * System shall parse the mapping document to extract table relationships and transformation logic
+**Main Flow / Functional Steps:**
 
-- **SQL Generation Requirements**
-  * System shall generate complete SQL SELECT statements based on the provided mapping
-  * System shall apply all transformation logic exactly as specified in the Source Column/Transformation Logic field
-  * System shall include appropriate table aliases (a, b, etc.) as indicated in the join conditions
-  * System shall implement all join conditions specified in the mapping document
-  * System shall handle conditional logic expressions (IF, CASE statements) as described in the transformation logic
-  * System shall ensure correct data type handling and formatting (e.g., date conversions)
-  * System shall apply common filters specified in the mapping document
+1. **Create Intermediate Table `s_shared.sales_orders_hdr_itm_lots`:**
+	* Retrieve the mapping document for `s_shared.sales_orders_hdr_itm_lots`.
+	* Apply the specified transformations, joins, and filters to generate the intermediate table.
+	* Use aliases (e.g., `a`, `b`) consistently as per the join logic.
+2. **Generate SQL Query for `s_shared.sales_orders_hdr_itm_lots`:**
+	* Use the `SELECT ... FROM ... JOIN ...` syntax to generate the SQL query.
+	* Include all necessary joins and filters (e.g., `DATA_OPERATION <> 'D'`).
+	* Ensure correct data types and formatting (e.g., date conversions).
+3. **Create Main Table `sales_orders`:**
+	* Retrieve the mapping document for `sales_orders`.
+	* Apply the specified transformations, joins, and filters to generate the main table.
+	* Use the intermediate table `s_shared.sales_orders_hdr_itm_lots` as a source table.
+4. **Generate SQL Query for `sales_orders`:**
+	* Use the `SELECT ... FROM ... JOIN ...` syntax to generate the SQL query.
+	* Include all necessary joins and filters.
+	* Ensure correct data types and formatting.
+5. **Combine the SQL Queries:**
+	* Use the generated SQL queries for `s_shared.sales_orders_hdr_itm_lots` and `sales_orders` to create a single, complete SQL query.
 
-- **Data Transformation Requirements**
-  * System shall implement string concatenation operations as specified (e.g., CONCAT functions)
-  * System shall handle date conversions using the specified formatting patterns
-  * System shall implement arithmetic operations for decimal calculations as specified
-  * System shall handle conditional transformations using IF statements as specified
-  * System shall implement string manipulations (e.g., TRIM functions) as specified
+**Detailed Requirements:**
 
-- **Output Requirements**
-  * System shall generate syntactically correct SQL that can be executed directly
-  * Generated SQL shall include all columns specified in the mapping document
-  * Generated SQL shall maintain the data types specified in the Column Type field
-  * System shall format the SQL output in a readable and structured manner
+* The system must apply the transformation logic as specified in the mapping document (e.g., `CONCAT(refto,refno)`).
+* The system must include all necessary joins (e.g., `LEFT JOIN b_lots.plool b ON trim(a.refto)=trim(b.refto) AND trim(a.refno)=trim(b.refno)`).
+* The system must apply the common filters (e.g., `DATA_OPERATION <> 'D'`) as specified in the mapping document.
+* The system must ensure correct data types and formatting (e.g., date conversions using `cast(to_date(from_unixtime(unix_timestamp(cast(a.datoxc AS STRING), 'yyyyMMdd'))) AS DATE)`).
+* The system must use aliases consistently as per the join logic.
 
-- **Error Handling Requirements**
-  * System shall validate the mapping document for completeness before generating SQL
-  * System shall provide clear error messages for invalid transformation logic
-  * System shall identify and report inconsistencies in join conditions
+**Expected Output:**
+
+* A complete SQL query that extracts sales orders data from various tables based on the provided mapping document.
+* The SQL query must be formatted for readability (indentation, line breaks).

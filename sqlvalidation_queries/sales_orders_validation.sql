@@ -1,79 +1,67 @@
--- Validation query 1: Check if intermediate table was created successfully
 %sql
-SELECT COUNT(*) AS record_count
+-- Validation query 1: Check if intermediate table was created correctly
+SELECT COUNT(*) AS record_count 
 FROM s_shared.sales_orders_hdr_itm_lots;
 
--- Validation query 2: Check for null values in required fields in intermediate table
-%sql
+-- Validation query 2: Check for null values in key columns of intermediate table
 SELECT 
-  SUM(CASE WHEN order_number IS NULL THEN 1 ELSE 0 END) AS null_order_number,
-  SUM(CASE WHEN order_date IS NULL THEN 1 ELSE 0 END) AS null_order_date,
-  SUM(CASE WHEN customer_number IS NULL THEN 1 ELSE 0 END) AS null_customer_number,
-  SUM(CASE WHEN item_number IS NULL THEN 1 ELSE 0 END) AS null_item_number,
-  SUM(CASE WHEN quantity IS NULL THEN 1 ELSE 0 END) AS null_quantity
+    SUM(CASE WHEN OrderNumber IS NULL THEN 1 ELSE 0 END) AS null_order_number,
+    SUM(CASE WHEN OrderType IS NULL THEN 1 ELSE 0 END) AS null_order_type,
+    SUM(CASE WHEN LineNumber IS NULL THEN 1 ELSE 0 END) AS null_line_number,
+    SUM(CASE WHEN MaterialNumber IS NULL THEN 1 ELSE 0 END) AS null_material_number
 FROM s_shared.sales_orders_hdr_itm_lots;
 
--- Validation query 3: Check if main table was created successfully
-%sql
-SELECT COUNT(*) AS record_count
-FROM sales.sales_orders;
+-- Validation query 3: Check if final table was created correctly
+SELECT COUNT(*) AS record_count 
+FROM s_shared.sales_orders;
 
--- Validation query 4: Check for null values in required fields in main table
-%sql
+-- Validation query 4: Check for null values in key columns of final table
 SELECT 
-  SUM(CASE WHEN order_number IS NULL THEN 1 ELSE 0 END) AS null_order_number,
-  SUM(CASE WHEN order_date IS NULL THEN 1 ELSE 0 END) AS null_order_date,
-  SUM(CASE WHEN customer_number IS NULL THEN 1 ELSE 0 END) AS null_customer_number,
-  SUM(CASE WHEN total_quantity IS NULL THEN 1 ELSE 0 END) AS null_total_quantity
-FROM sales.sales_orders;
+    SUM(CASE WHEN OrderNumber IS NULL THEN 1 ELSE 0 END) AS null_order_number,
+    SUM(CASE WHEN OrderType IS NULL THEN 1 ELSE 0 END) AS null_order_type,
+    SUM(CASE WHEN LineNumber IS NULL THEN 1 ELSE 0 END) AS null_line_number,
+    SUM(CASE WHEN MaterialNumber IS NULL THEN 1 ELSE 0 END) AS null_material_number
+FROM s_shared.sales_orders;
 
--- Validation query 5: Check data integrity between intermediate and main tables
-%sql
-WITH intermediate_summary AS (
-  SELECT 
-    order_number,
-    COUNT(DISTINCT item_number) AS expected_total_items,
-    SUM(quantity) AS expected_total_quantity,
-    SUM(extended_price) AS expected_total_amount
-  FROM s_shared.sales_orders_hdr_itm_lots
-  GROUP BY order_number
-)
+-- Validation query 5: Check date filtering is working correctly
 SELECT 
-  i.order_number,
-  i.expected_total_items,
-  m.total_items,
-  i.expected_total_quantity,
-  m.total_quantity,
-  i.expected_total_amount,
-  m.total_amount,
-  CASE 
-    WHEN i.expected_total_items = m.total_items 
-     AND i.expected_total_quantity = m.total_quantity
-     AND i.expected_total_amount = m.total_amount
-    THEN 'MATCH'
-    ELSE 'MISMATCH'
-  END AS validation_status
-FROM intermediate_summary i
-JOIN sales.sales_orders m ON i.order_number = m.order_number
-WHERE i.expected_total_items != m.total_items
-   OR i.expected_total_quantity != m.total_quantity
-   OR i.expected_total_amount != m.total_amount;
+    YEAR(CreateDate) AS order_year,
+    COUNT(*) AS record_count
+FROM s_shared.sales_orders
+GROUP BY YEAR(CreateDate)
+ORDER BY order_year;
 
--- Validation query 6: Check distribution of order value categories
-%sql
+-- Validation query 6: Verify SiteId logic is working correctly
 SELECT 
-  order_value_category,
-  COUNT(*) AS order_count,
-  MIN(total_amount) AS min_amount,
-  MAX(total_amount) AS max_amount,
-  AVG(total_amount) AS avg_amount
-FROM sales.sales_orders
-GROUP BY order_value_category
-ORDER BY order_value_category;
+    CASE 
+        WHEN SiteId IS NULL THEN 'NULL'
+        WHEN SiteId = '' THEN 'EMPTY'
+        ELSE 'POPULATED'
+    END AS site_id_status,
+    COUNT(*) AS record_count
+FROM s_shared.sales_orders
+GROUP BY 
+    CASE 
+        WHEN SiteId IS NULL THEN 'NULL'
+        WHEN SiteId = '' THEN 'EMPTY'
+        ELSE 'POPULATED'
+    END;
 
--- Validation query 7: Check for duplicate order numbers in main table
-%sql
-SELECT order_number, COUNT(*) AS duplicate_count
-FROM sales.sales_orders
-GROUP BY order_number
-HAVING COUNT(*) > 1;
+-- Validation query 7: Check currency exchange rate logic
+SELECT 
+    CurrencyType,
+    COUNT(*) AS record_count,
+    AVG(ExchangeRate) AS avg_exchange_rate
+FROM s_shared.sales_orders
+GROUP BY CurrencyType
+ORDER BY record_count DESC;
+
+-- Validation query 8: Verify quantity calculations
+SELECT 
+    SUM(OrderQuantityOriginal) AS total_order_qty,
+    SUM(CancelledQuantityOriginal) AS total_cancelled_qty,
+    SUM(DeliveredQuantityOriginal) AS total_delivered_qty,
+    SUM(OpenQuantityOrginal) AS total_open_qty,
+    SUM(OrderQuantityOriginal - CancelledQuantityOriginal - DeliveredQuantityOriginal) AS calculated_open_qty,
+    ABS(SUM(OpenQuantityOrginal) - SUM(OrderQuantityOriginal - CancelledQuantityOriginal - DeliveredQuantityOriginal)) AS qty_discrepancy
+FROM s_shared.sales_orders;

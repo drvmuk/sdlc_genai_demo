@@ -1,74 +1,49 @@
-# Technical Requirement Document (TRD)
+Here's the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
 
-## 1. Technical Requirement ID
-TR-SQL-001
+* **Technical Requirement ID**: TR-SQLG-001
+* **Related Functional Requirement(s)**: FR-SQLG-001
+* **Objective**: Develop a system to generate a complete SQL query for extracting sales orders data from various tables based on the provided mapping document.
 
-## 2. Related Functional Requirement(s)
-FR-SQL-001
+* **Target Cluster Configuration**:
+	+ Cluster Name: Sales Order Processing Cluster
+	+ Databricks Runtime Version: 7.3 LTS
+	+ Node Type: Standard_DS3_v2
+	+ Driver Node: Standard_DS3_v2
+	+ Worker Nodes: 2-4 (autoscaling)
+	+ Autoscaling: Enabled
+	+ Auto Termination: 30 minutes
+	+ Libraries Installed: spark-sql, scala-library
 
-## 3. Objective
-Implement a SQL generation service that converts tabular mapping documents into executable SQL SELECT statements with proper joins and transformations.
+* **Source Data Details**:
+	+ Dataset Name: Mapping Document
+	+ Location: `s_shared.mapping_table`
+	+ Format: Table
+	+ Description: Contains column mappings, transformation logic, and join conditions for sales orders data
+	+ Dataset Name: Source Tables (e.g., `b_lots.plooh`, `b_lots.plool`, `s_shared.isc_registry`)
+	+ Location: Various tables in the database
+	+ Format: Table
+	+ Description: Contain raw data for sales orders
 
-## 4. Target Cluster Configuration
+* **Target Data Details**:
+	+ Output Name: Complete SQL Query
+	+ Location: Output file or stored procedure
+	+ Format: SQL Query
+	+ Description: A single, complete SQL query that extracts sales orders data based on the mapping document
 
-- Cluster Name: SQL-Generator-Cluster
-- Databricks Runtime Version: 10.4 LTS (includes Apache Spark 3.2.1)
-- Node Type: Standard_DS3_v2
-- Driver Node: Standard_DS3_v2
-- Worker Nodes: 2-4
-- Autoscaling: Enabled (min 2, max 4 nodes)
-- Auto Termination: 30 minutes
-- Libraries Installed: 
-  * pyspark==3.2.1
-  * pandas==1.4.4
-  * numpy==1.23.1
-  * sqlparse==0.4.3
+* **Job Flow / Pipeline Stages**:
+	+ Retrieve mapping document for `s_shared.sales_orders_hdr_itm_lots`
+	+ Generate intermediate table `s_shared.sales_orders_hdr_itm_lots`
+	+ Retrieve mapping document for `sales_orders`
+	+ Generate main table `sales_orders` using the intermediate table
+	+ Combine SQL queries for `s_shared.sales_orders_hdr_itm_lots` and `sales_orders`
 
-## 5. Source Data Details
-- The source data will be tabular mapping documents with the following columns:
-  * Column Name
-  * Column Type
-  * Source Table
-  * Source Column/Transformation Logic
-  * Join Condition
+* **Data Transformations / Business Logic**:
+	+ Step: Apply transformation logic as specified in the mapping document (e.g., `CONCAT(refto,refno)`)
+	+ Step: Include necessary joins (e.g., `LEFT JOIN b_lots.plool b ON trim(a.refto)=trim(b.refto) AND trim(a.refno)=trim(b.refno)`)
+	+ Step: Apply common filters (e.g., `DATA_OPERATION <> 'D'`)
+	+ Step: Ensure correct data types and formatting (e.g., date conversions using `cast(to_date(from_unixtime(unix_timestamp(cast(a.datoxc AS STRING), 'yyyyMMdd'))) AS DATE)`)
 
-## 6. Target Data Details
-- Output Name: Generated SQL Statement
-- Location: Returned as string output to calling application
-- Format: Plain text SQL
-- Description: Executable SQL SELECT statement that implements all mappings, joins, and transformations
-
-## 7. Job Flow / Pipeline Stages
-- Input validation stage: Validate the structure and content of the mapping document
-- Parsing stage: Extract column definitions, source tables, and join conditions
-- SQL construction stage:
-  * Generate SELECT clause with all target columns
-  * Generate FROM clause with proper table references
-  * Generate JOIN clauses based on specified conditions
-  * Apply transformation logic to columns
-- Output formatting stage: Format the SQL statement for readability
-
-## 8. Data Transformations / Business Logic
-- Parse mapping document to extract column definitions and relationships
-- Apply table aliases as specified in join conditions
-- Implement transformation logic for each column including:
-  * String concatenation operations
-  * Date conversions with specified formats
-  * Arithmetic operations for decimal calculations
-  * Conditional logic (IF, CASE statements)
-  * String manipulations (TRIM, etc.)
-- Generate syntactically correct SQL with proper joins
-- Format SQL output for readability
-
-## 9. Error Handling and Logging
-- Validate mapping document structure before processing
-- Check for missing required columns in the mapping document
-- Validate source table and column references
-- Validate transformation logic syntax
-- Log all processing steps with appropriate detail level
-- Generate clear error messages for:
-  * Invalid mapping document structure
-  * Missing required fields
-  * Invalid transformation logic
-  * Inconsistent join conditions
-- Return detailed error information to calling application
+* **Error Handling and Logging**:
+	+ Log errors and exceptions during SQL query generation
+	+ Handle invalid or missing data in the mapping document or source tables
+	+ Provide meaningful error messages for debugging and troubleshooting
