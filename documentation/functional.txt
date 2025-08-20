@@ -1,0 +1,39 @@
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD) and adhering to the specified template:
+
+**FR-SQLG-001: Generate SQL Query for Sales Orders**
+
+**Title:** Generate SQL Query for Sales Orders
+
+**Description:** The system must generate a complete SQL query to extract sales orders data from various source tables, applying transformation logic, joins, and filters as specified in the input mapping document.
+
+**Preconditions:**
+
+* Input mapping document is available with the required column mappings and transformation logic.
+* Source tables (e.g., `b_lots.plooh`, `b_lots.plool`, `b_lots.plcbe`) are available and contain the required data.
+* The system has access to the required tables and data.
+
+**Main Flow / Functional Steps:**
+
+1. **Create Intermediate Table:** Create an intermediate table `s_shared.sales_orders_hdr_itm_lots` by applying the column mappings and transformation logic specified in the input mapping document.
+	* Retrieve data from source tables `b_lots.plooh` and `b_lots.plool`.
+	* Apply joins and filters as specified (e.g., `DATA_OPERATION <> 'D'`).
+	* Apply transformation logic (e.g., `CONCAT(refto, refno)` for `OrderNumber`).
+2. **Create Main Table:** Create the main table `sales_orders` by applying the column mappings and transformation logic specified in the input mapping document.
+	* Retrieve data from the intermediate table `s_shared.sales_orders_hdr_itm_lots` and other source tables (e.g., `b_lots.plcbe`, `b_lots.plcam`).
+	* Apply joins and filters as specified.
+	* Apply transformation logic (e.g., `CASE` statement for `SiteId`).
+3. **Generate SQL Query:** Generate a complete SQL query that extracts data from the main table `sales_orders`.
+	* Include all necessary columns and apply data type conversions as required.
+	* Format the SQL query for readability (indentation, line breaks).
+
+**Detailed Requirements:**
+
+* The system must apply the transformation logic and joins as specified in the input mapping document.
+* The system must use aliases consistently (e.g., `a`, `b`) as per the join logic.
+* The system must ensure correct data types and formatting (e.g., date conversions).
+* The system must handle conditional logic (e.g., `IF`, `CASE`) as described in the input mapping document.
+
+**Output:**
+
+* A complete SQL query that extracts sales orders data from the main table `sales_orders`.
+* The SQL query must be formatted for readability and include all necessary columns and data type conversions.

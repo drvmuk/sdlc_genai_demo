@@ -1,0 +1,61 @@
+Here's the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **Technical Requirement ID:** TR-SQLG-001
+* **Related Functional Requirement(s):** FR-SQLG-001
+* **Objective:** Develop a system to generate a complete SQL query for extracting sales orders data from various source tables, applying transformation logic, joins, and filters as specified in the input mapping document.
+
+* **Target Cluster Configuration:**
+	+ Cluster Name: Databricks Sales Order Cluster
+	+ Databricks Runtime Version: 7.3 LTS
+	+ Node Type: Standard_DS3_v2
+	+ Driver Node: 1 x Standard_DS3_v2
+	+ Worker Nodes: 2-5 x Standard_DS3_v2 (autoscaling)
+	+ Autoscaling: Enabled
+	+ Auto Termination: 30 minutes
+	+ Libraries Installed: Spark SQL, Scala
+
+* **Source Data Details:**
+	+ Dataset Name: b_lots.plooh
+	+ Location: Database table
+	+ Format: Relational data
+	+ Description: Source table containing sales order header data
+	+ Dataset Name: b_lots.plool
+	+ Location: Database table
+	+ Format: Relational data
+	+ Description: Source table containing sales order item data
+	+ Dataset Name: b_lots.plcbe
+	+ Location: Database table
+	+ Format: Relational data
+	+ Description: Source table containing sales order additional data
+	+ Dataset Name: Input Mapping Document
+	+ Location: File system or database
+	+ Format: JSON or XML
+	+ Description: Document containing column mappings and transformation logic
+
+* **Target Data Details:**
+	+ Output Name: SQL Query for Sales Orders
+	+ Location: File system or database
+	+ Format: SQL query string
+	+ Description: Complete SQL query for extracting sales orders data
+
+* **Job Flow / Pipeline Stages:**
+	+ Create intermediate table `s_shared.sales_orders_hdr_itm_lots` by applying column mappings and transformation logic
+	+ Create main table `sales_orders` by applying column mappings and transformation logic
+	+ Generate complete SQL query for extracting data from `sales_orders`
+
+* **Data Transformations / Business Logic:**
+	+ Step: Create intermediate table
+	+ Description: Apply column mappings and transformation logic to source tables
+	+ Transformation Logic: Use Spark SQL to apply joins, filters, and transformations (e.g., `CONCAT(refto, refno)` for `OrderNumber`)
+	+ Step: Create main table
+	+ Description: Apply column mappings and transformation logic to intermediate table and other source tables
+	+ Transformation Logic: Use Spark SQL to apply joins, filters, and transformations (e.g., `CASE` statement for `SiteId`)
+	+ Step: Generate SQL query
+	+ Description: Generate complete SQL query for extracting data from main table
+	+ Transformation Logic: Use Spark SQL to format query for readability and include necessary columns and data type conversions
+
+* **Error Handling and Logging:**
+	+ Log errors and exceptions during job execution
+	+ Handle null or missing values in source data
+	+ Validate input mapping document for correct format and content
+	+ Implement retry mechanism for transient errors (e.g., database connection issues)
