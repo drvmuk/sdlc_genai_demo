@@ -1,72 +1,80 @@
-Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD) "Coding Requirements" section:
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD) and adhering to the specified template:
 
-**FR-DLT-001: Load Customer and Order Data to Delta Tables**
+### FR-SQLG-001: Generate SQL Query for Sales Orders Data
 
-* **Title:** Load Customer and Order Data to Delta Tables
-* **Description:** The system must read source CSV data from a volume and load it into Delta tables for customer and order data.
-* **Preconditions:**
-	+ CSV files are available at the specified locations: `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata` and `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata`
-	+ Delta tables are available for customer and order data
-* **Main Flow / Functional Steps:**
-	1. Read customer CSV data from `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata` and load it into a Delta table named "customer".
-	2. Read order CSV data from `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata` and load it into a Delta table named "order".
-	3. Add a new column "TotalAmount" to the "order" table, calculated as the product of "PricePerUnit" and "Qty" columns.
+#### Title
+Generate SQL Query for Sales Orders Data
 
-**FR-DLT-002: Clean and Process Customer and Order Data**
+#### Description
+The system must generate a complete SQL SELECT statement that applies transformation logic, includes appropriate joins, and ensures correct data types and formatting based on the provided tabular mapping document.
 
-* **Title:** Clean and Process Customer and Order Data
-* **Description:** The system must remove null and duplicate records from customer and order data.
-* **Preconditions:**
-	+ Customer and order data are loaded into Delta tables
-* **Main Flow / Functional Steps:**
-	1. Remove null records from the "customer" and "order" tables.
-	2. Remove duplicate records from the "customer" and "order" tables.
+#### Preconditions
+- The input mapping table is available with the required columns (Column Name, Column Type, Source Table, Source Column/Transformation Logic, Join Condition).
+- The source tables (e.g., `b_lots.plooh`, `b_lots.plool`, `b_lots.plcbe`, etc.) exist and contain the necessary data.
+- The `s_shared.isc_registry` table contains the required registry codes and values.
 
-**FR-DLT-003: Create Ordersummary Table and Load Joined Data**
+#### Main Flow / Functional Steps
 
-* **Title:** Create Ordersummary Table and Load Joined Data
-* **Description:** The system must create an "ordersummary" table if it does not exist and load joined customer and order data into it using SCD Type 2.
-* **Preconditions:**
-	+ Customer and order data are cleaned and processed
-	+ "ordersummary" table does not exist or is available for loading
-* **Main Flow / Functional Steps:**
-	1. Create the "ordersummary" table if it does not exist in the catalog "gen_ai_poc_databrickscoe" and schema "sdlc_wizard".
-	2. Join customer and order data using the "CustId" field.
-	3. Load the joined data into the "ordersummary" table using SCD Type 2.
+1. **Create Intermediate Table (`s_shared.sales_orders_hdr_itm_lots`):**
+   - Retrieve the mapping document for `s_shared.sales_orders_hdr_itm_lots`.
+   - Generate a SQL query that applies the specified transformation logic and join conditions.
+   - Ensure the query includes all necessary columns as per the mapping document.
 
-**FR-DLT-004: Update Ordersummary Table on Customer Data Change**
+2. **Apply Transformation Logic and Joins for Intermediate Table:**
+   - For each column in the mapping document, apply the specified transformation logic or directly map the source column.
+   - Implement joins based on the join conditions provided (e.g., between `b_lots.plooh` and `b_lots.plool`).
+   - Use aliases (e.g., `a`, `b`) consistently as indicated in the join conditions.
 
-* **Title:** Update Ordersummary Table on Customer Data Change
-* **Description:** The system must update the "ordersummary" table whenever there is a change in the customer table.
-* **Preconditions:**
-	+ Customer data is updated
-	+ "ordersummary" table is available
-* **Main Flow / Functional Steps:**
-	1. Identify changes in the customer table.
-	2. Update the "ordersummary" table by making old records inactive and new records active.
-	3. Update StartDate and EndDate accordingly to maintain history.
+3. **Create Main Table (`sales_orders`):**
+   - Retrieve the mapping document for `sales_orders`.
+   - Generate a SQL query that joins `s_shared.sales_orders_hdr_itm_lots` with other required tables (e.g., `b_lots.plcam`, `b_lots.plcbe`, `s_shared.currency_conversion`) based on the specified join conditions.
+   - Apply the transformation logic for each column as specified in the mapping document.
 
-**FR-DLT-005: Create Customer Aggregate Spend Table and Load Aggregated Data**
+4. **Apply Filters and Additional Logic:**
+   - Apply the filter `DATA_OPERATION <> 'D'` to all relevant tables.
+   - For the `sales_orders` table, apply the additional filter `year(cast(to_date(from_unixtime(unix_timestamp(cast(a.datoxc as string), 'yyyyMMdd'))) as date)) >= year(current_date()) - 3`.
 
-* **Title:** Create Customer Aggregate Spend Table and Load Aggregated Data
-* **Description:** The system must create a "customeraggregatespend" table if it does not exist and load aggregated data from the "ordersummary" table.
-* **Preconditions:**
-	+ "ordersummary" table is available and loaded with data
-	+ "customeraggregatespend" table does not exist or is available for loading
-* **Main Flow / Functional Steps:**
-	1. Create the "customeraggregatespend" table if it does not exist in the catalog "gen_ai_poc_databrickscoe" and schema "sdlc_wizard".
-	2. Aggregate the "TotalAmount" column from the "ordersummary" table and group by "Name" and "Date" columns.
-	3. Load the aggregated data into the "customeraggregatespend" table.
+5. **Generate Final SQL Query:**
+   - Combine the logic for creating the intermediate table and the main table into a coherent SQL query.
+   - Ensure the query is formatted for readability.
 
-**FR-DLT-006: Implement Delta Live Tables**
+6. **Output:**
+   - The final output is a complete SQL query that can be executed to populate the `sales_orders` table.
 
-* **Title:** Implement Delta Live Tables
-* **Description:** The system must implement Delta Live Tables for the above-mentioned functionality.
-* **Preconditions:**
-	+ All previous steps are completed successfully
-* **Main Flow / Functional Steps:**
-	1. Implement Delta Live Tables for loading customer and order data.
-	2. Implement Delta Live Tables for cleaning and processing customer and order data.
-	3. Implement Delta Live Tables for creating and loading the "ordersummary" table.
-	4. Implement Delta Live Tables for updating the "ordersummary" table on customer data change.
-	5. Implement Delta Live Tables for creating and loading the "customeraggregatespend" table.
+#### Detailed SQL Generation Steps:
+
+* For Step 1 (Creating Intermediate Table):
+  - The system generates a SQL query like:
+    ```sql
+    CREATE TABLE s_shared.sales_orders_hdr_itm_lots AS
+    SELECT 
+      CONCAT(a.refto, a.refno) AS OrderNumber,
+      a.stndx AS OrderType,
+      b.bdcob AS SalesOrgCompanyCode,
+      -- Apply similar logic for other columns
+    FROM (SELECT * FROM b_lots.plooh WHERE DATA_OPERATION <> 'D') a
+    LEFT JOIN b_lots.plool b ON TRIM(a.refto) = TRIM(b.refto) AND TRIM(a.refno) = TRIM(b.refno)
+    -- Apply similar join logic for other tables as necessary
+    WHERE a.DATA_OPERATION <> 'D';
+    ```
+
+* For Step 2 (Creating Main Table):
+  - The system generates a SQL query like:
+    ```sql
+    CREATE TABLE sales_orders AS
+    SELECT 
+      a.OrderNumber,
+      a.OrderType,
+      -- Apply transformation logic for other columns based on the mapping document
+      CASE 
+        WHEN TRIM(e.whcda) <> '' AND e.whcda IS NOT NULL THEN e.whcda 
+        ELSE b.whcdl 
+      END AS SiteId,
+      -- Other columns
+    FROM s_shared.sales_orders_hdr_itm_lots a
+    LEFT JOIN b_lots.plosl e ON -- Join conditions based on the mapping document
+    -- Other joins and logic as specified
+    WHERE a.DATA_OPERATION <> 'D' AND year(cast(to_date(from_unixtime(unix_timestamp(cast(a.datoxc as string), 'yyyyMMdd'))) as date)) >= year(current_date()) - 3;
+    ```
+
+The generated SQL queries will follow the logic and structure outlined in the mapping documents, ensuring that all transformation logic, join conditions, and filters are correctly applied.
