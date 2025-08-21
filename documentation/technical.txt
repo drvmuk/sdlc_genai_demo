@@ -1,0 +1,62 @@
+Here's the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* Technical Requirement ID: TR-SQG-001
+* Related Functional Requirement(s): FR-SQG-001
+* Objective: Implement a SQL query generator to integrate sales orders data from various source tables into intermediate and main tables, applying specified transformation logic, joins, and filters.
+
+* Target Cluster Configuration:
+  * Cluster Name: Sales Data Integration Cluster
+  * Databricks Runtime Version: 7.3 LTS
+  * Node Type: Standard_DS3_v2
+  * Driver Node: 1 x Standard_DS3_v2
+  * Worker Nodes: 2-5 x Standard_DS3_v2 (autoscaling)
+  * Autoscaling: Enabled (min: 2, max: 5)
+  * Auto Termination: Enabled (30 minutes)
+  * Libraries Installed: 
+    * Spark SQL
+    * Python 3.8
+
+* Source Data Details:
+  * Dataset Name: Sales Orders Data
+  * Location (Path/Table): 
+    * b_source.ord_hdr
+    * b_source.ord_dtl
+    * s_master.sale_orders
+    * b_source.ord_addr
+    * b_source.ord_channel
+  * Format: Relational tables
+  * Description: Source tables containing sales orders data
+
+* Target Data Details:
+  * Output Name: 
+    * sales_orders_comp_stg
+    * sales_orders_comp
+  * Location: 
+    * Intermediate table: sales_orders_comp_stg
+    * Main table: sales_orders_comp
+  * Format: Relational tables
+  * Description: Target tables containing integrated sales orders data
+
+* Job Flow / Pipeline Stages:
+  * Stage 1: Generate SQL for Intermediate Table `sales_orders_comp_stg`
+  * Stage 2: Generate SQL for Main Table `sales_orders_comp`
+  * Stage 3: Execute generated SQL queries to populate target tables
+
+* Data Transformations / Business Logic:
+  * Step 1: Generate SQL for `sales_orders_comp_stg`
+    * Description: Retrieve data from `b_source.ord_hdr` and `b_source.ord_dtl`, apply transformation logic, and join tables.
+    * Transformation Logic: 
+      * CONCAT(referenceto, refno) for CompOrderNumber
+      * IF and CASE statements for various columns
+      * Data type conversions (e.g., date conversions)
+  * Step 2: Generate SQL for `sales_orders_comp`
+    * Description: Retrieve data from `s_master.sale_orders` and other related tables, apply transformation logic, and perform LEFT JOINs.
+    * Transformation Logic: 
+      * CASE statements for various columns
+      * IF statements for CompExchangeRate
+      * Data type conversions (e.g., date conversions)
+
+* Error Handling and Logging:
+  * Log errors and exceptions during SQL generation and execution
+  * Implement try-catch blocks to handle potential errors during data type conversions and joins
+  * Log input data and generated SQL queries for auditing and debugging purposes
