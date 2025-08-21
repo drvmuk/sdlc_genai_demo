@@ -1,0 +1,40 @@
+Based on the provided Business Requirement Document (BRD), I will create a detailed Functional Requirement Document (FRD) in the required template.
+
+**FR-SQG-001: Generate SQL Query for Sales Orders Data**
+
+**Title:** Generate SQL Query for Sales Orders Data
+
+**Description:** The system must generate a complete SQL SELECT statement that applies transformation logic, includes necessary joins, and ensures correct data types and formatting for sales orders data.
+
+**Preconditions:**
+
+* The input mapping table is available with the required columns (Column Name, Column Type, Source Table, Source Column/Transformation Logic, Join Condition).
+* The source tables (b_source.ord_hdr, b_source.ord_dtl, s_master.sale_orders, etc.) exist and contain the required data.
+* The data operation filter (delete_flag <> 'D') is applied to the source tables.
+
+**Main Flow / Functional Steps:**
+
+1. **Create Intermediate Table (sales_orders_comp_stg)**:
+	* Retrieve data from source tables (b_source.ord_hdr and b_source.ord_dtl) based on the join condition and common filter (delete_flag <> 'D').
+	* Apply transformation logic to derive target columns (e.g., CONCAT(referenceto, refno) for CompOrderNumber).
+	* Use aliases (a, b, etc.) consistently as per the join logic.
+2. **Create Main Table (sales_orders_comp)**:
+	* Retrieve data from the intermediate table (sales_orders_comp_stg) and other source tables (s_master.sale_orders, b_source.ord_addr, etc.).
+	* Apply transformation logic to derive target columns (e.g., CASE statement for CompSiteId).
+	* Use aliases (a, b, etc.) consistently as per the join logic.
+	* Apply filters (e.g., year(cast(to_date(from_unixtime(unix_timestamp(cast(a.processed_date as string), 'yyyyMMdd'))) as date)) >= year(current_date())-3).
+3. **Generate SQL Query**:
+	* Use the derived columns and tables to generate a complete SQL SELECT statement.
+	* Ensure correct data types and formatting (e.g., date conversions).
+	* Include all necessary joins and filters.
+4. **Output SQL Query**:
+	* The generated SQL query is output in a readable format (indentation, line breaks).
+
+The functional requirements are written in bullet points as follows:
+
+* The system must generate a SQL query that applies transformation logic to derive target columns.
+* The system must include necessary joins based on the join conditions.
+* The system must ensure correct data types and formatting (e.g., date conversions).
+* The system must apply filters (e.g., delete_flag <> 'D') to the source tables.
+* The system must use aliases (a, b, etc.) consistently as per the join logic.
+* The system must output the generated SQL query in a readable format.

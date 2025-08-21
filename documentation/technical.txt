@@ -1,0 +1,34 @@
+Here's the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **Technical Requirement ID**: TR-SQG-001
+* **Related Functional Requirement(s)**: FR-SQG-001
+* **Objective**: Implement a PySpark job to generate a complete SQL SELECT statement that applies transformation logic, includes necessary joins, and ensures correct data types and formatting for sales orders data.
+* **Target Cluster Configuration**:
+	+ Cluster Name: Sales Data Processing Cluster
+	+ Databricks Runtime Version: 7.3 LTS
+	+ Node Type: Standard_DS3_v2
+	+ Driver Node: Standard_DS3_v2 (1 node)
+	+ Worker Nodes: Standard_DS3_v2 (2-5 nodes)
+	+ Autoscaling: Enabled
+	+ Auto Termination: 30 minutes
+	+ Libraries Installed: spark-sql, pandas, numpy
+* **Source Data Details**:
+	+ b_source.ord_hdr: /mnt/source/data/b_source/ord_hdr, Parquet, Sales order header data
+	+ b_source.ord_dtl: /mnt/source/data/b_source/ord_dtl, Parquet, Sales order detail data
+	+ s_master.sale_orders: /mnt/source/data/s_master/sale_orders, Parquet, Master sales order data
+	+ b_source.ord_addr: /mnt/source/data/b_source/ord_addr, Parquet, Sales order address data
+* **Target Data Details**:
+	+ SQL Query Output: /mnt/output/sql_query, Text, Generated SQL query for sales orders data
+* **Job Flow / Pipeline Stages**:
+	+ Create Intermediate Table (sales_orders_comp_stg)
+	+ Create Main Table (sales_orders_comp)
+	+ Generate SQL Query
+	+ Output SQL Query
+* **Data Transformations / Business Logic**:
+	+ Step 1: Retrieve data from b_source.ord_hdr and b_source.ord_dtl, apply join condition and common filter (delete_flag <> 'D'), and derive target columns (e.g., CONCAT(referenceto, refno) for CompOrderNumber)
+	+ Step 2: Retrieve data from sales_orders_comp_stg and other source tables, apply transformation logic (e.g., CASE statement for CompSiteId), and derive target columns
+	+ Step 3: Generate SQL query using derived columns and tables, ensuring correct data types and formatting
+* **Error Handling and Logging**:
+	+ Log errors and exceptions to a designated log file (/mnt/logs/error.log)
+	+ Handle null or missing values in source data by applying default values or skipping records
+	+ Implement retry mechanism for failed jobs or tasks
