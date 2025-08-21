@@ -1,0 +1,98 @@
+Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **TR-DLT-001: Load Customer and Order Data to Delta Tables**
+	+ Related Functional Requirement(s): FR-DLT-001
+	+ Objective: Implement a Delta Live Table to load customer and order data from CSV files into Delta tables.
+	+ Target Cluster Configuration:
+		- Cluster Name: Gen AI POC Databricks Cluster
+		- Databricks Runtime Version: 10.4.x-scala2.12
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 2-4 Standard_DS3_v2
+		- Autoscaling: Enabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: delta-lake, spark-csv
+	+ Source Data Details:
+		- Dataset Name: Customer Data
+		- Location: `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata`
+		- Format: CSV
+		- Description: Customer data in CSV format
+		- Dataset Name: Order Data
+		- Location: `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata`
+		- Format: CSV
+		- Description: Order data in CSV format
+	+ Target Data Details:
+		- Output Name: Customer Delta Table
+		- Location: `gen_ai_poc_databrickscoe.sdlc_wizard.customer`
+		- Format: Delta
+		- Description: Customer data in Delta format
+		- Output Name: Order Delta Table
+		- Location: `gen_ai_poc_databrickscoe.sdlc_wizard.order`
+		- Format: Delta
+		- Description: Order data in Delta format
+	+ Job Flow / Pipeline Stages:
+		- Read customer CSV data and load into Delta table
+		- Read order CSV data and load into Delta table
+		- Add new column "TotalAmount" to order table
+	+ Data Transformations / Business Logic:
+		- Step: Load customer data
+		- Description: Read customer CSV data and load into Delta table
+		- Transformation Logic: Use `spark.read.csv` to read CSV data and `write.format("delta")` to write to Delta table
+		- Step: Load order data
+		- Description: Read order CSV data and load into Delta table
+		- Transformation Logic: Use `spark.read.csv` to read CSV data and `write.format("delta")` to write to Delta table
+		- Step: Add TotalAmount column
+		- Description: Calculate TotalAmount as product of PricePerUnit and Qty columns
+		- Transformation Logic: Use `withColumn` to add new column and `col` to reference existing columns
+	+ Error Handling and Logging:
+		- Use try-except blocks to catch and log exceptions
+		- Log errors to a designated log file or table
+
+* **TR-DLT-002: Clean and Process Customer and Order Data**
+	+ Related Functional Requirement(s): FR-DLT-002
+	+ Objective: Implement data cleaning and processing logic to remove null and duplicate records from customer and order data.
+	+ ... (rest of the TRD for FR-DLT-002)
+
+* **TR-DLT-003: Create Ordersummary Table and Load Joined Data**
+	+ Related Functional Requirement(s): FR-DLT-003
+	+ Objective: Implement a Delta Live Table to create an ordersummary table and load joined customer and order data using SCD Type 2.
+	+ ... (rest of the TRD for FR-DLT-003)
+
+* **TR-DLT-004: Update Ordersummary Table on Customer Data Change**
+	+ Related Functional Requirement(s): FR-DLT-004
+	+ Objective: Implement logic to update the ordersummary table whenever there is a change in the customer table.
+	+ ... (rest of the TRD for FR-DLT-004)
+
+* **TR-DLT-005: Create Customer Aggregate Spend Table and Load Aggregated Data**
+	+ Related Functional Requirement(s): FR-DLT-005
+	+ Objective: Implement a Delta Live Table to create a customeraggregatespend table and load aggregated data from the ordersummary table.
+	+ ... (rest of the TRD for FR-DLT-005)
+
+* **TR-DLT-006: Implement Delta Live Tables**
+	+ Related Functional Requirement(s): FR-DLT-006
+	+ Objective: Implement Delta Live Tables for the above-mentioned functionality.
+	+ ... (rest of the TRD for FR-DLT-006)
+
+Here is a concise version of the above TRD in bullet points:
+
+* TR-DLT-001:
+	+ Objective: Load customer and order data into Delta tables.
+	+ Target Cluster Configuration: Gen AI POC Databricks Cluster, Databricks Runtime Version: 10.4.x-scala2.12
+	+ Source Data Details: Customer Data (CSV), Order Data (CSV)
+	+ Target Data Details: Customer Delta Table, Order Delta Table
+	+ Job Flow / Pipeline Stages: Load customer data, Load order data, Add TotalAmount column
+* TR-DLT-002:
+	+ Objective: Clean and process customer and order data.
+	+ Data Transformations / Business Logic: Remove null records, Remove duplicate records
+* TR-DLT-003:
+	+ Objective: Create ordersummary table and load joined data.
+	+ Job Flow / Pipeline Stages: Create ordersummary table, Join customer and order data, Load joined data into ordersummary table
+* TR-DLT-004:
+	+ Objective: Update ordersummary table on customer data change.
+	+ Data Transformations / Business Logic: Identify changes in customer table, Update ordersummary table accordingly
+* TR-DLT-005:
+	+ Objective: Create customeraggregatespend table and load aggregated data.
+	+ Job Flow / Pipeline Stages: Create customeraggregatespend table, Aggregate data from ordersummary table, Load aggregated data into customeraggregatespend table
+* TR-DLT-006:
+	+ Objective: Implement Delta Live Tables for the above-mentioned functionality.
+	+ Job Flow / Pipeline Stages: Implement Delta Live Tables for loading customer and order data, cleaning and processing data, creating and loading ordersummary table, updating ordersummary table, creating and loading customeraggregatespend table

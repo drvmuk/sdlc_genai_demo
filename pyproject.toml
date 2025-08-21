@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "customer-order-pipeline"
+version = "1.0.0"
+description = "Databricks Delta Live Tables pipeline for customer and order data processing"
+authors = ["Databricks Data Engineering Team <dataengineering@example.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+pyspark = "^3.3.0"
+delta-spark = "^2.2.0"
+pytest = "^7.3.1"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

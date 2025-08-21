@@ -1,0 +1,4 @@
+OrderId,ItemName,PricePerUnit,Qty,Date,CustId
+O001,Laptop,1200.0,1,2023-01-15,C001
+O002,Phone,800.0,2,2023-01-20,C002
+O003
