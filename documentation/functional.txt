@@ -1,0 +1,39 @@
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD) and adhering to the specified template:
+
+**FR-SQL-001: Generate SQL Query for Sales Orders Data**
+
+**Title:** Generate SQL Query for Sales Orders Data
+
+**Description:** The system must generate a complete SQL query to extract sales orders data from various tables based on the provided mapping document, apply transformation logic, and perform necessary joins.
+
+**Preconditions:**
+
+* The input mapping table is available with the required columns (Column Name, Column Type, Source Table, Source Column/Transformation Logic, Join Condition, and Common Filter).
+* The source tables (e.g., `b_lots.plooh`, `b_lots.plool`, `b_lots.plcbe`) are available and contain the required data.
+* The `s_shared.isc_registry` table is available with the required data.
+
+**Main Flow / Functional Steps:**
+
+1. **Create Intermediate Table `s_shared.sales_orders_hdr_itm_lots`:**
+	* Retrieve the mapping document for `s_shared.sales_orders_hdr_itm_lots`.
+	* Generate a SQL query to extract data from the source tables (`b_lots.plooh`, `b_lots.plool`, etc.) based on the mapping document.
+	* Apply transformation logic (e.g., `CONCAT`, `IF`, `CAST`) as specified in the mapping document.
+	* Perform necessary joins (e.g., `LEFT JOIN`) based on the join conditions specified in the mapping document.
+	* Apply common filters (e.g., `DATA_OPERATION <> 'D'`) as specified in the mapping document.
+2. **Create Main Table `sales_orders`:**
+	* Retrieve the mapping document for `sales_orders`.
+	* Generate a SQL query to extract data from the intermediate table `s_shared.sales_orders_hdr_itm_lots` and other source tables (e.g., `b_lots.plcam`, `b_lots.plcbe`) based on the mapping document.
+	* Apply transformation logic (e.g., `CASE`, `IF`) as specified in the mapping document.
+	* Perform necessary joins (e.g., `LEFT JOIN`) based on the join conditions specified in the mapping document.
+	* Apply common filters (e.g., `DATA_OPERATION <> 'D'`, `year(cast(to_date(from_unixtime(unix_timestamp(cast(a.datoxc as string), 'yyyyMMdd'))) as date))>=year(current_date())-3`) as specified in the mapping document.
+3. **Generate Final SQL Query:**
+	* Combine the SQL queries generated in steps 1 and 2 to create a single, complete SQL query.
+	* Ensure the final SQL query is formatted for readability (indentation, line breaks).
+
+The detailed functional requirements are as follows:
+
+* The system must generate a SQL query that applies all transformation logic as specified in the mapping document.
+* The system must include all necessary joins based on the join conditions specified in the mapping document.
+* The system must use aliases consistently (e.g., `a`, `b`) as per the join logic.
+* The system must ensure correct data types and formatting (e.g., date conversions).
+* The system must handle conditional logic (e.g., `IF`, `CASE`) as described in the mapping document.

@@ -1,0 +1,45 @@
+Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **Technical Requirement ID:** TR-SQL-001
+* **Related Functional Requirement(s):** FR-SQL-001
+* **Objective:** Implement a SQL query generator that extracts sales orders data from various tables based on the provided mapping document, applies transformation logic, and performs necessary joins.
+
+* **Target Cluster Configuration:**
+	+ Cluster Name: Sales Order Processing Cluster
+	+ Databricks Runtime Version: 7.3 LTS
+	+ Node Type: Standard_DS3_v2
+	+ Driver Node: 1 x Standard_DS3_v2
+	+ Worker Nodes: 2-5 x Standard_DS3_v2 (autoscaling)
+	+ Autoscaling: Enabled
+	+ Auto Termination: Enabled (30 minutes)
+	+ Libraries Installed: spark-sql, spark-core, scala-library
+
+* **Source Data Details:**
+	+ Dataset Name: b_lots.plooh, b_lots.plool, b_lots.plcbe, s_shared.isc_registry
+	+ Location (Path/Table): /data/lots/plooh, /data/lots/plool, /data/lots/plcbe, s_shared.isc_registry
+	+ Format: Parquet, Delta Lake
+	+ Description: Source tables containing sales orders data
+
+* **Target Data Details:**
+	+ Output Name: sales_orders
+	+ Location: /data/sales_orders
+	+ Format: Parquet
+	+ Description: Final sales orders data after applying transformation logic and joins
+
+* **Job Flow / Pipeline Stages:**
+	+ Stage 1: Create Intermediate Table `s_shared.sales_orders_hdr_itm_lots`
+	+ Stage 2: Create Main Table `sales_orders`
+	+ Stage 3: Generate Final SQL Query
+
+* **Data Transformations / Business Logic:**
+	+ Step 1: Retrieve mapping document for `s_shared.sales_orders_hdr_itm_lots` and generate SQL query to extract data from source tables
+	+ Transformation Logic: Apply transformation logic (e.g., `CONCAT`, `IF`, `CAST`) as specified in the mapping document
+	+ Step 2: Retrieve mapping document for `sales_orders` and generate SQL query to extract data from intermediate table and other source tables
+	+ Transformation Logic: Apply transformation logic (e.g., `CASE`, `IF`) as specified in the mapping document
+	+ Step 3: Combine SQL queries to create a single, complete SQL query
+	+ Transformation Logic: Ensure correct data types and formatting (e.g., date conversions)
+
+* **Error Handling and Logging:**
+	+ Log errors and exceptions during SQL query generation and execution
+	+ Implement retry mechanism for failed queries
+	+ Store logs in a designated logging location (e.g., /logs/sales_orders_processing)
