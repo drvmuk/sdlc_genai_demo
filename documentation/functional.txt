@@ -1,50 +1,51 @@
-Here is the Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD):
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD) and adhering to the specified template:
 
-**FR-SQLG-001: Generate SQL Query for Sales Orders Data**
+**FR-SQLG-001: Generate SQL Query for Sales Orders**
 
-**Title:** Generate SQL Query for Sales Orders Data
+**Title:** Generate SQL Query for Sales Orders
 
-**Description:** The system must generate a complete SQL SELECT statement that applies all transformation logic, includes appropriate joins, and ensures correct data types and formatting based on the provided tabular mapping document.
+**Description:** The system must generate a complete SQL SELECT statement that applies transformation logic, includes appropriate joins, and ensures correct data types and formatting based on the provided tabular mapping document.
 
 **Preconditions:**
 
-* The tabular mapping document is available with the required columns (Column Name, Column Type, Source Table, Source Column/Transformation Logic, Join Condition).
+* The tabular mapping document is available with the required columns (Column Name, Column Type, Source Table, Source Column/Transformation logic, Join Condition).
 * The input data is available in the specified source tables.
 
 **Main Flow / Functional Steps:**
 
-1. **Create Intermediate Table "sales_orders_comp_stg"**:
-	* Retrieve the mapping document for "sales_orders_comp_stg".
-	* Apply the specified transformation logic to generate the target columns.
-	* Perform the required joins between tables based on the join conditions.
-	* Filter the data based on the specified common filter conditions.
-	* Generate the SQL query to create the intermediate table "sales_orders_comp_stg".
-2. **Create Main Table "sales_orders_comp"**:
-	* Retrieve the mapping document for "sales_orders_comp".
-	* Apply the specified transformation logic to generate the target columns.
-	* Perform the required joins between tables based on the join conditions.
-	* Filter the data based on the specified common filter conditions.
-	* Generate the SQL query to create the main table "sales_orders_comp".
-3. **Ensure Correct Data Types and Formatting**:
-	* Verify that the generated SQL query ensures correct data types for each column.
-	* Verify that the generated SQL query applies the required formatting (e.g., date conversions).
-4. **Output the Complete SQL Query**:
-	* Generate the complete SQL query using the SELECT ... FROM ... JOIN ... syntax.
-	* Include all necessary joins and filters.
-	* Use aliases consistently as per the join logic.
+1. **Create Intermediate Table (`sales_orders_comp_stg`):**
+	* Retrieve the mapping document for `sales_orders_comp_stg`.
+	* Generate a SQL query that:
+		+ Applies transformation logic as specified in the mapping document.
+		+ Includes appropriate joins based on the join conditions.
+		+ Uses aliases (a, b, etc.) consistently as per the join logic.
+		+ Ensures correct data types and formatting (e.g., date conversions).
+	* Create the `sales_orders_comp_stg` table with the generated SQL query.
+2. **Create Main Table (`sales_orders_comp`):**
+	* Retrieve the mapping document for `sales_orders_comp`.
+	* Generate a SQL query that:
+		+ Applies transformation logic as specified in the mapping document.
+		+ Includes appropriate joins based on the join conditions.
+		+ Uses aliases (a, b, etc.) consistently as per the join logic.
+		+ Ensures correct data types and formatting (e.g., date conversions).
+	* Create the `sales_orders_comp` table with the generated SQL query.
+3. **Output Requirements:**
+	* Generate a complete SQL query using SELECT ... FROM ... JOIN ... syntax.
+	* Include all necessary joins and filters (e.g., `DATA_OPERATION <> 'D'`).
+	* Use aliases consistently (a, b, etc.) as per the join logic.
+	* Ensure all transformation logic is correctly applied.
+	* Format the SQL for readability (indentation, line breaks).
 
-**Detailed Requirements:**
+**Detailed Functional Steps for Creating `sales_orders_comp_stg`:**
 
-* The system must generate a SQL query that applies the following transformation logic:
-	+ Concatenation (e.g., CONCAT(referenceto,refno))
-	+ Conditional logic (e.g., IF, CASE)
-	+ Date conversions (e.g., cast(to_date(from_unixtime(unix_timestamp(cast(a.dateupd as string), 'yyyyMMdd'))) as date))
-* The system must perform the required joins between tables based on the join conditions.
-* The system must filter the data based on the specified common filter conditions (e.g., delete_flag <> 'D').
-* The system must ensure correct data types and formatting for each column.
+* Retrieve data from `b_source.ord_hdr` and `b_source.ord_dtl` tables.
+* Apply transformation logic as specified in the mapping document (e.g., CONCAT, IF, CASE).
+* Join `b_source.ord_hdr` and `b_source.ord_dtl` tables based on the specified join conditions.
+* Filter data based on the common filter conditions (e.g., `delete_flag <> 'D'`).
 
-**Acceptance Criteria:**
+**Detailed Functional Steps for Creating `sales_orders_comp`:**
 
-* The generated SQL query produces the expected output.
-* The generated SQL query is syntactically correct and can be executed without errors.
-* The generated SQL query applies the required transformation logic and filtering conditions.
+* Retrieve data from `s_master.sale_orders`, `b_source.ord_channel`, `b_source.ord_addr`, and other tables as specified in the mapping document.
+* Apply transformation logic as specified in the mapping document (e.g., CONCAT, IF, CASE).
+* Join multiple tables based on the specified join conditions.
+* Filter data based on the common filter conditions (e.g., `delete_flag <> 'D'`, `year(cast(to_date(from_unixtime(unix_timestamp(cast(a.processed_date as string), 'yyyyMMdd'))) as date))>=year(current_date())-3`).

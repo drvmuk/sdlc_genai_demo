@@ -1,12 +1,12 @@
-Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+Here's the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
 
 * **Technical Requirement ID**: TR-SQLG-001
 * **Related Functional Requirement(s)**: FR-SQLG-001
-* **Objective**: Implement a system to generate a complete SQL SELECT statement that applies transformation logic, includes appropriate joins, and ensures correct data types and formatting based on the provided tabular mapping document.
+* **Objective**: Implement a SQL query generator that applies transformation logic, includes appropriate joins, and ensures correct data types and formatting based on the provided tabular mapping document.
 
 * **Target Cluster Configuration**:
-	+ Cluster Name: SQL Generation Cluster
-	+ Databricks Runtime Version: 7.3 LTS
+	+ Cluster Name: Databricks SQL Cluster
+	+ Databricks Runtime Version: 9.1 LTS
 	+ Node Type: Standard_DS3_v2
 	+ Driver Node: Standard_DS3_v2
 	+ Worker Nodes: 2-4 (autoscaling)
@@ -15,44 +15,54 @@ Here is the Technical Requirement Document (TRD) based on the provided Functiona
 	+ Libraries Installed: Spark SQL, Scala
 
 * **Source Data Details**:
-	+ Dataset Name: Tabular Mapping Document
-	+ Location: /mnt/mapping-document/tabular-mapping.csv
-	+ Format: CSV
-	+ Description: Contains the column mappings and transformation logic
-	+ Dataset Name: Source Tables
-	+ Location: /mnt/source-data/
-	+ Format: Parquet
-	+ Description: Contains the source data for the sales orders
+	+ Dataset Name: b_source.ord_hdr
+	+ Location (Path/Table): b_source.ord_hdr table
+	+ Format: Hive table
+	+ Description: Order header data
+	+ Dataset Name: b_source.ord_dtl
+	+ Location (Path/Table): b_source.ord_dtl table
+	+ Format: Hive table
+	+ Description: Order detail data
+	+ Dataset Name: s_master.sale_orders
+	+ Location (Path/Table): s_master.sale_orders table
+	+ Format: Hive table
+	+ Description: Sales order data
+	+ Dataset Name: b_source.ord_channel
+	+ Location (Path/Table): b_source.ord_channel table
+	+ Format: Hive table
+	+ Description: Order channel data
+	+ Dataset Name: b_source.ord_addr
+	+ Location (Path/Table): b_source.ord_addr table
+	+ Format: Hive table
+	+ Description: Order address data
 
 * **Target Data Details**:
-	+ Output Name: SQL Query
-	+ Location: /mnt/output/sql-query.sql
-	+ Format: SQL
-	+ Description: The generated SQL query
-	+ Output Name: Intermediate Table "sales_orders_comp_stg"
-	+ Location: /mnt/output/sales_orders_comp_stg
-	+ Format: Parquet
-	+ Description: The intermediate table used to generate the final output
-	+ Output Name: Main Table "sales_orders_comp"
-	+ Location: /mnt/output/sales_orders_comp
-	+ Format: Parquet
-	+ Description: The final output table
+	+ Output Name: sales_orders_comp_stg
+	+ Location: Hive database
+	+ Format: Hive table
+	+ Description: Intermediate sales order data
+	+ Output Name: sales_orders_comp
+	+ Location: Hive database
+	+ Format: Hive table
+	+ Description: Final sales order data
 
 * **Job Flow / Pipeline Stages**:
-	+ Stage 1: Retrieve the tabular mapping document
-	+ Stage 2: Apply transformation logic to generate target columns
-	+ Stage 3: Perform required joins between tables
-	+ Stage 4: Filter data based on common filter conditions
-	+ Stage 5: Generate SQL query to create intermediate table "sales_orders_comp_stg"
-	+ Stage 6: Generate SQL query to create main table "sales_orders_comp"
-	+ Stage 7: Output the complete SQL query
+	+ Stage 1: Retrieve mapping document for sales_orders_comp_stg
+	+ Stage 2: Generate SQL query for sales_orders_comp_stg
+	+ Stage 3: Create sales_orders_comp_stg table
+	+ Stage 4: Retrieve mapping document for sales_orders_comp
+	+ Stage 5: Generate SQL query for sales_orders_comp
+	+ Stage 6: Create sales_orders_comp table
 
 * **Data Transformations / Business Logic**:
-	+ Step: Apply transformation logic to generate target columns
-	+ Description: Apply concatenation, conditional logic, and date conversions as specified in the tabular mapping document
-	+ Transformation Logic: Use Spark SQL to apply the transformation logic, e.g., CONCAT(referenceto,refno), IF, CASE, cast(to_date(from_unixtime(unix_timestamp(cast(a.dateupd as string), 'yyyyMMdd'))) as date)
+	+ Step: Apply transformation logic as specified in the mapping document
+	+ Description: Apply CONCAT, IF, CASE transformations
+	+ Transformation Logic: Use Spark SQL functions to apply transformations
+	+ Step: Join multiple tables based on the specified join conditions
+	+ Description: Join b_source.ord_hdr and b_source.ord_dtl tables
+	+ Transformation Logic: Use Spark SQL JOIN syntax to join tables
 
 * **Error Handling and Logging**:
-	+ Log errors and exceptions to a log file located at /mnt/logs/sql-generation.log
-	+ Handle errors by retrying the failed stage up to 3 times before failing the job
-	+ Provide detailed error messages and stack traces for debugging purposes
+	+ Log errors and exceptions to a logging table
+	+ Use try-catch blocks to handle errors during SQL query generation and execution
+	+ Log input data and output data for auditing purposes
