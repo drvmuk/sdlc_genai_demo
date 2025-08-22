@@ -1,0 +1,63 @@
+Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **Technical Requirement ID:** TR-SQLG-001
+* **Related Functional Requirement(s):** FR-SQLG-001
+* **Objective:** Implement a PySpark job to generate SQL queries for integrating data into `sales_orders_comp_stg` and `sales_orders_comp` tables.
+
+* **Target Cluster Configuration:**
+	+ Cluster Name: Data Integration Cluster
+	+ Databricks Runtime Version: 7.3.x-scala2.12
+	+ Node Type: Standard_DS3_v2
+	+ Driver Node: Standard_DS3_v2
+	+ Worker Nodes: 2-4 nodes, Standard_DS3_v2
+	+ Autoscaling: Enabled
+	+ Auto Termination: 30 minutes
+	+ Libraries Installed: spark-sql, spark-core, scala-library
+
+* **Source Data Details:**
+	+ Dataset Name: ord_hdr
+	+ Location: b_source.ord_hdr
+	+ Format: Hive Table
+	+ Description: Order header data
+	+ Dataset Name: ord_dtl
+	+ Location: b_source.ord_dtl
+	+ Format: Hive Table
+	+ Description: Order detail data
+	+ Dataset Name: sale_orders
+	+ Location: s_master.sale_orders
+	+ Format: Hive Table
+	+ Description: Sales order data
+
+* **Target Data Details:**
+	+ Output Name: sales_orders_comp_stg SQL Query
+	+ Location: Output file or table
+	+ Format: SQL Query
+	+ Description: SQL query to integrate data into `sales_orders_comp_stg` table
+	+ Output Name: sales_orders_comp SQL Query
+	+ Location: Output file or table
+	+ Format: SQL Query
+	+ Description: SQL query to integrate data into `sales_orders_comp` table
+
+* **Job Flow / Pipeline Stages:**
+	+ Parse input mapping documents for `sales_orders_comp_stg` and `sales_orders_comp`
+	+ Generate SQL query for `sales_orders_comp_stg`
+	+ Generate SQL query for `sales_orders_comp`
+	+ Format SQL queries for readability
+	+ Output SQL queries
+
+* **Data Transformations / Business Logic:**
+	+ Step: Parse input mapping documents
+	+ Description: Extract column mappings, source tables, join conditions, and filters
+	+ Transformation Logic: Use Scala or Python to parse JSON or XML input mapping documents
+	+ Step: Generate SQL query for `sales_orders_comp_stg`
+	+ Description: Apply transformation logic and join conditions
+	+ Transformation Logic: Use Spark SQL to generate SQL query based on input mapping document
+	+ Step: Generate SQL query for `sales_orders_comp`
+	+ Description: Apply transformation logic and join conditions
+	+ Transformation Logic: Use Spark SQL to generate SQL query based on input mapping document
+
+* **Error Handling and Logging:**
+	+ Log errors and exceptions during job execution
+	+ Handle null or missing values in input data
+	+ Validate input mapping documents for correctness and completeness
+	+ Use try-catch blocks to handle runtime exceptions and log error messages

@@ -1,0 +1,53 @@
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD) and adhering to the specified template:
+
+**FR-SQLG-001: Generate SQL Query for Sales Orders**
+
+**Title:** Generate SQL Query for Sales Orders Data Integration
+
+**Description:** The system must generate a complete SQL SELECT statement that integrates data from various source tables into two target tables: `sales_orders_comp_stg` and `sales_orders_comp`.
+
+**Preconditions:**
+
+* The input mapping documents for `sales_orders_comp_stg` and `sales_orders_comp` are available and correctly formatted.
+* The source tables (`b_source.ord_hdr`, `b_source.ord_dtl`, `s_master.sale_orders`, etc.) exist and contain the required data.
+* The necessary joins and filters are defined in the input mapping documents.
+
+**Main Flow / Functional Steps:**
+
+1. **Parse Input Mapping Documents:**
+	* Read and parse the input mapping documents for `sales_orders_comp_stg` and `sales_orders_comp`.
+	* Extract the column mappings, source tables, join conditions, and filters.
+2. **Generate SQL Query for `sales_orders_comp_stg`:**
+	* Create a SQL SELECT statement that:
+		+ Applies transformation logic as specified in the input mapping document.
+		+ Includes necessary joins based on the join conditions.
+		+ Uses aliases consistently (a, b, etc.) as per the join logic.
+		+ Ensures correct data types and formatting (e.g., date conversions).
+	* Handle conditional logic (e.g., IF, CASE) as described in the input mapping document.
+3. **Generate SQL Query for `sales_orders_comp`:**
+	* Create a SQL SELECT statement that:
+		+ Applies transformation logic as specified in the input mapping document.
+		+ Includes necessary joins based on the join conditions.
+		+ Uses aliases consistently (a, b, etc.) as per the join logic.
+		+ Ensures correct data types and formatting (e.g., date conversions).
+	* Handle conditional logic (e.g., IF, CASE) as described in the input mapping document.
+4. **Format SQL Queries for Readability:**
+	* Use indentation and line breaks to make the SQL queries readable.
+5. **Output SQL Queries:**
+	* Output the generated SQL queries for `sales_orders_comp_stg` and `sales_orders_comp`.
+
+The detailed functional steps are as follows:
+
+**For `sales_orders_comp_stg`:**
+
+* Select data from `b_source.ord_hdr` and `b_source.ord_dtl` tables.
+* Apply transformation logic as specified in the input mapping document.
+* Join `b_source.ord_hdr` and `b_source.ord_dtl` tables based on the join conditions.
+* Filter data based on the specified conditions (e.g., `delete_flag <> 'D'`).
+
+**For `sales_orders_comp`:**
+
+* Select data from `s_master.sale_orders` and other source tables.
+* Apply transformation logic as specified in the input mapping document.
+* Join `s_master.sale_orders` with other tables based on the join conditions.
+* Filter data based on the specified conditions (e.g., `delete_flag <> 'D'` and `year(cast(to_date(from_unixtime(unix_timestamp(cast(a.processed_date as string), 'yyyyMMdd'))) as date))>=year(current_date())-3`).
