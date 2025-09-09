@@ -1,0 +1,51 @@
+Here's the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **Technical Requirement ID**: TR-SQL-001
+* **Related Functional Requirement(s)**: FR-SQL-001
+* **Objective**: Implement a system to generate a complete SQL SELECT statement for sales orders based on the provided tabular mapping document.
+
+* **Target Cluster Configuration**:
+	+ Cluster Name: Sales Order Processing Cluster
+	+ Databricks Runtime Version: 7.3 LTS
+	+ Node Type: Standard_DS3_v2
+	+ Driver Node: Standard_DS3_v2 (1 node)
+	+ Worker Nodes: Standard_DS3_v2 (2-5 nodes)
+	+ Autoscaling: Enabled
+	+ Auto Termination: Enabled (30 minutes)
+	+ Libraries Installed: spark-sql, spark-core
+
+* **Source Data Details**:
+	+ Dataset Name: Tabular Mapping Document
+	+ Location: File Path/Table: `/mnt/data/mapping_document.csv`
+	+ Format: CSV
+	+ Description: Contains the required columns for mapping source data to target tables.
+	+ Dataset Name: Source Tables (e.g., `b_source.ord_hdr`, `b_source.ord_dtl`)
+	+ Location: Table: `b_source.ord_hdr`, `b_source.ord_dtl`
+	+ Format: Hive Tables
+	+ Description: Contains the source data for sales orders.
+
+* **Target Data Details**:
+	+ Output Name: SQL Query for Sales Orders
+	+ Location: File Path: `/mnt/output/sql_query.sql`
+	+ Format: SQL
+	+ Description: The generated SQL query for creating intermediate and main tables.
+
+* **Job Flow / Pipeline Stages**:
+	+ Stage 1: Retrieve the mapping document and source data.
+	+ Stage 2: Apply transformation logic and join tables based on specified conditions.
+	+ Stage 3: Generate the SQL query for creating the intermediate table "sales_orders_comp_stg".
+	+ Stage 4: Generate the SQL query for creating the main table "sales_orders_comp".
+	+ Stage 5: Combine the SQL queries and format for readability.
+
+* **Data Transformations / Business Logic**:
+	+ Step: Apply transformation logic to derive target columns (e.g., CONCAT, IF, CAST).
+	+ Description: Use the mapping document to apply transformation logic to source data.
+	+ Transformation Logic: Use Spark SQL functions (e.g., `concat`, `if`, `cast`) to apply transformation logic.
+	+ Step: Join tables based on specified join conditions.
+	+ Description: Use the mapping document to join tables based on specified conditions.
+	+ Transformation Logic: Use Spark SQL joins (e.g., `LEFT JOIN`, `INNER JOIN`) to join tables.
+
+* **Error Handling and Logging**:
+	+ Log errors and exceptions to a designated log file (e.g., `/mnt/logs/error.log`).
+	+ Implement try-catch blocks to handle errors during data processing and SQL query generation.
+	+ Use Databricks logging mechanisms (e.g., `dbutils.notebook.exit()`) to log errors and exit the job if necessary.

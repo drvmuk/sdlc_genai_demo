@@ -1,0 +1,45 @@
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD):
+
+**FR-SQL-001: Generate SQL Query for Sales Orders**
+
+**Title**: Generate SQL Query for Sales Orders
+
+**Description**: The system must generate a complete SQL SELECT statement that applies transformation logic, includes appropriate joins, and ensures correct data types and formatting based on the provided tabular mapping document.
+
+**Preconditions**:
+
+* The tabular mapping document is available with the required columns (Column Name, Column Type, Source Table, Source Column/Transformation Logic, Join Condition).
+* The input data is available in the specified source tables.
+
+**Main Flow / Functional Steps**:
+
+1. **Create Intermediate Table "sales_orders_comp_stg"**:
+	* Retrieve the mapping document for "sales_orders_comp_stg".
+	* Apply transformation logic to derive target columns (e.g., CONCAT, IF, CAST).
+	* Join tables based on specified join conditions (e.g., `b_source.ord_hdr` and `b_source.ord_dtl`).
+	* Filter data based on common filters (e.g., `delete_flag <> 'D'`).
+	* Generate the SQL query to create the intermediate table.
+2. **Create Main Table "sales_orders_comp"**:
+	* Retrieve the mapping document for "sales_orders_comp".
+	* Apply transformation logic to derive target columns (e.g., CASE, IF, CAST).
+	* Join tables based on specified join conditions (e.g., `s_master.sale_orders` and `b_source.ord_site`).
+	* Filter data based on common filters (e.g., `delete_flag <> 'D'` and `year(cast(to_date(from_unixtime(unix_timestamp(cast(a.processed_date as string), 'yyyyMMdd'))) as date))>=year(current_date())-3`).
+	* Generate the SQL query to create the main table.
+3. **Generate Complete SQL Query**:
+	* Combine the SQL queries for creating the intermediate and main tables.
+	* Ensure correct data types and formatting (e.g., date conversions).
+	* Use aliases consistently (a, b, etc.) as per the join logic.
+	* Format the SQL query for readability (indentation, line breaks).
+
+**Detailed Requirements**:
+
+* The system must apply transformation logic as specified in the mapping document.
+* The system must include appropriate joins based on the join conditions.
+* The system must ensure correct data types and formatting (e.g., date conversions).
+* The system must use aliases consistently (a, b, etc.) as per the join logic.
+* The system must format the SQL query for readability (indentation, line breaks).
+
+Some sample functional steps for the SQL query generation are:
+
+* `SELECT CONCAT(referenceto,refno) AS CompOrderNumber, ... FROM (SELECT * FROM b_source.ord_hdr WHERE delete_flag <> 'D') a LEFT JOIN b_source.ord_dtl b ON trim(a.referenceto)=trim(b.referenceto) AND trim(a.refno)=trim(b.refno) AND delete_flag <> 'D'`
+* `SELECT ... FROM s_master.sale_orders a LEFT JOIN (SELECT DISTINCT referenceto,referencefrom,requestno,seqnum,exttax,seqline,whcode FROM b_source.ord_site WHERE delete_flag <> 'D' AND trim(whcode) != '' AND whcode IS NOT NULL ...) e ON trim(a.OrderNumber)=trim(concat(e.referencefrom,e.referenceto)) AND a.requestnoc=e.requestno AND a.LineNumber=e.seqnum AND trim(a.exttax)=trim(e.exttax) AND a.seqline=e.seqline`
