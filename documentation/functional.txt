@@ -1,0 +1,48 @@
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD):
+
+**FR-SQLG-001: Generate SQL Query for Sales Orders**
+
+**Title:** Generate SQL Query for Sales Orders
+
+**Description:** The system must generate a complete SQL SELECT statement that applies transformation logic, includes necessary joins, and ensures correct data types and formatting based on the provided tabular mapping document.
+
+**Preconditions:**
+
+* The tabular mapping document is available with the required columns (Column Name, Column Type, Source Table, Source Column/Transformation Logic, Join Condition).
+* The input data is available in the specified source tables.
+
+**Main Flow / Functional Steps:**
+
+1. **Create Intermediate Table "sales_orders_comp_stg"**:
+	* Retrieve data from `b_source.ord_hdr` and `b_source.ord_dtl` tables based on the join condition and common filter.
+	* Apply transformation logic to derive target columns (e.g., `CompOrderNumber`, `CompOrderType`, etc.).
+	* Ensure correct data types and formatting (e.g., date conversions).
+2. **Create Main Table "sales_orders_comp"**:
+	* Retrieve data from `s_master.sale_orders` and other tables based on the join condition and common filter.
+	* Apply transformation logic to derive target columns (e.g., `CompSourceSystem`, `CompOrderNumber`, etc.).
+	* Ensure correct data types and formatting (e.g., date conversions).
+3. **Generate SQL Query**:
+	* Use the derived columns and tables to generate a complete SQL SELECT statement.
+	* Include all necessary joins and filters.
+	* Use aliases consistently (a, b, etc.) as per the join logic.
+	* Ensure the SQL query is formatted for readability (indentation, line breaks).
+
+**Detailed Requirements:**
+
+* The system must apply the transformation logic as specified in the tabular mapping document.
+* The system must include all necessary joins based on the join conditions.
+* The system must ensure correct data types and formatting (e.g., date conversions).
+* The system must use aliases consistently (a, b, etc.) as per the join logic.
+* The system must format the SQL query for readability (indentation, line breaks).
+
+Here are the specific requirements in bullet points:
+
+* For "sales_orders_comp_stg" table:
+	+ Apply transformation logic for `CompOrderNumber`, `CompOrderType`, etc.
+	+ Join `b_source.ord_hdr` and `b_source.ord_dtl` tables based on the join condition.
+	+ Filter data based on `delete_flag <> 'D'`.
+* For "sales_orders_comp" table:
+	+ Apply transformation logic for `CompSourceSystem`, `CompOrderNumber`, etc.
+	+ Join `s_master.sale_orders` and other tables based on the join condition.
+	+ Filter data based on `delete_flag <> 'D'` and other conditions.
+	+ Use subqueries and joins as necessary to derive target columns.

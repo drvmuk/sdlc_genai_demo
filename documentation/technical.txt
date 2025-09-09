@@ -1,0 +1,41 @@
+Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **Technical Requirement ID**: TR-SQLG-001
+* **Related Functional Requirement(s)**: FR-SQLG-001
+* **Objective**: Implement a PySpark job to generate a complete SQL SELECT statement for sales orders based on the provided tabular mapping document.
+
+* **Target Cluster Configuration**:
+	+ Cluster Name: Sales Order Processing Cluster
+	+ Databricks Runtime Version: 7.3 LTS
+	+ Node Type: Standard_DS3_v2
+	+ Driver Node: Standard_DS3_v2
+	+ Worker Nodes: 2-4 (autoscaling)
+	+ Autoscaling: Enabled
+	+ Auto Termination: 30 minutes
+	+ Libraries Installed: Spark SQL, PySpark
+
+* **Source Data Details**:
+	+ `b_source.ord_hdr`: Located at `dbfs:/mnt/data/source/ord_hdr`, Format: Delta Lake, Description: Order header data
+	+ `b_source.ord_dtl`: Located at `dbfs:/mnt/data/source/ord_dtl`, Format: Delta Lake, Description: Order detail data
+	+ `s_master.sale_orders`: Located at `dbfs:/mnt/data/master/sale_orders`, Format: Delta Lake, Description: Master sales order data
+
+* **Target Data Details**:
+	+ `sales_orders_comp_stg`: Located at `dbfs:/mnt/data/processed/sales_orders_comp_stg`, Format: Delta Lake, Description: Intermediate sales order data
+	+ `sales_orders_comp`: Located at `dbfs:/mnt/data/processed/sales_orders_comp`, Format: Delta Lake, Description: Final sales order data
+	+ SQL Query Output: Located at `dbfs:/mnt/data/output/sql_query`, Format: Text, Description: Generated SQL SELECT statement
+
+* **Job Flow / Pipeline Stages**:
+	+ Stage 1: Create `sales_orders_comp_stg` table by retrieving data from `b_source.ord_hdr` and `b_source.ord_dtl` tables, applying transformation logic, and ensuring correct data types and formatting.
+	+ Stage 2: Create `sales_orders_comp` table by retrieving data from `s_master.sale_orders` and other tables, applying transformation logic, and ensuring correct data types and formatting.
+	+ Stage 3: Generate SQL Query using the derived columns and tables, including all necessary joins and filters.
+
+* **Data Transformations / Business Logic**:
+	+ Step 1: Apply transformation logic for `CompOrderNumber`, `CompOrderType`, etc. in `sales_orders_comp_stg` table.
+	+ Step 2: Join `b_source.ord_hdr` and `b_source.ord_dtl` tables based on the join condition and filter data based on `delete_flag <> 'D'`.
+	+ Step 3: Apply transformation logic for `CompSourceSystem`, `CompOrderNumber`, etc. in `sales_orders_comp` table.
+	+ Step 4: Join `s_master.sale_orders` and other tables based on the join condition and filter data based on `delete_flag <> 'D'` and other conditions.
+
+* **Error Handling and Logging**:
+	+ Log errors and exceptions to a designated log file located at `dbfs:/mnt/data/logs/`.
+	+ Implement retry mechanism for failed tasks with a maximum of 3 retries.
+	+ Notify administrators via email in case of job failure or critical errors.
