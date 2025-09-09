@@ -1,0 +1,77 @@
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD) "Coding Requirements" section:
+
+**FR-DLT-001: Load Customer and Order Data into Delta Tables**
+
+* **Title:** Load Customer and Order Data into Delta Tables
+* **Description:** The system must read source CSV data from a specified volume and load it into Delta tables for customer and order data.
+* **Preconditions:**
+	+ CSV files are available at the specified locations (/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata and /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata)
+	+ Delta tables are available for customer and order data
+* **Main Flow / Functional Steps:**
+	1. Read customer CSV data from /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata and load into a Delta table named "customer".
+	2. Read order CSV data from /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata and load into a Delta table named "order".
+
+**FR-DLT-002: Transform Order Data by Adding TotalAmount Column**
+
+* **Title:** Transform Order Data by Adding TotalAmount Column
+* **Description:** The system must add a new column "TotalAmount" to the order Delta table, which is the product of "PricePerUnit" and "Qty" columns.
+* **Preconditions:**
+	+ Order Delta table is loaded with data
+* **Main Flow / Functional Steps:**
+	1. Add a new column "TotalAmount" to the order Delta table.
+	2. Calculate the value of "TotalAmount" by multiplying "PricePerUnit" and "Qty" columns.
+
+**FR-DLT-003: Cleanse Customer and Order Data**
+
+* **Title:** Cleanse Customer and Order Data
+* **Description:** The system must remove null and duplicate records from both customer and order Delta tables.
+* **Preconditions:**
+	+ Customer and order Delta tables are loaded with data
+* **Main Flow / Functional Steps:**
+	1. Remove null records from customer and order Delta tables.
+	2. Remove duplicate records from customer and order Delta tables.
+
+**FR-DLT-004: Create ordersummary Table and Load Joined Data**
+
+* **Title:** Create ordersummary Table and Load Joined Data
+* **Description:** The system must create an "ordersummary" table if it does not exist and load joined data from customer and order Delta tables using "CustId" as the join key.
+* **Preconditions:**
+	+ Customer and order Delta tables are cleansed
+	+ "ordersummary" table does not exist or is available for loading
+* **Main Flow / Functional Steps:**
+	1. Check if "ordersummary" table exists in catalog="gen_ai_poc_databrickscoe" and schema="sdlc_wizard". If not, create it.
+	2. Join customer and order Delta tables using "CustId" as the join key.
+	3. Load the joined data into the "ordersummary" table as an SCD type 2 table.
+
+**FR-DLT-005: Update ordersummary Table on Customer Data Change**
+
+* **Title:** Update ordersummary Table on Customer Data Change
+* **Description:** The system must update the "ordersummary" SCD type 2 table whenever there is a change in the customer table.
+* **Preconditions:**
+	+ Customer data is updated
+	+ "ordersummary" table is available
+* **Main Flow / Functional Steps:**
+	1. Detect changes in the customer table.
+	2. Update the "ordersummary" table by making old records inactive and new records active.
+	3. Update StartDate and EndDate accordingly to maintain history.
+
+**FR-DLT-006: Create customeraggregatespend Table and Load Aggregated Data**
+
+* **Title:** Create customeraggregatespend Table and Load Aggregated Data
+* **Description:** The system must create a "customeraggregatespend" table if it does not exist and load aggregated data from the "ordersummary" table.
+* **Preconditions:**
+	+ "ordersummary" table is loaded with data
+	+ "customeraggregatespend" table does not exist or is available for loading
+* **Main Flow / Functional Steps:**
+	1. Check if "customeraggregatespend" table exists in catalog="gen_ai_poc_databrickscoe" and schema="sdlc_wizard". If not, create it.
+	2. Aggregate "TotalAmount" from "ordersummary" table by "Name" and "Date".
+	3. Load the aggregated data into the "customeraggregatespend" table.
+
+**FR-DLT-007: Implement Delta Live Tables**
+
+* **Title:** Implement Delta Live Tables
+* **Description:** The system must implement Delta Live Tables to perform steps 1 to 10.
+* **Preconditions:**
+	+ All previous steps are implemented
+* **Main Flow / Functional Steps:**
+	1. Implement Delta Live Tables to orchestrate the data pipeline.

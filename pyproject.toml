@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "databricks-data-processing"
+version = "0.1.0"
+description = "Data processing pipeline using Databricks and Delta Live Tables"
+authors = ["Data Engineering Team <data.engineering@example.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+pyspark = "^3.3.0"
+delta-spark = "^2.2.0"
+pytest = "^7.3.1"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
