@@ -1,51 +1,51 @@
 Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
 
-* **Technical Requirement ID**: TR-SQL-001
-* **Related Functional Requirement(s)**: FR-SQL-001
-* **Objective**: Develop a system to generate a SQL query for sales orders based on a tabular mapping document.
+* **Technical Requirement ID**: TR-SQLG-001
+* **Related Functional Requirement(s)**: FR-SQLG-001
+* **Objective**: Develop a system to generate a SQL SELECT statement that applies transformation logic, includes appropriate joins, and ensures correct data types and formatting based on the provided tabular mapping document.
 
 * **Target Cluster Configuration**:
-	+ Cluster Name: SQL Generation Cluster
+	+ Cluster Name: Databricks SQL Cluster
 	+ Databricks Runtime Version: 7.3 LTS
 	+ Node Type: Standard_DS3_v2
 	+ Driver Node: Standard_DS3_v2
-	+ Worker Nodes: 2-4 Standard_DS3_v2
+	+ Worker Nodes: 2-4 nodes (autoscaling)
 	+ Autoscaling: Enabled
 	+ Auto Termination: 30 minutes
 	+ Libraries Installed: Spark SQL, Scala
 
 * **Source Data Details**:
 	+ Dataset Name: Tabular Mapping Document
-	+ Location: /mnt/mapping-document/tabular-mapping.csv
-	+ Format: CSV
-	+ Description: Contains column mappings for sales orders
-	+ Dataset Name: Source Tables (e.g., b_source.ord_dtl, b_source.ord_site)
-	+ Location: Various tables in the database
-	+ Format: Relational Database Tables
+	+ Location: File path or database table
+	+ Format: CSV or JSON
+	+ Description: Document containing column mappings, transformation logic, and join conditions
+	+ Dataset Name: Source Tables (e.g., b_source.ord_hdr, b_source.ord_dtl)
+	+ Location: Database tables
+	+ Format: Relational data
 	+ Description: Source data for sales orders
 
 * **Target Data Details**:
-	+ Output Name: SQL Query for Sales Orders
-	+ Location: /mnt/output/sql-query.sql
-	+ Format: SQL Script
-	+ Description: Generated SQL query for sales orders
+	+ Output Name: SQL Query
+	+ Location: Output file or database table
+	+ Format: SQL
+	+ Description: Generated SQL SELECT statement
 
 * **Job Flow / Pipeline Stages**:
 	+ Retrieve tabular mapping document
-	+ Generate SQL SELECT statement for sales_orders_comp_stg
-	+ Generate SQL SELECT statement for sales_orders_comp
-	+ Combine SELECT statements into a single SQL query
+	+ Generate SQL SELECT statement for intermediate table (sales_orders_comp_stg)
+	+ Generate SQL SELECT statement for main table (sales_orders_comp)
+	+ Apply transformation logic and joins
 	+ Format SQL query for readability
 
 * **Data Transformations / Business Logic**:
-	+ Step: Generate SQL SELECT statement for sales_orders_comp_stg
-	+ Description: Apply transformation logic and joins based on the mapping document
-	+ Transformation Logic: Concatenate referenceto and refno to form CompOrderNumber, apply conditional logic for CompRelatedOrderNumber and CompRelatedOrderType
-	+ Step: Generate SQL SELECT statement for sales_orders_comp
-	+ Description: Apply transformation logic and joins based on the mapping document
-	+ Transformation Logic: Use left join with b_source.ord_site, b_source.ord_channel, and b_source.ord_addr, apply conditional logic for CompSiteId and CompSalesDistributionChannel
+	+ Step: Apply transformation logic
+	+ Description: Concatenation, conditional logic, date conversions
+	+ Transformation Logic: CONCAT, IF, CASE, cast, to_date, from_unixtime, unix_timestamp
+	+ Step: Include joins and filters
+	+ Description: Join source tables based on join conditions, apply filters
+	+ Transformation Logic: JOIN, WHERE, TRIM
 
 * **Error Handling and Logging**:
 	+ Log errors and exceptions during SQL query generation
-	+ Handle null or missing values in the tabular mapping document
-	+ Validate input data types and formatting to prevent SQL syntax errors
+	+ Handle null or missing values in source data
+	+ Validate generated SQL query for syntax errors
