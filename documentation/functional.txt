@@ -1,0 +1,52 @@
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD):
+
+**FR-SQL-001: Generate SQL Query for Sales Orders**
+
+**Title:** Generate SQL Query for Sales Orders
+
+**Description:** The system must generate a complete SQL SELECT statement that applies transformation logic, includes appropriate joins, and ensures correct data types and formatting based on the provided tabular mapping document.
+
+**Preconditions:**
+
+* The tabular mapping document is available with the required columns (Column Name, Column Type, Source Table, Source Column/Transformation Logic, Join Condition).
+* The input data is available in the specified source tables.
+
+**Main Flow / Functional Steps:**
+
+1. **Create Intermediate Table (sales_orders_comp_stg)**:
+	* Retrieve the mapping document for sales_orders_comp_stg.
+	* Generate a SQL SELECT statement that applies transformation logic and joins based on the mapping document.
+	* Use aliases (a, b, etc.) consistently as per the join logic.
+	* Ensure correct data types and formatting (e.g., date conversions).
+2. **Create Main Table (sales_orders_comp)**:
+	* Retrieve the mapping document for sales_orders_comp.
+	* Generate a SQL SELECT statement that applies transformation logic and joins based on the mapping document.
+	* Use aliases (a, b, etc.) consistently as per the join logic.
+	* Ensure correct data types and formatting (e.g., date conversions).
+3. **Apply Filters and Join Conditions**:
+	* Apply common filters (e.g., delete_flag <> 'D') as specified in the mapping document.
+	* Apply join conditions as specified in the mapping document.
+4. **Generate Final SQL Query**:
+	* Combine the SELECT statements for sales_orders_comp_stg and sales_orders_comp into a single SQL query.
+	* Ensure that the query is formatted for readability (indentation, line breaks).
+
+**Detailed Requirements:**
+
+* The SQL query must apply transformation logic as specified in the mapping document.
+* The SQL query must include appropriate joins based on the join conditions specified in the mapping document.
+* The SQL query must use aliases (a, b, etc.) consistently as per the join logic.
+* The SQL query must ensure correct data types and formatting (e.g., date conversions).
+* The SQL query must be formatted for readability (indentation, line breaks).
+
+Some specific requirements based on the provided mapping document are:
+
+* For sales_orders_comp_stg:
+	+ Concatenate referenceto and refno to form CompOrderNumber.
+	+ Apply conditional logic for CompRelatedOrderNumber and CompRelatedOrderType.
+	+ Use left join with b_source.ord_dtl on referenceto, refno, and delete_flag.
+* For sales_orders_comp:
+	+ Use left join with b_source.ord_site, b_source.ord_channel, and b_source.ord_addr.
+	+ Apply conditional logic for CompSiteId and CompSalesDistributionChannel.
+	+ Use subqueries to retrieve data from s_master.currency and b_source.ord_reg.
+
+These requirements will be used to generate the SQL query that meets the specified business needs.
