@@ -1,0 +1,49 @@
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD):
+
+**FR-SQLG-001: Generate SQL Query for Sales Orders**
+
+**Title:** Generate SQL Query for Sales Orders
+
+**Description:** The system must generate a complete SQL SELECT statement that applies transformation logic, includes appropriate joins, and ensures correct data types and formatting based on the provided mapping document.
+
+**Preconditions:**
+
+* The input mapping table is available with the required columns (Column Name, Column Type, Source Table, Source Column/Transformation logic, Join Condition, Common Filter).
+* The source tables (b_source.ord_hdr, b_source.ord_dtl, s_master.sale_orders, etc.) exist and contain the required data.
+
+**Main Flow / Functional Steps:**
+
+1. **Create Intermediate Table (sales_orders_comp_stg)**:
+	* Retrieve the mapping document for sales_orders_comp_stg.
+	* Generate a SQL SELECT statement that applies transformation logic and joins based on the mapping document.
+	* Use aliases (a, b, etc.) consistently as per the join logic.
+	* Ensure correct data types and formatting (e.g., date conversions).
+2. **Create Main Table (sales_orders_comp)**:
+	* Retrieve the mapping document for sales_orders_comp.
+	* Generate a SQL SELECT statement that applies transformation logic and joins based on the mapping document.
+	* Use aliases (a, b, etc.) consistently as per the join logic.
+	* Ensure correct data types and formatting (e.g., date conversions).
+3. **Generate Complete SQL Query**:
+	* Combine the SELECT statements for sales_orders_comp_stg and sales_orders_comp to generate a complete SQL query.
+	* Ensure that the query includes all necessary joins and filters (e.g., DATA_OPERATION <> 'D').
+	* Format the SQL query for readability (indentation, line breaks).
+
+**Detailed Requirements:**
+
+* The system must apply transformation logic as specified in the mapping document.
+* The system must include appropriate joins based on the join conditions specified in the mapping document.
+* The system must use aliases consistently as per the join logic.
+* The system must ensure correct data types and formatting (e.g., date conversions).
+* The system must handle conditional logic (e.g., IF, CASE) as described in the mapping document.
+
+Some of the specific SQL generation requirements include:
+* Generating a SQL query that joins b_source.ord_hdr and b_source.ord_dtl on referenceto, refno, and delete_flag.
+* Applying transformation logic to derive columns such as CompOrderNumber, CompOrderType, and CompSalesOrgCompanyCode.
+* Using subqueries to retrieve data from other tables (e.g., s_master.ord_reg).
+* Handling date conversions and formatting correctly.
+
+**Acceptance Criteria:**
+
+* The generated SQL query is syntactically correct and executes without errors.
+* The query produces the expected output based on the input data and mapping document.
+* The query is formatted for readability and follows standard SQL coding conventions.

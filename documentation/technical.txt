@@ -1,0 +1,42 @@
+Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **Technical Requirement ID**: TR-SQLG-001
+* **Related Functional Requirement(s)**: FR-SQLG-001
+* **Objective**: Implement a system to generate a complete SQL SELECT statement that applies transformation logic, includes appropriate joins, and ensures correct data types and formatting based on the provided mapping document.
+
+* **Target Cluster Configuration**:
+	+ Cluster Name: SQL Generation Cluster
+	+ Databricks Runtime Version: 7.3 LTS
+	+ Node Type: Standard_DS3_v2
+	+ Driver Node: Standard_DS3_v2 (1 node)
+	+ Worker Nodes: Standard_DS3_v2 (2-5 nodes)
+	+ Autoscaling: Enabled
+	+ Auto Termination: 30 minutes
+	+ Libraries Installed: Spark SQL, Scala
+
+* **Source Data Details**:
+	+ Mapping Document: Located in `b_source.mapping_table` (Parquet format)
+	+ Source Tables: `b_source.ord_hdr`, `b_source.ord_dtl`, `s_master.sale_orders`, etc. ( various formats)
+
+* **Target Data Details**:
+	+ Output SQL Query: Generated SQL query will be stored in a file named `sales_orders_comp.sql` in `s_target.sql_queries` directory (Text format)
+
+* **Job Flow / Pipeline Stages**:
+	+ Retrieve mapping document for sales_orders_comp_stg
+	+ Generate SQL SELECT statement for sales_orders_comp_stg
+	+ Retrieve mapping document for sales_orders_comp
+	+ Generate SQL SELECT statement for sales_orders_comp
+	+ Combine the SELECT statements to generate a complete SQL query
+
+* **Data Transformations / Business Logic**:
+	+ Step 1: Retrieve mapping document and generate SQL SELECT statement for sales_orders_comp_stg
+		- Transformation Logic: Apply transformation logic as specified in the mapping document
+	+ Step 2: Retrieve mapping document and generate SQL SELECT statement for sales_orders_comp
+		- Transformation Logic: Apply transformation logic as specified in the mapping document
+	+ Step 3: Combine the SELECT statements to generate a complete SQL query
+		- Transformation Logic: Include all necessary joins and filters (e.g., DATA_OPERATION <> 'D')
+
+* **Error Handling and Logging**:
+	+ Log errors encountered during SQL query generation to a log file named `sql_generation.log` in `s_target.logs` directory
+	+ Handle exceptions and errors during data retrieval and transformation logic application
+	+ Provide meaningful error messages to facilitate debugging and troubleshooting
