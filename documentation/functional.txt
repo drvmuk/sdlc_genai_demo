@@ -1,0 +1,39 @@
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD):
+
+**FR-SQLG-001: Generate SQL Query for Sales Orders**
+
+**Title:** Generate SQL Query for Sales Orders Data Extraction
+
+**Description:** The system must generate a complete SQL SELECT statement that extracts sales orders data from various source tables, applies transformation logic, and includes necessary joins and filters.
+
+**Preconditions:**
+
+* The input mapping table is available with the required columns (Column Name, Column Type, Source Table, Source Column/Transformation Logic, Join Condition, and Common Filter).
+* The source tables (e.g., `b_source.ord_hdr`, `b_source.ord_dtl`, `s_master.sale_orders`) exist and contain the required data.
+
+**Main Flow / Functional Steps:**
+
+1. **Create Intermediate Table (`sales_orders_comp_stg`):**
+	* Retrieve the mapping document for `sales_orders_comp_stg`.
+	* Generate a SQL SELECT statement that includes all columns specified in the mapping document.
+	* Apply transformation logic as specified in the mapping document (e.g., `CONCAT(referenceto,refno)` for `CompOrderNumber`).
+	* Include necessary joins between tables (e.g., `b_source.ord_hdr` and `b_source.ord_dtl`) based on the join conditions specified in the mapping document.
+	* Apply common filters (e.g., `delete_flag <> 'D'`) as specified in the mapping document.
+2. **Create Main Table (`sales_orders_comp`):**
+	* Retrieve the mapping document for `sales_orders_comp`.
+	* Generate a SQL SELECT statement that includes all columns specified in the mapping document.
+	* Apply transformation logic as specified in the mapping document (e.g., `CASE` statement for `CompSiteId`).
+	* Include necessary joins between tables (e.g., `s_master.sale_orders` and `b_source.ord_site`) based on the join conditions specified in the mapping document.
+	* Apply common filters (e.g., `delete_flag <> 'D'` and `year(cast(to_date(from_unixtime(unix_timestamp(cast(a.processed_date as string), 'yyyyMMdd'))) as date))>=year(current_date())-3`) as specified in the mapping document.
+3. **Generate Final SQL Query:**
+	* Combine the SQL SELECT statements for `sales_orders_comp_stg` and `sales_orders_comp` into a single query.
+	* Ensure that the query is formatted for readability (indentation, line breaks).
+
+**Output:**
+
+* A complete SQL query that extracts sales orders data from various source tables, applies transformation logic, and includes necessary joins and filters.
+
+**Additional Requirements:**
+
+* Use aliases consistently (e.g., `a`, `b`) as per the join logic.
+* Ensure that the SQL query is syntactically correct and executable.

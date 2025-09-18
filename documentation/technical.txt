@@ -1,0 +1,60 @@
+Here's the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **Technical Requirement ID:** TR-SQLG-001
+* **Related Functional Requirement(s):** FR-SQLG-001
+* **Objective:** Develop a system to dynamically generate a SQL query for extracting sales orders data from various source tables, applying transformation logic, and including necessary joins and filters.
+
+* **Target Cluster Configuration:**
+	+ Cluster Name: Sales Data Processing Cluster
+	+ Databricks Runtime Version: 7.3 LTS
+	+ Node Type: Standard_DS3_v2
+	+ Driver Node: Standard_DS3_v2 (1 node)
+	+ Worker Nodes: Standard_DS3_v2 (2-5 nodes)
+	+ Autoscaling: Enabled
+	+ Auto Termination: 30 minutes
+	+ Libraries Installed: spark-sql, scala-library
+
+* **Source Data Details:**
+	+ Dataset Name: b_source.ord_hdr
+	+ Location: Hive Metastore
+	+ Format: Hive Table (Parquet)
+	+ Description: Sales order header data
+	+ Dataset Name: b_source.ord_dtl
+	+ Location: Hive Metastore
+	+ Format: Hive Table (Parquet)
+	+ Description: Sales order detail data
+	+ Dataset Name: s_master.sale_orders
+	+ Location: Hive Metastore
+	+ Format: Hive Table (Parquet)
+	+ Description: Master sales orders data
+	+ Dataset Name: Mapping Document
+	+ Location: File System (JSON file)
+	+ Format: JSON
+	+ Description: Mapping document containing column mappings and transformation logic
+
+* **Target Data Details:**
+	+ Output Name: SQL Query for Sales Orders Data Extraction
+	+ Location: Console/File System
+	+ Format: SQL Query (Text file)
+	+ Description: Generated SQL query for extracting sales orders data
+
+* **Job Flow / Pipeline Stages:**
+	+ Retrieve mapping document for sales_orders_comp_stg
+	+ Generate SQL SELECT statement for sales_orders_comp_stg
+	+ Retrieve mapping document for sales_orders_comp
+	+ Generate SQL SELECT statement for sales_orders_comp
+	+ Combine SQL SELECT statements into a single query
+	+ Format the final query for readability
+
+* **Data Transformations / Business Logic:**
+	+ Step: Generate SQL SELECT statement for sales_orders_comp_stg
+	+ Description: Apply transformation logic (e.g., CONCAT(referenceto,refno) for CompOrderNumber)
+	+ Transformation Logic: Use mapping document to determine transformation logic
+	+ Step: Generate SQL SELECT statement for sales_orders_comp
+	+ Description: Apply transformation logic (e.g., CASE statement for CompSiteId)
+	+ Transformation Logic: Use mapping document to determine transformation logic
+
+* **Error Handling and Logging:**
+	+ Log errors encountered during query generation
+	+ Handle missing or invalid data in the mapping document
+	+ Handle syntax errors in the generated SQL query
