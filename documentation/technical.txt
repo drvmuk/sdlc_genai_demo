@@ -1,42 +1,57 @@
-Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+Here's the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
 
 * **Technical Requirement ID**: TR-SQLG-001
 * **Related Functional Requirement(s)**: FR-SQLG-001
-* **Objective**: Implement a system to generate a complete SQL SELECT statement that applies transformation logic, includes appropriate joins, and ensures correct data types and formatting based on the provided mapping document.
+* **Objective**: Develop a system to generate SQL SELECT statements for creating "sales_orders_comp_stg" and "sales_orders_comp" tables based on the provided tabular mapping document.
 
 * **Target Cluster Configuration**:
 	+ Cluster Name: SQL Generation Cluster
 	+ Databricks Runtime Version: 7.3 LTS
 	+ Node Type: Standard_DS3_v2
-	+ Driver Node: Standard_DS3_v2 (1 node)
-	+ Worker Nodes: Standard_DS3_v2 (2-5 nodes)
+	+ Driver Node: Standard_DS3_v2
+	+ Worker Nodes: 2-4 (autoscaling)
 	+ Autoscaling: Enabled
-	+ Auto Termination: 30 minutes
-	+ Libraries Installed: Spark SQL, Scala
+	+ Auto Termination: Enabled (30 minutes)
+	+ Libraries Installed: spark-sql, spark-core, scala-library
 
 * **Source Data Details**:
-	+ Mapping Document: Located in `b_source.mapping_table` (Parquet format)
-	+ Source Tables: `b_source.ord_hdr`, `b_source.ord_dtl`, `s_master.sale_orders`, etc. ( various formats)
+	+ Dataset Name: Tabular Mapping Document
+	+ Location: ADLS Gen2 Storage (path: /mnt/mapping-document/)
+	+ Format: CSV
+	+ Description: Contains column mappings for "sales_orders_comp_stg" and "sales_orders_comp" tables
+	+ Dataset Name: Source Tables
+	+ Location: Various databases and tables (e.g., MySQL, PostgreSQL)
+	+ Format: Relational Database Tables
+	+ Description: Source data for generating SQL SELECT statements
 
 * **Target Data Details**:
-	+ Output SQL Query: Generated SQL query will be stored in a file named `sales_orders_comp.sql` in `s_target.sql_queries` directory (Text format)
+	+ Output Name: SQL SELECT Statements
+	+ Location: ADLS Gen2 Storage (path: /mnt/generated-sql/)
+	+ Format: SQL Files (.sql)
+	+ Description: Generated SQL SELECT statements for creating "sales_orders_comp_stg" and "sales_orders_comp" tables
 
 * **Job Flow / Pipeline Stages**:
-	+ Retrieve mapping document for sales_orders_comp_stg
-	+ Generate SQL SELECT statement for sales_orders_comp_stg
-	+ Retrieve mapping document for sales_orders_comp
-	+ Generate SQL SELECT statement for sales_orders_comp
-	+ Combine the SELECT statements to generate a complete SQL query
+	+ Retrieve tabular mapping document
+	+ Generate SQL SELECT statement for "sales_orders_comp_stg" table
+	+ Generate SQL SELECT statement for "sales_orders_comp" table
+	+ Format generated SQL queries for readability
+	+ Save generated SQL queries to ADLS Gen2 Storage
 
 * **Data Transformations / Business Logic**:
-	+ Step 1: Retrieve mapping document and generate SQL SELECT statement for sales_orders_comp_stg
-		- Transformation Logic: Apply transformation logic as specified in the mapping document
-	+ Step 2: Retrieve mapping document and generate SQL SELECT statement for sales_orders_comp
-		- Transformation Logic: Apply transformation logic as specified in the mapping document
-	+ Step 3: Combine the SELECT statements to generate a complete SQL query
-		- Transformation Logic: Include all necessary joins and filters (e.g., DATA_OPERATION <> 'D')
+	+ Step: Apply transformation logic to columns (e.g., CONCAT, CAST, TRIM)
+	+ Description: Use specified transformation logic to generate correct data for "sales_orders_comp_stg" and "sales_orders_comp" tables
+	+ Transformation Logic: 
+		- CONCAT(referenceto, refno) for CompOrderNumber
+		- stndard for CompOrderType
+		- Use CAST function to convert date strings to date format
+		- Use TRIM function to trim whitespace from string columns
+	+ Step: Perform joins based on specified join conditions
+	+ Description: Use aliases consistently throughout the SQL query and perform joins as necessary
+	+ Transformation Logic: 
+		- Use subqueries or derived tables to perform complex joins or aggregations
+		- Apply specified join conditions and filters (e.g., delete_flag <> 'D')
 
 * **Error Handling and Logging**:
-	+ Log errors encountered during SQL query generation to a log file named `sql_generation.log` in `s_target.logs` directory
-	+ Handle exceptions and errors during data retrieval and transformation logic application
-	+ Provide meaningful error messages to facilitate debugging and troubleshooting
+	+ Log errors and exceptions to a designated log file or database
+	+ Handle invalid or missing data in the tabular mapping document or source tables
+	+ Provide meaningful error messages to facilitate debugging and issue resolution
