@@ -1,0 +1,91 @@
+Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **TR-DLT-001: Load Customer and Order Data from CSV to Delta Tables**
+	+ **Related Functional Requirement(s):** FR-DLT-001
+	+ **Objective:** Implement a Delta Live Table pipeline to read customer and order data from CSV files, load it into delta tables, and perform data cleansing and transformation.
+	+ **Target Cluster Configuration:**
+		- Cluster Name: Gen AI POC Databricks Cluster
+		- Databricks Runtime Version: 11.3.x-scala2.12
+		- Node Type: Standard_DS4_v2
+		- Driver Node: Standard_DS4_v2
+		- Worker Nodes: 2-4 Standard_DS4_v2
+		- Autoscaling: Enabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: delta-lake, pyspark
+	+ **Source Data Details:**
+		- Customer Data: `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata`, CSV
+		- Order Data: `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata`, CSV
+	+ **Target Data Details:**
+		- Customer Table: `customer`, Delta Table
+		- Order Table: `order`, Delta Table
+	+ **Job Flow / Pipeline Stages:**
+		- Read customer data from CSV into delta table `customer`
+		- Read order data from CSV into delta table `order`
+		- Add `TotalAmount` column to `order` table
+		- Remove null and duplicate records from `customer` and `order` tables
+	+ **Data Transformations / Business Logic:**
+		- Step 1: Read CSV data into delta tables
+		- Step 2: Add `TotalAmount` column to `order` table by multiplying `PricePerUnit` and `Qty`
+		- Step 3: Remove null and duplicate records from `customer` and `order` tables using `dropDuplicates()` and `dropna()`
+	+ **Error Handling and Logging:**
+		- Log errors to a designated log table or file
+		- Implement try-except blocks to handle data transformation errors
+
+* **TR-DLT-002: Create and Load ordersummary Table**
+	+ **Related Functional Requirement(s):** FR-DLT-002
+	+ **Objective:** Implement a Delta Live Table pipeline to create the `ordersummary` table and load it with joined data from `customer` and `order` tables using SCD type 2.
+	+ **Target Cluster Configuration:** Same as TR-DLT-001
+	+ **Source Data Details:**
+		- Customer Table: `customer`, Delta Table
+		- Order Table: `order`, Delta Table
+	+ **Target Data Details:**
+		- ordersummary Table: `ordersummary`, Delta Table
+	+ **Job Flow / Pipeline Stages:**
+		- Create `ordersummary` table if it does not exist
+		- Join `customer` and `order` data using `CustId` field
+		- Load joined data into `ordersummary` table using SCD type 2
+	+ **Data Transformations / Business Logic:**
+		- Step 1: Join `customer` and `order` tables using `CustId` field
+		- Step 2: Implement SCD type 2 logic to maintain history in `ordersummary` table
+	+ **Error Handling and Logging:** Same as TR-DLT-001
+
+* **TR-DLT-003: Update ordersummary Table on Customer Changes**
+	+ **Related Functional Requirement(s):** FR-DLT-003
+	+ **Objective:** Implement a Delta Live Table pipeline to update the `ordersummary` table whenever there is a change in the `customer` table.
+	+ **Target Cluster Configuration:** Same as TR-DLT-001
+	+ **Source Data Details:**
+		- Customer Table: `customer`, Delta Table
+	+ **Target Data Details:**
+		- ordersummary Table: `ordersummary`, Delta Table
+	+ **Job Flow / Pipeline Stages:**
+		- Detect changes in `customer` table
+		- Update `ordersummary` table by making old records inactive and new records active
+		- Update `StartDate` and `EndDate` columns accordingly to maintain history
+	+ **Data Transformations / Business Logic:**
+		- Step 1: Detect changes in `customer` table using `apply_changes()` or similar function
+		- Step 2: Update `ordersummary` table using SCD type 2 logic
+	+ **Error Handling and Logging:** Same as TR-DLT-001
+
+* **TR-DLT-004: Create and Load customeraggregatespend Table**
+	+ **Related Functional Requirement(s):** FR-DLT-004
+	+ **Objective:** Implement a Delta Live Table pipeline to create the `customeraggregatespend` table and load it with aggregated data from `ordersummary` table.
+	+ **Target Cluster Configuration:** Same as TR-DLT-001
+	+ **Source Data Details:**
+		- ordersummary Table: `ordersummary`, Delta Table
+	+ **Target Data Details:**
+		- customeraggregatespend Table: `customeraggregatespend`, Delta Table
+	+ **Job Flow / Pipeline Stages:**
+		- Create `customeraggregatespend` table if it does not exist
+		- Aggregate `TotalAmount` column from `ordersummary` table by `Name` and `Date` columns
+		- Load aggregated data into `customeraggregatespend` table
+	+ **Data Transformations / Business Logic:**
+		- Step 1: Aggregate `TotalAmount` column using `groupBy()` and `sum()` functions
+	+ **Error Handling and Logging:** Same as TR-DLT-001
+
+* **TR-DLT-005: Implement using Delta Live Tables**
+	+ **Related Functional Requirement(s):** FR-DLT-005
+	+ **Objective:** Implement the above requirements using Delta Live Tables.
+	+ **Target Cluster Configuration:** Same as TR-DLT-001
+	+ **Implementation Details:**
+		- Use Delta Live Tables to implement the above requirements
+		- Create a DLT pipeline to orchestrate the data transformations and loading into target tables

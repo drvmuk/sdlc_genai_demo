@@ -1,0 +1,59 @@
+Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD) "Coding Requirements" section.
+
+**FR-DLT-001: Load Customer and Order Data from CSV to Delta Tables**
+
+* **Title:** Load Customer and Order Data from CSV to Delta Tables
+* **Description:** The system must read customer and order data from CSV files, load it into delta tables, and perform data cleansing and transformation.
+* **Preconditions:**
+	+ CSV files are available at the specified locations: `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata` and `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata`.
+	+ The delta tables `customer` and `order` exist or can be created.
+* **Main Flow / Functional Steps:**
+	1. Read customer data from CSV file `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata` into delta table `customer`.
+	2. Read order data from CSV file `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata` into delta table `order`.
+	3. Add a new column `TotalAmount` to the `order` table, calculated as the product of `PricePerUnit` and `Qty`.
+	4. Remove null and duplicate records from both `customer` and `order` tables.
+
+**FR-DLT-002: Create and Load ordersummary Table**
+
+* **Title:** Create and Load ordersummary Table
+* **Description:** The system must create the `ordersummary` table if it does not exist and load it with joined data from `customer` and `order` tables using SCD type 2.
+* **Preconditions:**
+	+ `customer` and `order` tables are loaded with data.
+	+ `ordersummary` table does not exist or can be created.
+* **Main Flow / Functional Steps:**
+	1. Create `ordersummary` table if it does not exist in catalog `gen_ai_poc_databrickscoe` and schema `sdlc_wizard`.
+	2. Join `customer` and `order` data using `CustId` field.
+	3. Load the joined data into `ordersummary` table using SCD type 2.
+
+**FR-DLT-003: Update ordersummary Table on Customer Changes**
+
+* **Title:** Update ordersummary Table on Customer Changes
+* **Description:** The system must update the `ordersummary` table whenever there is a change in the `customer` table.
+* **Preconditions:**
+	+ `customer` table is updated.
+	+ `ordersummary` table exists and is loaded with data.
+* **Main Flow / Functional Steps:**
+	1. Detect changes in the `customer` table.
+	2. Update `ordersummary` table by making old records inactive and new records active.
+	3. Update `StartDate` and `EndDate` columns accordingly to maintain history.
+
+**FR-DLT-004: Create and Load customeraggregatespend Table**
+
+* **Title:** Create and Load customeraggregatespend Table
+* **Description:** The system must create the `customeraggregatespend` table if it does not exist and load it with aggregated data from `ordersummary` table.
+* **Preconditions:**
+	+ `ordersummary` table exists and is loaded with data.
+	+ `customeraggregatespend` table does not exist or can be created.
+* **Main Flow / Functional Steps:**
+	1. Create `customeraggregatespend` table if it does not exist in catalog `gen_ai_poc_databrickscoe` and schema `sdlc_wizard`.
+	2. Aggregate `TotalAmount` column from `ordersummary` table by `Name` and `Date` columns.
+	3. Load the aggregated data into `customeraggregatespend` table.
+
+**FR-DLT-005: Implement using Delta Live Tables**
+
+* **Title:** Implement using Delta Live Tables
+* **Description:** The system must implement the above requirements using Delta Live Tables.
+* **Preconditions:**
+	+ Delta Live Tables is available and configured.
+* **Main Flow / Functional Steps:**
+	1. Implement the above requirements using Delta Live Tables.
