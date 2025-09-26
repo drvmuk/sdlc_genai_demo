@@ -1,0 +1,187 @@
+Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **TR-DLT-001: Load Customer and Order Data into Delta Tables**
+	+ **Related Functional Requirement(s):** FR-DLT-001
+	+ **Objective:** Implement a Delta Live Table pipeline to load customer and order data from CSV files into Delta tables.
+	+ **Target Cluster Configuration:**
+		- Cluster Name: Delta Live Table Cluster
+		- Databricks Runtime Version: 10.4.x-scala2.12
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 2-4 Standard_DS3_v2
+		- Autoscaling: Enabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: delta-lake, pyspark
+	+ **Source Data Details:**
+		- Dataset Name: customerdata
+		- Location: `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata`
+		- Format: CSV
+		- Description: Customer data CSV file
+		- Dataset Name: orderdata
+		- Location: `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata`
+		- Format: CSV
+		- Description: Order data CSV file
+	+ **Target Data Details:**
+		- Output Name: customer
+		- Location: Delta table in `gen_ai_poc_databrickscoe.sdlc_wizard` schema
+		- Format: Delta
+		- Description: Customer Delta table
+		- Output Name: order
+		- Location: Delta table in `gen_ai_poc_databrickscoe.sdlc_wizard` schema
+		- Format: Delta
+		- Description: Order Delta table
+	+ **Job Flow / Pipeline Stages:**
+		- Read customer CSV data into a Delta table named "customer"
+		- Read order CSV data into a Delta table named "order"
+		- Add a new column "TotalAmount" to the "order" Delta table
+	+ **Data Transformations / Business Logic:**
+		- Step: Read customer CSV data
+		- Description: Read customer CSV data into a Delta table
+		- Transformation Logic: Use `spark.read.csv()` to read CSV data and `write.format("delta").saveAsTable()` to save as Delta table
+		- Step: Read order CSV data
+		- Description: Read order CSV data into a Delta table
+		- Transformation Logic: Use `spark.read.csv()` to read CSV data and `write.format("delta").saveAsTable()` to save as Delta table
+		- Step: Add TotalAmount column
+		- Description: Add a new column "TotalAmount" to the "order" Delta table
+		- Transformation Logic: Use `withColumn()` to add a new column and calculate the product of PricePerUnit and Qty
+	+ **Error Handling and Logging:**
+		- Use try-except blocks to handle errors during data loading and transformation
+		- Log errors and exceptions using Databricks logging mechanisms
+
+* **TR-DLT-002: Clean and Transform Customer and Order Data**
+	+ **Related Functional Requirement(s):** FR-DLT-002
+	+ **Objective:** Implement data quality checks to remove null and duplicate records from customer and order Delta tables.
+	+ **Target Cluster Configuration:** Same as TR-DLT-001
+	+ **Source Data Details:**
+		- Dataset Name: customer
+		- Location: Delta table in `gen_ai_poc_databrickscoe.sdlc_wizard` schema
+		- Format: Delta
+		- Description: Customer Delta table
+		- Dataset Name: order
+		- Location: Delta table in `gen_ai_poc_databrickscoe.sdlc_wizard` schema
+		- Format: Delta
+		- Description: Order Delta table
+	+ **Target Data Details:**
+		- Output Name: customer (cleaned)
+		- Location: Delta table in `gen_ai_poc_databrickscoe.sdlc_wizard` schema
+		- Format: Delta
+		- Description: Cleaned customer Delta table
+		- Output Name: order (cleaned)
+		- Location: Delta table in `gen_ai_poc_databrickscoe.sdlc_wizard` schema
+		- Format: Delta
+		- Description: Cleaned order Delta table
+	+ **Job Flow / Pipeline Stages:**
+		- Remove null records from customer and order Delta tables
+		- Remove duplicate records from customer and order Delta tables
+	+ **Data Transformations / Business Logic:**
+		- Step: Remove null records
+		- Description: Remove null records from customer and order Delta tables
+		- Transformation Logic: Use `filter()` to remove null records
+		- Step: Remove duplicate records
+		- Description: Remove duplicate records from customer and order Delta tables
+		- Transformation Logic: Use `dropDuplicates()` to remove duplicate records
+	+ **Error Handling and Logging:**
+		- Use try-except blocks to handle errors during data quality checks
+		- Log errors and exceptions using Databricks logging mechanisms
+
+* **TR-DLT-003: Create and Load ordersummary Table**
+	+ **Related Functional Requirement(s):** FR-DLT-003
+	+ **Objective:** Implement a data pipeline to create and load the ordersummary table using joined customer and order data.
+	+ **Target Cluster Configuration:** Same as TR-DLT-001
+	+ **Source Data Details:**
+		- Dataset Name: customer (cleaned)
+		- Location: Delta table in `gen_ai_poc_databrickscoe.sdlc_wizard` schema
+		- Format: Delta
+		- Description: Cleaned customer Delta table
+		- Dataset Name: order (cleaned)
+		- Location: Delta table in `gen_ai_poc_databrickscoe.sdlc_wizard` schema
+		- Format: Delta
+		- Description: Cleaned order Delta table
+	+ **Target Data Details:**
+		- Output Name: ordersummary
+		- Location: Delta table in `gen_ai_poc_databrickscoe.sdlc_wizard` schema
+		- Format: Delta
+		- Description: ordersummary Delta table
+	+ **Job Flow / Pipeline Stages:**
+		- Create the ordersummary table if it does not exist
+		- Join customer and order Delta tables on CustId
+		- Load the resulting data into the ordersummary table using SCD type 2
+	+ **Data Transformations / Business Logic:**
+		- Step: Join customer and order data
+		- Description: Join customer and order Delta tables on CustId
+		- Transformation Logic: Use `join()` to join customer and order data
+		- Step: Load data into ordersummary table
+		- Description: Load the resulting data into the ordersummary table using SCD type 2
+		- Transformation Logic: Use `applyChanges()` to apply SCD type 2 changes
+	+ **Error Handling and Logging:**
+		- Use try-except blocks to handle errors during data loading and transformation
+		- Log errors and exceptions using Databricks logging mechanisms
+
+* **TR-DLT-004: Update ordersummary Table on Customer Changes**
+	+ **Related Functional Requirement(s):** FR-DLT-004
+	+ **Objective:** Implement a data pipeline to update the ordersummary table whenever there are changes to the customer table.
+	+ **Target Cluster Configuration:** Same as TR-DLT-001
+	+ **Source Data Details:**
+		- Dataset Name: customer (cleaned)
+		- Location: Delta table in `gen_ai_poc_databrickscoe.sdlc_wizard` schema
+		- Format: Delta
+		- Description: Cleaned customer Delta table
+	+ **Target Data Details:**
+		- Output Name: ordersummary
+		- Location: Delta table in `gen_ai_poc_databrickscoe.sdlc_wizard` schema
+		- Format: Delta
+		- Description: ordersummary Delta table
+	+ **Job Flow / Pipeline Stages:**
+		- Detect changes to the customer table
+		- Update the ordersummary table by making old records inactive and new records active
+	+ **Data Transformations / Business Logic:**
+		- Step: Detect changes to customer data
+		- Description: Detect changes to the customer table
+		- Transformation Logic: Use `applyChanges()` to detect changes
+		- Step: Update ordersummary table
+		- Description: Update the ordersummary table by making old records inactive and new records active
+		- Transformation Logic: Use `applyChanges()` to apply SCD type 2 changes
+	+ **Error Handling and Logging:**
+		- Use try-except blocks to handle errors during data loading and transformation
+		- Log errors and exceptions using Databricks logging mechanisms
+
+* **TR-DLT-005: Create and Load customeraggregatespend Table**
+	+ **Related Functional Requirement(s):** FR-DLT-005
+	+ **Objective:** Implement a data pipeline to create and load the customeraggregatespend table using aggregated data from the ordersummary table.
+	+ **Target Cluster Configuration:** Same as TR-DLT-001
+	+ **Source Data Details:**
+		- Dataset Name: ordersummary
+		- Location: Delta table in `gen_ai_poc_databrickscoe.sdlc_wizard` schema
+		- Format: Delta
+		- Description: ordersummary Delta table
+	+ **Target Data Details:**
+		- Output Name: customeraggregatespend
+		- Location: Delta table in `gen_ai_poc_databrickscoe.sdlc_wizard` schema
+		- Format: Delta
+		- Description: customeraggregatespend Delta table
+	+ **Job Flow / Pipeline Stages:**
+		- Create the customeraggregatespend table if it does not exist
+		- Aggregate the TotalAmount column from the ordersummary table by Name and Date
+		- Load the resulting data into the customeraggregatespend table
+	+ **Data Transformations / Business Logic:**
+		- Step: Aggregate data
+		- Description: Aggregate the TotalAmount column from the ordersummary table by Name and Date
+		- Transformation Logic: Use `groupBy()` and `sum()` to aggregate data
+		- Step: Load data into customeraggregatespend table
+		- Description: Load the resulting data into the customeraggregatespend table
+		- Transformation Logic: Use `write.format("delta").saveAsTable()` to save as Delta table
+	+ **Error Handling and Logging:**
+		- Use try-except blocks to handle errors during data loading and transformation
+		- Log errors and exceptions using Databricks logging mechanisms
+
+* **TR-DLT-006: Implement using Delta Live Tables**
+	+ **Related Functional Requirement(s):** FR-DLT-006
+	+ **Objective:** Implement the data pipelines using Delta Live Tables.
+	+ **Target Cluster Configuration:** Same as TR-DLT-001
+	+ **Job Flow / Pipeline Stages:**
+		- Implement the data pipelines using Delta Live Tables to perform the required data loading, transformation, and aggregation.
+	+ **Data Transformations / Business Logic:**
+		- Use Delta Live Tables to implement the data pipelines
+	+ **Error Handling and Logging:**
+		- Use try-except blocks to handle errors during data loading and transformation
+		- Log errors and exceptions using Databricks logging mechanisms

@@ -1,0 +1,10 @@
+CustId,Name,EmailId,Region
+C001,John Doe,john@example.com,North
+C002,Jane Smith,jane@example.com,South
+C003,Bob Johnson,bob@example.com,East
+C004,,alice@example.com,West
+C005,Tom Brown,,North
+C006,Sarah Lee,sarah@example.com,
+,Mike Wilson,mike@example.com,South
+C001,John Doe,john@example.com,North
+C008,Null,chris@example.com,West
