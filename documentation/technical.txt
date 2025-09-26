@@ -1,0 +1,234 @@
+Here is the Technical Requirement Document (TRD) based on the provided Functional Requirement Document (FRD):
+
+* **TR-DLT-001: Load Customer and Order Data**
+	+ Related Functional Requirement(s): FR-DLT-001
+	+ Objective: Implement a PySpark job using Delta Live Tables to load customer and order data from CSV files to Delta tables.
+	+ Target Cluster Configuration:
+		- Cluster Name: Data Engineering Cluster
+		- Databricks Runtime Version: 11.3.x-scala2.12
+		- Node Type: Standard_DS3_v2
+		- Driver Node: Standard_DS3_v2
+		- Worker Nodes: 2-4 (autoscaling)
+		- Autoscaling: Enabled
+		- Auto Termination: 30 minutes
+		- Libraries Installed: Delta Lake, PySpark
+	+ Source Data Details:
+		- Dataset Name: customerdata
+		- Location: /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata
+		- Format: CSV
+		- Description: Customer data in CSV format
+		- Dataset Name: orderdata
+		- Location: /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata
+		- Format: CSV
+		- Description: Order data in CSV format
+	+ Target Data Details:
+		- Output Name: customer
+		- Location: Delta table in gen_ai_poc_databrickscoe.sdlc_wizard
+		- Format: Delta
+		- Description: Customer data in Delta format
+		- Output Name: order
+		- Location: Delta table in gen_ai_poc_databrickscoe.sdlc_wizard
+		- Format: Delta
+		- Description: Order data in Delta format
+	+ Job Flow / Pipeline Stages:
+		- Read customer data from CSV
+		- Load customer data into Delta table
+		- Read order data from CSV
+		- Load order data into Delta table
+	+ Data Transformations / Business Logic:
+		- Step: Read CSV data
+		- Description: Read customer and order data from CSV files
+		- Transformation Logic: Use PySpark to read CSV data
+		- Step: Load data into Delta tables
+		- Description: Load customer and order data into Delta tables
+		- Transformation Logic: Use Delta Lake to load data into Delta tables
+	+ Error Handling and Logging:
+		- Log errors during data loading
+		- Handle null and duplicate records
+
+* **TR-DLT-002: Transform Order Data**
+	+ Related Functional Requirement(s): FR-DLT-002
+	+ Objective: Implement a PySpark job to add a new column "TotalAmount" to the "order" table.
+	+ Target Cluster Configuration: Same as TR-DLT-001
+	+ Source Data Details:
+		- Dataset Name: order
+		- Location: Delta table in gen_ai_poc_databrickscoe.sdlc_wizard
+		- Format: Delta
+		- Description: Order data in Delta format
+	+ Target Data Details:
+		- Output Name: order
+		- Location: Delta table in gen_ai_poc_databrickscoe.sdlc_wizard
+		- Format: Delta
+		- Description: Order data with TotalAmount column in Delta format
+	+ Job Flow / Pipeline Stages:
+		- Read order data from Delta table
+		- Add TotalAmount column
+		- Write updated order data to Delta table
+	+ Data Transformations / Business Logic:
+		- Step: Add TotalAmount column
+		- Description: Calculate TotalAmount by multiplying PricePerUnit and Qty
+		- Transformation Logic: Use PySpark to add new column
+	+ Error Handling and Logging:
+		- Log errors during data transformation
+
+* **TR-DLT-003: Cleanse Customer and Order Data**
+	+ Related Functional Requirement(s): FR-DLT-003
+	+ Objective: Implement a PySpark job to remove null and duplicate records from customer and order tables.
+	+ Target Cluster Configuration: Same as TR-DLT-001
+	+ Source Data Details:
+		- Dataset Name: customer
+		- Location: Delta table in gen_ai_poc_databrickscoe.sdlc_wizard
+		- Format: Delta
+		- Description: Customer data in Delta format
+		- Dataset Name: order
+		- Location: Delta table in gen_ai_poc_databrickscoe.sdlc_wizard
+		- Format: Delta
+		- Description: Order data in Delta format
+	+ Target Data Details:
+		- Output Name: customer
+		- Location: Delta table in gen_ai_poc_databrickscoe.sdlc_wizard
+		- Format: Delta
+		- Description: Cleansed customer data in Delta format
+		- Output Name: order
+		- Location: Delta table in gen_ai_poc_databrickscoe.sdlc_wizard
+		- Format: Delta
+		- Description: Cleansed order data in Delta format
+	+ Job Flow / Pipeline Stages:
+		- Read customer and order data from Delta tables
+		- Remove null and duplicate records
+		- Write cleansed data to Delta tables
+	+ Data Transformations / Business Logic:
+		- Step: Remove null records
+		- Description: Remove null records from customer and order data
+		- Transformation Logic: Use PySpark to filter out null records
+		- Step: Remove duplicate records
+		- Description: Remove duplicate records from customer and order data
+		- Transformation Logic: Use PySpark to drop duplicates
+	+ Error Handling and Logging:
+		- Log errors during data cleansing
+
+* **TR-DLT-004: Create ordersummary Table**
+	+ Related Functional Requirement(s): FR-DLT-004
+	+ Objective: Implement a PySpark job to create the ordersummary table if it does not exist.
+	+ Target Cluster Configuration: Same as TR-DLT-001
+	+ Source Data Details: None
+	+ Target Data Details:
+		- Output Name: ordersummary
+		- Location: Delta table in gen_ai_poc_databrickscoe.sdlc_wizard
+		- Format: Delta
+		- Description: ordersummary table in Delta format
+	+ Job Flow / Pipeline Stages:
+		- Check if ordersummary table exists
+		- Create ordersummary table if it does not exist
+	+ Data Transformations / Business Logic: None
+	+ Error Handling and Logging:
+		- Log errors during table creation
+
+* **TR-DLT-005: Load ordersummary Table**
+	+ Related Functional Requirement(s): FR-DLT-005
+	+ Objective: Implement a PySpark job to load the ordersummary table with joined customer and order data.
+	+ Target Cluster Configuration: Same as TR-DLT-001
+	+ Source Data Details:
+		- Dataset Name: customer
+		- Location: Delta table in gen_ai_poc_databrickscoe.sdlc_wizard
+		- Format: Delta
+		- Description: Customer data in Delta format
+		- Dataset Name: order
+		- Location: Delta table in gen_ai_poc_databrickscoe.sdlc_wizard
+		- Format: Delta
+		- Description: Order data in Delta format
+	+ Target Data Details:
+		- Output Name: ordersummary
+		- Location: Delta table in gen_ai_poc_databrickscoe.sdlc_wizard
+		- Format: Delta
+		- Description: ordersummary table with joined data in Delta format
+	+ Job Flow / Pipeline Stages:
+		- Join customer and order data
+		- Load joined data into ordersummary table
+	+ Data Transformations / Business Logic:
+		- Step: Join customer and order data
+		- Description: Join customer and order data on CustId
+		- Transformation Logic: Use PySpark to join data
+	+ Error Handling and Logging:
+		- Log errors during data loading
+
+* **TR-DLT-006: Update ordersummary Table on Customer Change**
+	+ Related Functional Requirement(s): FR-DLT-006
+	+ Objective: Implement a PySpark job to update the ordersummary table when customer data changes.
+	+ Target Cluster Configuration: Same as TR-DLT-001
+	+ Source Data Details:
+		- Dataset Name: customer
+		- Location: Delta table in gen_ai_poc_databrickscoe.sdlc_wizard
+		- Format: Delta
+		- Description: Customer data in Delta format
+	+ Target Data Details:
+		- Output Name: ordersummary
+		- Location: Delta table in gen_ai_poc_databrickscoe.sdlc_wizard
+		- Format: Delta
+		- Description: Updated ordersummary table in Delta format
+	+ Job Flow / Pipeline Stages:
+		- Detect changes in customer data
+		- Update ordersummary table accordingly
+	+ Data Transformations / Business Logic:
+		- Step: Detect changes in customer data
+		- Description: Detect changes in customer data
+		- Transformation Logic: Use PySpark to detect changes
+		- Step: Update ordersummary table
+		- Description: Update ordersummary table by making old records inactive and new records active
+		- Transformation Logic: Use PySpark to update ordersummary table
+	+ Error Handling and Logging:
+		- Log errors during data update
+
+* **TR-DLT-007: Create customeraggregatespend Table**
+	+ Related Functional Requirement(s): FR-DLT-007
+	+ Objective: Implement a PySpark job to create the customeraggregatespend table if it does not exist.
+	+ Target Cluster Configuration: Same as TR-DLT-001
+	+ Source Data Details: None
+	+ Target Data Details:
+		- Output Name: customeraggregatespend
+		- Location: Delta table in gen_ai_poc_databrickscoe.sdlc_wizard
+		- Format: Delta
+		- Description: customeraggregatespend table in Delta format
+	+ Job Flow / Pipeline Stages:
+		- Check if customeraggregatespend table exists
+		- Create customeraggregatespend table if it does not exist
+	+ Data Transformations / Business Logic: None
+	+ Error Handling and Logging:
+		- Log errors during table creation
+
+* **TR-DLT-008: Load customeraggregatespend Table**
+	+ Related Functional Requirement(s): FR-DLT-008
+	+ Objective: Implement a PySpark job to load the customeraggregatespend table with aggregated data.
+	+ Target Cluster Configuration: Same as TR-DLT-001
+	+ Source Data Details:
+		- Dataset Name: ordersummary
+		- Location: Delta table in gen_ai_poc_databrickscoe.sdlc_wizard
+		- Format: Delta
+		- Description: ordersummary table in Delta format
+	+ Target Data Details:
+		- Output Name: customeraggregatespend
+		- Location: Delta table in gen_ai_poc_databrickscoe.sdlc_wizard
+		- Format: Delta
+		- Description: customeraggregatespend table with aggregated data in Delta format
+	+ Job Flow / Pipeline Stages:
+		- Aggregate data from ordersummary table
+		- Load aggregated data into customeraggregatespend table
+	+ Data Transformations / Business Logic:
+		- Step: Aggregate data
+		- Description: Aggregate TotalAmount by Name and Date
+		- Transformation Logic: Use PySpark to aggregate data
+	+ Error Handling and Logging:
+		- Log errors during data loading
+
+* **TR-DLT-009: Implement using Delta Live Tables**
+	+ Related Functional Requirement(s): FR-DLT-009
+	+ Objective: Implement the data processing pipeline using Delta Live Tables.
+	+ Target Cluster Configuration: Same as TR-DLT-001
+	+ Source Data Details: Same as previous requirements
+	+ Target Data Details: Same as previous requirements
+	+ Job Flow / Pipeline Stages:
+		- Implement data processing pipeline using Delta Live Tables
+	+ Data Transformations / Business Logic:
+		- Same as previous requirements
+	+ Error Handling and Logging:
+		- Log errors during pipeline execution
