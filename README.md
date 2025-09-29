@@ -1,70 +1,59 @@
-# Customer Order Processing Pipeline
+# Customer Order Data Processor
 
-This project implements a data processing pipeline for customer and order data using Databricks Delta Live Tables.
+A Databricks PySpark application for processing customer and order data with SCD Type 2 implementation.
 
 ## Overview
 
-The pipeline performs the following operations:
-1. Reads customer and order data from source volumes
-2. Cleans the data by removing nulls and duplicates
-3. Calculates total amount for each order
-4. Implements SCD Type 2 pattern for tracking customer changes
-5. Aggregates customer spending by date
+This application processes customer and order data from CSV sources, cleans the data, and loads it into Delta tables. It implements SCD Type 2 for tracking historical changes and provides aggregated customer spending analysis.
 
-## Architecture
+## Features
 
-The solution is implemented in two ways:
-1. Standard PySpark processing in `data_processing.py`
-2. Delta Live Tables pipeline in `dlt_pipeline.py`
+- Data loading from CSV sources
+- Data cleaning (removing nulls and duplicates)
+- SCD Type 2 implementation for tracking historical changes
+- Customer spend aggregation
 
 ## Setup
 
-### Prerequisites
-- Databricks Runtime 11.3 LTS or higher
-- Access to the specified volumes
-
-### Installation
-1. Upload the project files to your Databricks workspace
-2. Install required dependencies:
-```
-pip install -r requirements.txt
-```
+1. Upload the code to your Databricks workspace
+2. Ensure the required volumes are accessible:
+   - `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata`
+   - `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata`
+3. Create the necessary catalog and schema:
+   ```sql
+   CREATE CATALOG IF NOT EXISTS gen_ai_poc_databrickscoe;
+   CREATE SCHEMA IF NOT EXISTS gen_ai_poc_databrickscoe.sdlc_wizard;
+   ```
 
 ## Usage
 
-### Running the Standard Pipeline
+Run the main script to process the data:
 
 ```python
-from src.data_processing import main
-
-main()
+%run /path/to/src/data_processor
 ```
 
-### Running the DLT Pipeline
+Or import and call the main function:
 
-Create a new DLT pipeline in the Databricks UI with the following settings:
-- Pipeline name: `Customer_Order_Processing`
-- Source file: `/path/to/src/dlt_pipeline.py`
-- Target schema: `gen_ai_poc_databrickscoe.sdlc_wizard`
-- Cluster mode: `Enhanced`
-
-Then click "Create" and "Start" to run the pipeline.
+```python
+from src.data_processor import main
+main()
+```
 
 ## Testing
 
 Run the tests using pytest:
 
 ```
-pytest tests/
+pytest -xvs tests/
 ```
 
-## Data Flow
+## Sample Data
 
-1. Bronze Layer: Raw data from CSV files
-2. Silver Layer: Cleaned data with business transformations
-3. Gold Layer: Aggregated data for analytics
+Sample data files are provided in the `data/` directory for testing purposes.
 
-## Tables Created
+## Directory Structure
 
-- `ordersummary`: SCD Type 2 table with customer and order data
-- `customeraggregatespend`: Aggregated spending by customer and date
+- `src/`: Source code
+- `tests/`: Unit and integration tests
+- `data/`: Sample data files
