@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "customer_order_analytics"
+version = "1.0.0"
+description = "Databricks Delta Live Tables pipeline for customer order analytics"
+authors = [
+    {name = "Data Engineering Team", email = "dataeng@example.com"}
+]
+readme = "README.md"
+requires-python = ">=3.8"
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.pytest]
+testpaths = ["tests"]
