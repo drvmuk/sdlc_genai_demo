@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "customer-order-processing"
+version = "1.0.0"
+description = "A Delta Live Tables pipeline for processing customer and order data"
+authors = ["Data Engineering Team <data-engineering@example.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+pyspark = "^3.3.0"
+delta-spark = "^2.3.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.3.1"
+chispa = "^0.9.2"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
