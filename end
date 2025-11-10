@@ -1,0 +1,5 @@
+The solution implements a complete Delta Live Tables pipeline for processing customer and order data according to the requirements. The code handles all specified steps:
+
+1. Reading source CSV data from volumes
+2. Cleaning data by removing nulls and duplicates
+3. Adding a Total
