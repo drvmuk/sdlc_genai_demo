@@ -22,20 +22,18 @@ coverage.xml
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# Environments
+# Environment
 .env
 .venv
 env/
 venv/
 ENV/
-env.bak/
-venv.bak/
 
-# IDE specific files
+# IDE files
 .idea/
 .vscode/
 *.swp
 *.swo
 
-# Databricks
-.databricks/
+# OS specific files
+.DS_Store

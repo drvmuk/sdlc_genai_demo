@@ -1,9 +1,9 @@
 import dlt
-from pyspark.sql.functions import col, lit, current_timestamp, when, expr
+from pyspark.sql import functions as F
+from pyspark.sql.window import Window
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType, DateType
-from datetime import datetime
 
-# Define schemas
+# Define schemas for the datasets
 customer_schema = StructType([
     StructField("CustId", StringType(), True),
     StructField("Name", StringType(), True),
@@ -20,208 +20,177 @@ order_schema = StructType([
     StructField("CustId", StringType(), True)
 ])
 
-# Source tables
+# Define catalog and schema names
+CATALOG = "gen_ai_poc_databrickscoe"
+SCHEMA = "sdlc_wizard"
+
+# Step 1: Read source CSV data from volume
 @dlt.table(
-    name="customer",
-    comment="Customer data from CSV",
-    schema=customer_schema
+    name="bronze_customer",
+    comment="Raw customer data from source"
 )
-def customer():
+def bronze_customer():
     return (
-        spark.read
+        spark.read.format("csv")
         .option("header", "true")
         .schema(customer_schema)
-        .csv("/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata")
-        .dropna()  # Remove nulls
-        .dropDuplicates()  # Remove duplicates
+        .load("/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata")
     )
 
 @dlt.table(
-    name="order",
-    comment="Order data from CSV with TotalAmount calculated",
-    schema=order_schema.add(StructField("TotalAmount", DoubleType(), True))
+    name="bronze_order",
+    comment="Raw order data from source"
 )
-def order():
+def bronze_order():
     return (
-        spark.read
+        spark.read.format("csv")
         .option("header", "true")
         .schema(order_schema)
-        .csv("/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata")
-        .withColumn("TotalAmount", col("PricePerUnit") * col("Qty"))  # Add TotalAmount
-        .dropna()  # Remove nulls
-        .dropDuplicates()  # Remove duplicates
+        .load("/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata")
     )
 
-# SCD Type 2 implementation for ordersummary
+# Step 4: Clean data - remove nulls and duplicates
 @dlt.table(
-    name="ordersummary",
-    comment="Order summary with customer details using SCD Type 2"
+    name="silver_customer",
+    comment="Cleaned customer data with nulls and duplicates removed"
 )
-@dlt.expect_all_or_drop({"valid_customer_id": "CustId IS NOT NULL", "valid_order_id": "OrderId IS NOT NULL"})
-def ordersummary():
-    # Get the current data from the table if it exists
-    try:
-        current_data = dlt.read("ordersummary")
-        has_current_data = True
-    except:
-        has_current_data = False
+def silver_customer():
+    return (
+        dlt.read("bronze_customer")
+        .dropDuplicates()
+        .filter(
+            (F.col("CustId").isNotNull()) &
+            (F.col("Name").isNotNull()) &
+            (F.col("EmailId").isNotNull()) &
+            (F.col("Region").isNotNull())
+        )
+    )
+
+# Step 3 & 4: Add TotalAmount column and clean data
+@dlt.table(
+    name="silver_order",
+    comment="Cleaned order data with TotalAmount calculated"
+)
+def silver_order():
+    return (
+        dlt.read("bronze_order")
+        .dropDuplicates()
+        .filter(
+            (F.col("OrderId").isNotNull()) &
+            (F.col("ItemName").isNotNull()) &
+            (F.col("PricePerUnit").isNotNull()) &
+            (F.col("Qty").isNotNull()) &
+            (F.col("Date").isNotNull()) &
+            (F.col("CustId").isNotNull())
+        )
+        .withColumn("TotalAmount", F.col("PricePerUnit") * F.col("Qty"))
+    )
+
+# Step 5, 6, 7, 8: Create SCD Type 2 ordersummary table
+@dlt.table(
+    name="gold_ordersummary",
+    comment="SCD Type 2 table joining customer and order data",
+    table_properties={
+        "quality": "gold",
+        "pipelines.autoOptimize.managed": "true"
+    }
+)
+@dlt.expect_or_drop("valid_custid", "CustId IS NOT NULL")
+@dlt.expect_or_drop("valid_orderid", "OrderId IS NOT NULL")
+def gold_ordersummary():
+    # Get the current state of the target table if it exists
+    spark.conf.set("spark.databricks.delta.schema.autoMerge.enabled", "true")
+    
+    # Get current customer and order data
+    customer_df = dlt.read("silver_customer")
+    order_df = dlt.read("silver_order")
     
     # Join customer and order data
-    joined_data = (
-        dlt.read("order")
-        .join(
-            dlt.read("customer"),
+    joined_df = (
+        customer_df.join(
+            order_df,
             on="CustId",
             how="inner"
         )
         .select(
-            dlt.read("customer")["CustId"],
-            dlt.read("customer")["Name"],
-            dlt.read("customer")["EmailId"],
-            dlt.read("customer")["Region"],
-            dlt.read("order")["OrderId"],
-            dlt.read("order")["ItemName"],
-            dlt.read("order")["PricePerUnit"],
-            dlt.read("order")["Qty"],
-            dlt.read("order")["Date"],
-            dlt.read("order")["TotalAmount"]
+            customer_df["CustId"],
+            customer_df["Name"],
+            customer_df["EmailId"],
+            customer_df["Region"],
+            order_df["OrderId"],
+            order_df["ItemName"],
+            order_df["PricePerUnit"],
+            order_df["Qty"],
+            order_df["Date"]
         )
+        .withColumn("IsActive", F.lit(True))
+        .withColumn("StartDate", F.current_timestamp())
+        .withColumn("EndDate", F.lit(None).cast("timestamp"))
     )
     
-    if not has_current_data:
-        # First run - initialize with active records
-        return (
-            joined_data
-            .withColumn("IsActive", lit(True))
-            .withColumn("StartDate", current_timestamp())
-            .withColumn("EndDate", lit(None).cast("timestamp"))
-        )
-    else:
-        # Get active records
-        current_active = current_data.filter(col("IsActive") == True)
+    # Check if the target table exists
+    try:
+        # Get existing data
+        existing_df = spark.table(f"{CATALOG}.{SCHEMA}.ordersummary")
         
-        # Identify records that have changed
-        key_columns = ["CustId", "OrderId"]
-        change_columns = ["Name", "EmailId", "Region", "ItemName", "PricePerUnit", "Qty", "Date", "TotalAmount"]
-        
-        # Join to find matching records
-        matched_records = (
-            current_active
-            .join(
-                joined_data,
-                on=key_columns,
+        # Find records that need to be updated (customer details changed)
+        changed_records = (
+            joined_df.join(
+                existing_df.filter(F.col("IsActive") == True),
+                on=["CustId", "OrderId"],
                 how="inner"
             )
-        )
-        
-        # Identify changed records
-        change_condition = " OR ".join([f"current.{col_name} <> new.{col_name}" for col_name in change_columns])
-        changed_records_expr = expr(change_condition)
-        
-        # Mark records that need to be expired
-        records_to_expire = (
-            matched_records
-            .filter(changed_records_expr)
-            .select(
-                current_active["*"],
-                lit(False).alias("IsActive_new"),
-                current_timestamp().alias("EndDate_new")
+            .filter(
+                (joined_df["Name"] != existing_df["Name"]) |
+                (joined_df["EmailId"] != existing_df["EmailId"]) |
+                (joined_df["Region"] != existing_df["Region"])
             )
-        )
-        
-        # Update expired records
-        expired_records = (
-            records_to_expire
             .select(
-                col("CustId"),
-                col("Name"),
-                col("EmailId"),
-                col("Region"),
-                col("OrderId"),
-                col("ItemName"),
-                col("PricePerUnit"),
-                col("Qty"),
-                col("Date"),
-                col("TotalAmount"),
-                col("IsActive_new").alias("IsActive"),
-                col("StartDate"),
-                col("EndDate_new").alias("EndDate")
+                existing_df["CustId"],
+                existing_df["OrderId"]
             )
+            .distinct()
         )
         
-        # Get records that need to be inserted (changed records with new values)
-        new_changed_records = (
-            records_to_expire
-            .join(
-                joined_data,
-                on=key_columns,
+        # Update existing records (mark as inactive)
+        records_to_update = (
+            existing_df.join(
+                changed_records,
+                on=["CustId", "OrderId"],
                 how="inner"
             )
-            .select(
-                joined_data["CustId"],
-                joined_data["Name"],
-                joined_data["EmailId"],
-                joined_data["Region"],
-                joined_data["OrderId"],
-                joined_data["ItemName"],
-                joined_data["PricePerUnit"],
-                joined_data["Qty"],
-                joined_data["Date"],
-                joined_data["TotalAmount"],
-                lit(True).alias("IsActive"),
-                current_timestamp().alias("StartDate"),
-                lit(None).cast("timestamp").alias("EndDate")
-            )
+            .filter(F.col("IsActive") == True)
+            .withColumn("IsActive", F.lit(False))
+            .withColumn("EndDate", F.current_timestamp())
         )
         
-        # Get completely new records (not in current data)
-        completely_new_records = (
-            joined_data
-            .join(
-                current_active.select(*key_columns),
-                on=key_columns,
-                how="left_anti"
-            )
-            .select(
-                joined_data["*"],
-                lit(True).alias("IsActive"),
-                current_timestamp().alias("StartDate"),
-                lit(None).cast("timestamp").alias("EndDate")
-            )
+        # Combine updated records with new records
+        result_df = (
+            joined_df
+            .unionByName(records_to_update)
+            .dropDuplicates(["CustId", "OrderId", "IsActive", "StartDate"])
         )
         
-        # Get unchanged records
-        unchanged_records = (
-            current_data
-            .join(
-                expired_records.select(*key_columns),
-                on=key_columns,
-                how="left_anti"
-            )
-        )
-        
-        # Combine all record sets
-        return (
-            unchanged_records
-            .unionByName(expired_records)
-            .unionByName(new_changed_records)
-            .unionByName(completely_new_records)
-        )
+        return result_df
+    except:
+        # If table doesn't exist, return the joined data
+        return joined_df
 
-# Customer aggregate spend
+# Step 9 & 10: Create customer aggregate spend table
 @dlt.table(
-    name="customeraggregatespend",
-    comment="Customer aggregate spend by name and date"
+    name="gold_customeraggregatespend",
+    comment="Aggregated customer spending data",
+    table_properties={
+        "quality": "gold",
+        "pipelines.autoOptimize.managed": "true"
+    }
 )
-def customeraggregatespend():
+def gold_customeraggregatespend():
+    # Read from ordersummary and aggregate
     return (
-        dlt.read("ordersummary")
-        .filter(col("IsActive") == True)
+        dlt.read("gold_ordersummary")
+        .filter(F.col("IsActive") == True)  # Only consider active records
+        .withColumn("TotalAmount", F.col("PricePerUnit") * F.col("Qty"))
         .groupBy("Name", "Date")
-        .agg({"TotalAmount": "sum"})
-        .select(
-            col("Name"),
-            col("sum(TotalAmount)").alias("TotalAmount"),
-            col("Date")
-        )
+        .agg(F.sum("TotalAmount").alias("TotalAmount"))
     )
