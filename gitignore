@@ -18,12 +18,11 @@ nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
-.pytest_cache/
 
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# Environment
+# Environments
 .env
 .venv
 env/
