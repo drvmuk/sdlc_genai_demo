@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "customer_order_processing"
+version = "1.0.0"
+description = "Databricks PySpark data processing pipeline for customer and order data"
+authors = [
+    {name = "Data Engineering Team", email = "data.engineering@example.com"}
+]
+requires-python = ">=3.8"
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

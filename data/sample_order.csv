@@ -1,0 +1,7 @@
+OrderId,ItemName,PricePerUnit,Qty,Date,CustId
+O001,Product A,10.0,2,2023-01-15,C001
+O002,Product B,15.0,1,2023-01-20,C002
+O003,Product C,20.0,3,2023-01-25,C003
+O004,Product D,25.0,1,2023-01-30,C004
+O005,Product E,30.0,,2023-02-05,C001
+O001,Product A,10.0,2,2023-01-15,C001
