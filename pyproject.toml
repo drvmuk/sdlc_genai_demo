@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "customer-order-processing"
+version = "1.0.0"
+description = "Customer and order data processing pipeline with SCD Type 2 implementation"
+authors = [
+    {name = "Data Engineering Team", email = "dataeng@example.com"}
+]
+readme = "README.md"
+requires-python = ">=3.8"
+
+[project.dependencies]
+pyspark = "^3.3.2"
+delta-spark = "^2.3.0"
+
+[tool.pytest]
+testpaths = ["tests"]
