@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "customer_order_processing"
+version = "0.1.0"
+description = "Customer and Order data processing with Delta Live Tables"
+authors = [
+    {name = "Data Engineering Team", email = "data-engineering@example.com"}
+]
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.dependencies]
+pyspark = "^3.4.0"
+delta-spark = "^2.4.0"
+
+[project.dev-dependencies]
+pytest = "^7.3.1"
