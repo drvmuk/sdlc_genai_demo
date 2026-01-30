@@ -1,44 +1,48 @@
 # Functional Requirements Document — Application
 
-Here is the detailed Functional Requirement Document (FRD) based on the provided Business Requirement Document (BRD) and adhering to the specified template and instructions.
+Here is the detailed Functional Requirement Document (FRD) based on the provided BRD's "Coding Requirements" section.
 
+### 1. Requirement ID
+* FRD-001: Load Customer and Order Data into Delta Tables
+* FRD-002: Clean and Process Customer and Order Data
+* FRD-003: Create ordersummary Table and Load Joined Data
+* FRD-004: Implement SCD Type 2 Logic for ordersummary Table
+* FRD-005: Create customeraggregatespend Table and Load Aggregated Data
 
-## OUTPUT
-* In the first response when user provided PDF or DOCX file name, return the short summary(text) of the custom template just to show this is the custom template like 'Your FRD will contain these sections: 1. Requirement ID, 2. Title, 3. Description, 4. Preconditions, 5. Main Flow / Functional Steps' in the chat only (no JSON) and also ask question "Do you want me to use the default FRD template or a custom template you provide?"
-* Then:
-  - if user said "default" then generate the FRD for the input PDF or DOCX using the Default FRD Template.
-  - if user said "custom" then ask user to provide custom template example "Please provide your custom template" and then according to that template, generate FRD for the input PDF or DOCX strictly preserving the user’s template structure, headings, and order.
+### 2. Title
+* Loading and Processing Customer and Order Data
+* Generating Aggregated Customer Spend Data
 
-## Functional Requirements
-### Requirement ID: FRD-001
-### Title: Data Ingestion and Processing for Customer and Order Data
-### Description: The application will read source CSV data, clean and process it, and then load it into Delta tables. It will also create summary tables and aggregate customer spend data.
-### Preconditions: 
-* The input CSV files for customer and order data are available at the specified volume locations.
-* The necessary catalog and schema exist in the Databricks environment.
+### 3. Description
+The application will read customer and order data from CSV files, clean and process the data, and then load it into Delta tables. It will then join the customer and order data and load it into an SCD type 2 table. Finally, it will aggregate the data and load it into a customeraggregatespend table.
 
-### Main Flow / Functional Steps:
-* **Step 1: Read Source CSV Data**
-  * Read customer data from `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata`.
-  * Read order data from `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata`.
-* **Step 2: Load Data into Delta Tables**
-  * Load customer data into a Delta table named "customer" with schema: CustId, Name, EmailId, Region.
-  * Load order data into a Delta table named "order" with schema: OrderId, ItemName, PricePerUnit, Qty, Date, CustId.
-* **Step 3: Clean Data**
-  * Remove "Null"/Null records from both "customer" and "order" tables.
-  * Remove duplicate records from both "customer" and "order" tables.
-* **Step 4: Create ordersummary Table**
-  * Create "ordersummary" table if it does not exist in catalog="gen_ai_poc_databrickscoe" and schema="sdlc_wizard" with schema: CustId, Name, EmailId, Region, OrderId, ItemName, PricePerUnit, Qty, Date.
-* **Step 5: Join and Load Data into ordersummary SCD Type 2 Table**
-  * Join "customer" and "order" data on "CustId".
-  * Load the joined data into "ordersummary" SCD Type 2 table.
-  * Implement logic to update "ordersummary" SCD Type 2 table when there are changes in the "customer" table, making old records Inactive and new records Active, and updating StartDate and EndDate accordingly.
-* **Step 6: Create customeraggregatespend Table**
-  * Create "customeraggregatespend" table if it does not exist in catalog="gen_ai_poc_databrickscoe" and schema="sdlc_wizard" with columns: "Name", "TotalAmount", and "Date".
-* **Step 7: Aggregate and Load Data into customeraggregatespend Table**
-  * Aggregate "TotalAmount" from "ordersummary" table, grouping by "Name" and "Date".
-  * Load the aggregated data into "customeraggregatespend" table.
+### 4. Preconditions
+* The CSV files for customer and order data are available at the specified locations.
+* The Delta tables for customer and order data do not exist or are empty.
+* The catalog "gen_ai_poc_databrickscoe" and schema "sdlc_wizard" exist.
 
-### Questions:
-* Do you want to proceed with the default FRD template or provide a custom template?
-* Are there any specific requirements or changes needed in the outlined functional steps?
+### 5. Main Flow / Functional Steps
+
+* **Step 1: Load Customer and Order Data into Delta Tables**
+  • Read customer data from CSV file located at `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata`
+  • Read order data from CSV file located at `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata`
+  • Load customer data into Delta table `customer` with schema: `CustId`, `Name`, `EmailId`, `Region`
+  • Load order data into Delta table `order` with schema: `OrderId`, `ItemName`, `PricePerUnit`, `Qty`, `Date`, `CustId`
+
+* **Step 2: Clean and Process Customer and Order Data**
+  • Remove null and duplicate records from `customer` and `order` tables
+
+* **Step 3: Create ordersummary Table and Load Joined Data**
+  • Create `ordersummary` table if not exists in catalog "gen_ai_poc_databrickscoe" and schema "sdlc_wizard" with schema: `CustId`, `Name`, `EmailId`, `Region`, `OrderId`, `ItemName`, `PricePerUnit`, `Qty`, `Date`
+  • Join `customer` and `order` data using `CustId` field
+  • Load joined data into `ordersummary` table as SCD type 2 table
+
+* **Step 4: Implement SCD Type 2 Logic for ordersummary Table**
+  • Update `ordersummary` table whenever there is a change in `customer` table
+  • Make old records inactive and new records active
+  • Update `StartDate` and `EndDate` accordingly
+
+* **Step 5: Create customeraggregatespend Table and Load Aggregated Data**
+  • Create `customeraggregatespend` table if not exists in catalog "gen_ai_poc_databrickscoe" and schema "sdlc_wizard" with columns: `Name`, `TotalAmount`, `Date`
+  • Aggregate `TotalAmount` from `ordersummary` table and group by `Name` and `Date`
+  • Load aggregated data into `customeraggregatespend` table
