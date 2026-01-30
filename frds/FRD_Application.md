@@ -1,48 +1,54 @@
 # Functional Requirements Document — Application
 
-Here is the detailed Functional Requirement Document (FRD) based on the provided BRD's "Coding Requirements" section.
+### Custom FRD Template Output
 
-### 1. Requirement ID
-* FRD-001: Load Customer and Order Data into Delta Tables
-* FRD-002: Clean and Process Customer and Order Data
-* FRD-003: Create ordersummary Table and Load Joined Data
-* FRD-004: Implement SCD Type 2 Logic for ordersummary Table
-* FRD-005: Create customeraggregatespend Table and Load Aggregated Data
+When the user provides a PDF or DOCX file name, return a short summary of the custom template and ask if they want to use the default or custom template.
 
-### 2. Title
-* Loading and Processing Customer and Order Data
-* Generating Aggregated Customer Spend Data
+* Your FRD will contain these sections: 1. Requirement ID, 2. Title, 3. Description, 4. Preconditions, 5. Main Flow / Functional Steps
+* Do you want me to use the default FRD template or a custom template you provide?
 
-### 3. Description
-The application will read customer and order data from CSV files, clean and process the data, and then load it into Delta tables. It will then join the customer and order data and load it into an SCD type 2 table. Finally, it will aggregate the data and load it into a customeraggregatespend table.
+### After User Chooses Template
 
-### 4. Preconditions
-* The CSV files for customer and order data are available at the specified locations.
-* The Delta tables for customer and order data do not exist or are empty.
-* The catalog "gen_ai_poc_databrickscoe" and schema "sdlc_wizard" exist.
+#### Default Template
 
-### 5. Main Flow / Functional Steps
+If the user chooses the default template, generate the FRD using the default template.
 
-* **Step 1: Load Customer and Order Data into Delta Tables**
-  • Read customer data from CSV file located at `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata`
-  • Read order data from CSV file located at `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata`
-  • Load customer data into Delta table `customer` with schema: `CustId`, `Name`, `EmailId`, `Region`
-  • Load order data into Delta table `order` with schema: `OrderId`, `ItemName`, `PricePerUnit`, `Qty`, `Date`, `CustId`
+#### Custom Template
 
-* **Step 2: Clean and Process Customer and Order Data**
-  • Remove null and duplicate records from `customer` and `order` tables
+If the user chooses a custom template, ask them to provide the custom template example.
 
-* **Step 3: Create ordersummary Table and Load Joined Data**
-  • Create `ordersummary` table if not exists in catalog "gen_ai_poc_databrickscoe" and schema "sdlc_wizard" with schema: `CustId`, `Name`, `EmailId`, `Region`, `OrderId`, `ItemName`, `PricePerUnit`, `Qty`, `Date`
-  • Join `customer` and `order` data using `CustId` field
-  • Load joined data into `ordersummary` table as SCD type 2 table
+* Please provide your custom template
 
-* **Step 4: Implement SCD Type 2 Logic for ordersummary Table**
-  • Update `ordersummary` table whenever there is a change in `customer` table
-  • Make old records inactive and new records active
-  • Update `StartDate` and `EndDate` accordingly
+### FRD Generation
 
-* **Step 5: Create customeraggregatespend Table and Load Aggregated Data**
-  • Create `customeraggregatespend` table if not exists in catalog "gen_ai_poc_databrickscoe" and schema "sdlc_wizard" with columns: `Name`, `TotalAmount`, `Date`
-  • Aggregate `TotalAmount` from `ordersummary` table and group by `Name` and `Date`
-  • Load aggregated data into `customeraggregatespend` table
+After the user provides the input PDF or DOCX file and chooses a template, generate the FRD.
+
+#### Default FRD Template
+
+Here is the generated FRD using the default template:
+
+1. **Requirement ID**: REQ001
+2. **Title**: Load Customer and Order Data into Delta Tables and Generate Aggregate Spend
+3. **Description**: This requirement involves loading customer and order data from CSV files into Delta tables, joining the data, and generating an aggregate spend report.
+4. **Preconditions**:
+	* Customer and order CSV files are available at the specified locations.
+	* The Delta tables do not have any existing data that would conflict with the new data.
+5. **Main Flow / Functional Steps**:
+	* Read source CSV data from volume and load to Delta tables: customer and order.
+	* Remove “Null”/Null and Duplicate records from both tables.
+	* Create “ordersummary” table if not exists in catalog=“gen_ai_poc_databrickscoe” and schema=“sdlc_wizard”.
+	* Join customer and order data using “CustId” field and load the data in SCD type 2 table under catalog=gen_ai_poc_databrickscoe, schema= sdlc_wizard, table=ordersummary.
+	* Include a logic to update the SCD type 2 table ordersummary whenever there is a change in the customer table.
+	* Create a table if not exists new table “customeraggregatespend” with columns “Name”, “TotalAmount” and “Date” in catalog=“gen_ai_poc_databrickscoe” and schema=“sdlc_wizard”.
+	* Aggregate the “TotalAmount” column from “ordersummary” table and group by “Name” and “Date” columns.
+	* Load the aggregated data from the “ordersummary” table having columns “Name”, “TotalAmount” and “Date” and load in “customeraggregatespend”.
+
+#### Custom FRD Template
+
+If the user provides a custom template, generate the FRD according to the provided template.
+
+### After FRD Generation
+
+After generating and presenting the full FRD to the user (default or custom), ask:
+
+* Would you like me to push this FRD to GitHub as a Markdown file from memory?
