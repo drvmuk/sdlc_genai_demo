@@ -1,24 +1,22 @@
 # Functional Requirements Document — Application
 
-Here is the detailed Functional Requirement Document (FRD) based on the "Coding Requirements" section of the BRD:
+### Functional Requirement Document (FRD)
 
+#### Requirement ID
+1. Data Ingestion and Processing
 
-## Default FRD Template
+#### Title
+Ingest Customer and Order Data, Process, and Generate Aggregate Spend
 
-The following is the default FRD template that will be used to generate the FRD.
+#### Description
+The application will ingest customer and order data from CSV files, process it, and generate aggregate spend data for customers.
 
+#### Preconditions
 
-## Requirement ID
+#### Main Flow / Functional Steps
+  • Customer data from `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata`
+  • Order data from `/Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata`
 
-## Title
-
-## Description
-
-## Preconditions
-
-## Main Flow / Functional Steps
-	+ Customer data is stored in /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/customerdata.
-	+ Order data is stored in /Volumes/gen_ai_poc_databrickscoe/sdlc_wizard/orderdata.
-	+ Old records should be made Inactive.
-	+ New records should be made Active.
-	+ StartDate and EndDate should be updated accordingly.
+#### Detailed Functional Requirements
+  • Customer: CustId, Name, EmailId, Region
+  • Order: OrderId, ItemName, PricePerUnit, Qty, Date, CustId
