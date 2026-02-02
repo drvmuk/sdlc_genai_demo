@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sales_orders_sql_generator"
+version = "1.0.0"
+description = "SQL Generator for Sales Orders Data Pipeline"
+authors = [
+    {name = "Data Engineering Team", email = "data-engineering@example.com"}
+]
+readme = "README.md"
+requires-python = ">=3.7"
+
+[project.dependencies]
+pyspark = ">=3.0.0"
+
+[project.optional-dependencies]
+test = [
+    "pytest>=6.0.0",
+]
+
+[tool.pytest]
+testpaths = ["tests"]
