@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "e2e_address_change_yuyu_creation"
+version = "1.0.0"
+description = "PySpark implementation of the E2E Address Change YUYU Creation workflow"
+authors = [
+    {name = "Data Engineering Team", email = "dataeng@example.com"}
+]
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=6.0"]
