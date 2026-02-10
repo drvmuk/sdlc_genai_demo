@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "e2e_address_change_yuyu"
+version = "1.0.0"
+description = "E2E Policy Services Address Change YUYU Processing Pipeline"
+authors = [
+    {name = "Data Engineering Team", email = "data.engineering@example.com"}
+]
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/example/e2e_address_change_yuyu"
+"Bug Tracker" = "https://github.com/example/e2e_address_change_yuyu/issues"
