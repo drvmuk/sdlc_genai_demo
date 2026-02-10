@@ -1,0 +1,22 @@
+[project]
+name = "e2e-policy-services-yuyu"
+version = "1.0.0"
+description = "PySpark implementation of DP Address Change YUYU extract for E2E Policy Services"
+authors = [
+    {name = "Data Engineering Team", email = "data-eng@company.com"}
+]
+requires-python = ">=3.8"
+dependencies = [
+    "pyspark>=3.3.0",
+    "python-dotenv>=0.19.0"
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0.0",
+    "pytest-spark>=0.6.0"
+]
+
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"

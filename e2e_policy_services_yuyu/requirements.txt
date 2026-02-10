@@ -1,0 +1,4 @@
+pyspark>=3.3.0
+pytest>=7.0.0
+pytest-spark>=0.6.0
+python-dotenv>=0.19.0
