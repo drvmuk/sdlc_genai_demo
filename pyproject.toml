@@ -1,0 +1,11 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "e2e_policy_services_control"
+version = "1.0.0"
+description = "E2E Policy Services Control Processes"
+authors = [
+    {name = "Data Engineering Team"}
+]
