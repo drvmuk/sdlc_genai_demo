@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bncpls_if23b_10k_file_generator"
+version = "1.0.0"
+description = "PySpark implementation for BNCPLS IF23B 10K File Generation"
+authors = [
+    {name = "Data Engineering Team", email = "data.engineering@example.com"}
+]
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.dependencies]
+pyspark = "^3.3.0"
+py4j = "^0.10.9.5"
+lxml = "^4.9.2"
+
+[tool.pytest]
+testpaths = ["tests"]
