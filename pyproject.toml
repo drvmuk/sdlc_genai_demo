@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bncpls_if23b_10k_file_generator"
+version = "1.0.0"
+description = "BNCPLS IF23B 10K File Generation Pipeline"
+authors = [
+    {name = "Data Engineering Team", email = "data.engineering@example.com"}
+]
+requires-python = ">=3.8"
+
+[project.dependencies]
+pyspark = "^3.3.0"
+databricks-connect = "^11.0"
+py4j = "^0.10.9"
+lxml = "^4.9.2"
+
+[tool.pytest]
+testpaths = ["tests"]

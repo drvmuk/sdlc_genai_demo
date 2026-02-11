@@ -1,0 +1,5 @@
+pyspark>=3.3.0
+databricks-connect>=11.0
+py4j>=0.10.9
+lxml>=4.9.2
+pytest>=7.0.0
