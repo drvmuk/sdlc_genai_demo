@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "e2e_policy_services_bc_k2h"
+version = "1.0.0"
+description = "E2E Policy Services BC K2H Data Extraction"
+authors = [
+    {name = "Data Engineering Team", email = "data.engineering@company.com"}
+]
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "Proprietary"}
+
+[project.dependencies]
+pyspark = "^3.3.0"
+pytest = "^7.3.1"
