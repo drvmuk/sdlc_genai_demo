@@ -1,0 +1,26 @@
+{
+  "name": "dlt_orders_pipeline",
+  "storage": "dbfs:/pipelines/<your-pipeline-storage-path>",
+  "target": "gen_ai_poc_databrickscoe.sdlc_wizard",
+  "continuous": false,
+  "development": true,
+  "edition": "ADVANCED",
+  "clusters": [
+    {
+      "label": "default",
+      "num_workers": 2,
+      "spark_version": "13.3.x-scala2.12",
+      "node_type_id": "Standard_D3_v2"
+    }
+  ],
+  "libraries": [
+    {
+      "notebook": {
+        "path": "/Workspace/Repos/<user>/dlt_orders_pipeline/src/python/pipelines/dlt_orders_pipeline.py"
+      }
+    }
+  ],
+  "configuration": {
+    "pipelines.enableTrackHistory": "true"
+  }
+}
