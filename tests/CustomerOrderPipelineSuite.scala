@@ -1,3 +1,7 @@
+// ScalaTest suite for Customer Order Pipeline
+// This test suite validates data schemas, cleaning logic, calculations, and aggregations
+// using Spark 3.x and ScalaTest FunSuite style.
+
 import org.scalatest.funsuite.AnyFunSuite
 import org.apache.spark.sql.{SparkSession, DataFrame}
 import org.apache.spark.sql.types._
@@ -6,6 +10,7 @@ import java.sql.Date
 
 class CustomerOrderPipelineSuite extends AnyFunSuite {
 
+  // Spark session used across all tests. Configured for local execution.
   lazy val spark: SparkSession = SparkSession.builder()
     .appName("TestCustomerOrderPipeline")
     .master("local[1]")
@@ -13,6 +18,8 @@ class CustomerOrderPipelineSuite extends AnyFunSuite {
 
   import spark.implicits._
 
+  // Module: Customer schema definition
+  // Purpose: Provides a consistent StructType for customer DataFrames in tests.
   def customerSchema: StructType = StructType(Seq(
     StructField("CustId", StringType, nullable = true),
     StructField("Name", StringType, nullable = true),
@@ -20,6 +27,8 @@ class CustomerOrderPipelineSuite extends AnyFunSuite {
     StructField("Region", StringType, nullable = true)
   ))
 
+  // Module: Order schema definition
+  // Purpose: Provides a consistent StructType for order DataFrames in tests.
   def orderSchema: StructType = StructType(Seq(
     StructField("OrderId", StringType, nullable = true),
     StructField("ItemName", StringType, nullable = true),
@@ -29,14 +38,17 @@ class CustomerOrderPipelineSuite extends AnyFunSuite {
     StructField("CustId", StringType, nullable = true)
   ))
 
+  // Module: Sample customer data
+  // Purpose: Creates an in-memory DataFrame with representative customer rows
+  // including nulls and duplicates to exercise validation/cleaning paths.
   def sampleCustomerData(): DataFrame = {
     val data = Seq(
       ("C001", "John Doe", "john@example.com", "North"),
       ("C002", "Jane Smith", "jane@example.com", "South"),
       ("C003", "Bob Johnson", "bob@example.com", "East"),
-      ("C004", null.asInstanceOf[String], "alice@example.com", "West"),
+      ("C004", null.asInstanceOf[String], "alice@example.com", "West"), // contains null
       ("C005", "Tom Brown", "tom@example.com", "North"),
-      ("C005", "Tom Brown", "tom@example.com", "North")
+      ("C005", "Tom Brown", "tom@example.com", "North") // duplicate key
     )
     spark.createDataFrame(
       spark.sparkContext.parallelize(data.map { case (a,b,c,d) => org.apache.spark.sql.Row(a,b,c,d) }),
@@ -44,6 +56,9 @@ class CustomerOrderPipelineSuite extends AnyFunSuite {
     )
   }
 
+  // Module: Sample order data
+  // Purpose: Creates an in-memory DataFrame with representative order rows
+  // including nulls and duplicates to validate cleaning and aggregations.
   def sampleOrderData(): DataFrame = {
     val data = Seq(
       ("O001", "Laptop", 1200.0, 1, Date.valueOf("2023-01-15"), "C001"),
@@ -51,9 +66,9 @@ class CustomerOrderPipelineSuite extends AnyFunSuite {
       ("O003", "Tablet", 500.0, 1, Date.valueOf("2023-01-25"), "C003"),
       ("O004", "Headphones", 100.0, 3, Date.valueOf("2023-01-30"), "C001"),
       ("O005", "Charger", 25.0, 5, Date.valueOf("2023-02-05"), "C002"),
-      ("O006", "Case", null.asInstanceOf[java.lang.Double], 2, Date.valueOf("2023-02-10"), "C003"),
+      ("O006", "Case", null.asInstanceOf[java.lang.Double], 2, Date.valueOf("2023-02-10"), "C003"), // contains null
       ("O007", "Screen", 50.0, 1, Date.valueOf("2023-02-15"), "C005"),
-      ("O007", "Screen", 50.0, 1, Date.valueOf("2023-02-15"), "C005")
+      ("O007", "Screen", 50.0, 1, Date.valueOf("2023-02-15"), "C005") // duplicate key
     )
     val rdd = spark.sparkContext.parallelize(
       data.map { case (a,b,c,d,e,f) => org.apache.spark.sql.Row(a,b,c,d,e,f) }
@@ -61,6 +76,8 @@ class CustomerOrderPipelineSuite extends AnyFunSuite {
     spark.createDataFrame(rdd, orderSchema)
   }
 
+  // Module: DataFrame column validation
+  // Purpose: Ensures required columns exist; mirrors Python validate_data behavior.
   def validateData(df: DataFrame, requiredCols: Seq[String]): Boolean = {
     val cols = df.columns.toSet
     val missing = requiredCols.filterNot(cols.contains)
@@ -68,6 +85,8 @@ class CustomerOrderPipelineSuite extends AnyFunSuite {
     true
   }
 
+  // Test: Column validation (positive and negative cases)
+  // Verifies validateData returns true for valid inputs and throws for missing columns.
   test("validate_data: valid and invalid columns") {
     val customers = sampleCustomerData()
     assert(validateData(customers, Seq("CustId", "Name", "EmailId", "Region")) === true)
@@ -78,16 +97,20 @@ class CustomerOrderPipelineSuite extends AnyFunSuite {
     assert(ex.getMessage.contains("Missing required columns"))
   }
 
+  // Test: Data cleaning logic
+  // Ensures nulls are filtered out and duplicates removed for both datasets.
   test("data cleaning logic") {
     val customers = sampleCustomerData()
     val orders = sampleOrderData()
 
+    // Remove null-critical fields and drop duplicate customers by CustId
     val cleanedCustomer = customers
       .filter(col("CustId").isNotNull && col("Name").isNotNull && col("EmailId").isNotNull && col("Region").isNotNull)
       .dropDuplicates("CustId")
 
     assert(cleanedCustomer.count() === 4L)
 
+    // Remove null-critical fields and drop duplicate orders by OrderId
     val cleanedOrder = orders
       .filter(
         col("OrderId").isNotNull &&
@@ -102,6 +125,8 @@ class CustomerOrderPipelineSuite extends AnyFunSuite {
     assert(cleanedOrder.count() === 5L)
   }
 
+  // Test: TotalAmount calculation
+  // Validates withColumn expression PricePerUnit * Qty on specific orders.
   test("total amount calculation") {
     val orders = sampleOrderData()
     val withTotal = orders.withColumn("TotalAmount", col("PricePerUnit") * col("Qty"))
@@ -113,6 +138,8 @@ class CustomerOrderPipelineSuite extends AnyFunSuite {
     assert(math.abs(o002 - 1600.0) < 1e-9)
   }
 
+  // Test: Customer aggregate spend per day
+  // Validates join with customers and daily aggregation of TotalAmount.
   test("customer aggregate spend per day") {
     val customers = sampleCustomerData()
     val orders = sampleOrderData()
